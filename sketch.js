@@ -72,14 +72,11 @@ function keyPressed() {
 
 function updateGameState() {
     // check if snake ate the food
-    if (snake.intersects(food)) {
+    if (snake.eat(food)) {
+        // update score
+        score.points++;
+
         // spawn food in new location
         food.place(grid);
-
-        // update score
-        score.addPoint();
-
-        // add to snakes body
-
     }
 }
