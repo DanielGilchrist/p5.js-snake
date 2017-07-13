@@ -8,10 +8,6 @@ class Score {
         this.text = "Score: ";
     }
 
-    addPoint() {
-        this.points++;
-    }
-
     draw() {
         fill(this.colour);
         textSize(this.size);
