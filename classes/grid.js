@@ -38,14 +38,6 @@ class Grid {
         }
     }
 
-    getGridWidth() {
-        return this.numBlocksWidth * this.blockWidth;
-    }
-
-    getGridHeight() {
-        return this.numBlocksHeight * this.blockWidth;
-    }
-
     getUnoccupiedSafeBlock() {
         // "~~" returns the random number as an integer instead of a float
         var validBlock = false;
@@ -60,11 +52,6 @@ class Grid {
         }
 
         return this.safeBlocks[index];
-    }
-
-    changeColour() {
-        var randomColour = [(Math.random() * 256) + 130, (Math.random() * 256) + 130, (Math.random() * 256) + 130];
-        this.colour = randomColour;
     }
 
     draw() {
