@@ -68,6 +68,9 @@ function keyPressed() {
 }
 
 function updateGameState() {
+    // update snake
+    snake.update();
+    
     // change blocks occupied
     grid.safeBlocks.forEach(function(gridBlock) {
         snake.body.forEach(function(snakeBlock) {

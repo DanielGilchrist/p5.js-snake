@@ -50,14 +50,12 @@ class Snake {
         if (this.size >= 1) {
             this.body[this.size - 1] = createVector(this.x, this.y);
         }
-    }
-
-    draw() {
-        this.update();
 
         this.x += this.xdir;
         this.y += this.ydir;
+    }
 
+    draw() {
         fill(this.colour);
         this.body.forEach(function(block) {
             rect(block.x, block.y, this.width, this.width);
