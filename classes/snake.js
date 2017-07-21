@@ -16,7 +16,7 @@ class Snake {
     }
 
     eat(food) {
-        if (this.x == food.x && this.y == food.y) {
+        if (this.x === food.x && this.y === food.y) {
             this.size++;
             return true;
         } else {
