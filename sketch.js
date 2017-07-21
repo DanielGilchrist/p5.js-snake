@@ -60,6 +60,18 @@ function keyPressed() {
 }
 
 function updateGameState() {
+    // change blocks occupied
+    grid.safeBlocks.forEach(function(gridBlock) {
+        snake.body.forEach(function(snakeBlock) {
+            if ((snake.x === gridBlock.x && snake.y === gridBlock.y) || 
+                (gridBlock.x === snakeBlock.x && gridBlock.y === snakeBlock.y)) {
+                    gridBlock.occupied = true;
+            } else {
+                gridBlock.occupied = false;
+            }
+        }, this);
+    }, this);
+    
     // check if the snake is dead
     if (snake.isDead(grid)) {
         window.alert("GAME OVER\nClick 'OK' to restart");
@@ -74,18 +86,6 @@ function updateGameState() {
         // spawn food in new location
         food.place(grid);
     }
-
-    // change blocks occupied
-    grid.safeBlocks.forEach(function(gridBlock) {
-        snake.body.forEach(function(snakeBlock) {
-            if ((snake.x === gridBlock.x && snake.y === gridBlock.y) || 
-                (gridBlock.x === snakeBlock.x && gridBlock.y === snakeBlock.y)) {
-                    gridBlock.occupied = true;
-            } else {
-                gridBlock.occupied = false;
-            }
-        }, this);
-    }, this);
 }
 
 function reset() {
