@@ -54,6 +54,29 @@ class Grid {
         return this.safeBlocks[index];
     }
 
+    update(snake) {
+        // checks if blocks are occupied by the snake and sets them accordingly
+        grid.safeBlocks.forEach(function(gridBlock) {
+            var isOccupied = false;
+            if (snake.x === gridBlock.x && snake.y === gridBlock.y) {
+                gridBlock.occupied = true;
+            } else if (snake.size > 0) {
+                // uses some instead of forEach to break early if block is occupied
+                snake.body.some(function(snakeBlock) {
+                    if (snakeBlock.x === gridBlock.x && snakeBlock.y === gridBlock.y) {
+                        gridBlock.occupied = true;
+                        isOccupied = true;
+                        return true; // break
+                    }
+                }, this);
+
+                if (!isOccupied) {
+                    gridBlock.occupied = false;
+                }
+            }
+        }, this);
+    }
+
     draw() {
         noStroke();
 

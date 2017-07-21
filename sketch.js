@@ -74,22 +74,8 @@ function updateGameState() {
     // update snake
     snake.update();
 
-    // change blocks occupied
-    grid.safeBlocks.forEach(function(gridBlock) {
-        var alreadyChecked = false;
-        if (snake.x === gridBlock.x && snake.y === gridBlock.y) {
-            gridBlock.occupied = true;
-        } else if (snake.size > 0) {
-            snake.body.forEach(function(snakeBlock) {
-                if (snakeBlock.x === gridBlock.x && snakeBlock.y === gridBlock.y) {
-                    gridBlock.occupied = true;
-                    alreadyChecked = true;
-                } else if (!alreadyChecked) {
-                    gridBlock.occupied = false;
-                }
-            }, this);
-        }
-    }, this);
+    // update the grid
+    grid.update(snake);
 
     // check if the snake is dead
     if (snake.isDead(grid)) {
