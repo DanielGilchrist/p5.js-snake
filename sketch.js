@@ -1,14 +1,12 @@
 // constants
-//const CANVAS_WIDTH = 900; 
-//const CANVAS_HEIGHT = 600;
 const BLOCK_WIDTH = 25;
 const GRID_COLOUR = [207, 181, 242];
 const SNAKE_COLOUR = [117, 232, 116];
 const FOOD_COLOUR = [230, 80, 90];
 
 // window size definitions
-var CANVAS_WIDTH;
-var CANVAS_HEIGHT;
+var canvasWidth;
+var canvasHeight;
 
 // globals
 var grid;
@@ -18,29 +16,20 @@ var score;
 var gridColour;
 
 function setup() {
-    CANVAS_WIDTH = windowWidth - 20;
-    CANVAS_HEIGHT = windowHeight - 20;
+    canvasWidth = windowWidth - 20;
+    canvasHeight = windowHeight - 20;
 
-    createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+    createCanvas(canvasWidth, canvasHeight);
     frameRate(12);
 
-    gridColour = [(Math.random() * 200) + 100, (Math.random() * 130) + 70, (Math.random() * 256) + 130];
-
-    grid = new Grid(CANVAS_WIDTH, CANVAS_HEIGHT, gridColour, BLOCK_WIDTH);
-
-    snake = new Snake(grid.safeBlocks[0].x, grid.safeBlocks[0].y, BLOCK_WIDTH, SNAKE_COLOUR);
-
-    food = new Food(BLOCK_WIDTH, FOOD_COLOUR);
-    food.place(grid);
-
-    score = new Score(BLOCK_WIDTH, BLOCK_WIDTH - (BLOCK_WIDTH / 7), BLOCK_WIDTH / 1.5, 0);
+    reset();
 }
 
 function draw() {  
     updateGameState();
     grid.draw();
     food.draw();
-    snake.draw(grid);
+    snake.draw();
     score.draw();
 }
 
@@ -71,6 +60,12 @@ function keyPressed() {
 }
 
 function updateGameState() {
+    // check if the snake is dead
+    if (snake.isDead(grid)) {
+        window.alert("GAME OVER\nClick 'OK' to restart");
+        reset();
+    }
+
     // check if snake ate the food
     if (snake.eat(food)) {
         // update score
@@ -79,4 +74,17 @@ function updateGameState() {
         // spawn food in new location
         food.place(grid);
     }
+}
+
+function reset() {
+    gridColour = [(Math.random() * 200) + 100, (Math.random() * 130) + 70, (Math.random() * 256) + 130];
+
+    grid = new Grid(canvasWidth, canvasHeight, gridColour, BLOCK_WIDTH);
+
+    snake = new Snake(grid.safeBlocks[0].x, grid.safeBlocks[0].y, BLOCK_WIDTH, SNAKE_COLOUR);
+
+    food = new Food(BLOCK_WIDTH, FOOD_COLOUR);
+    food.place(grid);
+
+    score = new Score(BLOCK_WIDTH, BLOCK_WIDTH - (BLOCK_WIDTH / 7), BLOCK_WIDTH / 1.5, 0);
 }

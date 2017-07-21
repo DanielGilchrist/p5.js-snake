@@ -4,7 +4,6 @@ class Snake {
         this.y = y;
         this.width = width;
         this.colour = colour;
-        // keep snake aligned with grid using width
         this.xdir = width;
         this.ydir = 0;
         this.size = 0;
@@ -25,6 +24,24 @@ class Snake {
         }
     }
 
+    isDead(grid) {
+        // checks if the snake has tried to eat itself
+        for (var i = 0; i < this.body.length; i++) {
+            if (dist(this.x, this.y, this.body[i].x, this.body[i].y) < 1) {
+                return true;
+            } 
+        }
+
+        // checks if the snake goes onto an unsafe block
+        for (var i = 0; i < grid.unsafeBlocks.length; i++) {
+            if (dist(this.x, this.y, grid.unsafeBlocks[i].x, grid.unsafeBlocks[i].y) < 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     update() {
         for (var i = 0; i < this.body.length - 1; i++) {
             this.body[i] = this.body[i + 1];
@@ -35,15 +52,11 @@ class Snake {
         }
     }
 
-    // grid object is passed in to constrain the snake to the grid
-    draw(grid) {
+    draw() {
         this.update();
 
         this.x += this.xdir;
         this.y += this.ydir;
-
-        this.x = constrain(this.x, this.width, grid.getGridWidth() - (this.width * 2));
-        this.y = constrain(this.y, this.width, grid.getGridHeight() - (this.width * 2));
 
         fill(this.colour);
         this.body.forEach(function(block) {
