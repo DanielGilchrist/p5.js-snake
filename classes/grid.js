@@ -28,10 +28,10 @@ class Grid {
 
             if (yCount === 0 || xCount === 0 || xCount === numBlocksHorz - 1 || yCount == numBlocksVert - 1) {
                 this.unsafeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount, 
-                                                 this.blockWidth, this.unsafeColour, BlockType.UNSAFE));
+                                                 this.blockWidth, this.unsafeColour));
             } else {
                 this.safeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount, 
-                                               this.blockWidth, this.safeColour, BlockType.SAFE));
+                                               this.blockWidth, this.safeColour));
             }
 
             xCount++;

@@ -1,12 +1,9 @@
-var BlockType = Object.freeze({SAFE: 0, UNSAFE: 1, SNAKE: 2, });
-
 class Block {
-    constructor(x, y, width, colour, type) {
+    constructor(x, y, width, colour) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.colour = colour;
-        this.type = type;
         this.occupied = false;
     }
 
