@@ -33,14 +33,14 @@ function draw() {
     score.draw();
 }
 
-function windowResized() {
+/*function windowResized() {
     var newWidth = windowWidth - 20;
     var newHeight = windowHeight - 20;
 
     resizeCanvas(newWidth, newHeight);
     grid = new Grid(newWidth, newHeight, gridColour, BLOCK_WIDTH);
     food.place(grid);
-}
+}*/
 
 function keyPressed() {
     switch (keyCode) {
@@ -71,7 +71,7 @@ function updateGameState() {
             }
         }, this);
     }, this);
-    
+
     // check if the snake is dead
     if (snake.isDead(grid)) {
         window.alert("GAME OVER\nClick 'OK' to restart");
