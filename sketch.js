@@ -64,23 +64,31 @@ function keyPressed() {
                 snake.changeDir(BLOCK_WIDTH, 0);
             }
             break;
+        case 80: // 'p'
+            window.alert("Paused\nPress the 'OK' button to continue");
+            break;
     }
 }
 
 function updateGameState() {
     // update snake
     snake.update();
-    
+
     // change blocks occupied
     grid.safeBlocks.forEach(function(gridBlock) {
-        snake.body.forEach(function(snakeBlock) {
-            if ((snake.x === gridBlock.x && snake.y === gridBlock.y) || 
-                (gridBlock.x === snakeBlock.x && gridBlock.y === snakeBlock.y)) {
+        var alreadyChecked = false;
+        if (snake.x === gridBlock.x && snake.y === gridBlock.y) {
+            gridBlock.occupied = true;
+        } else if (snake.size > 0) {
+            snake.body.forEach(function(snakeBlock) {
+                if (snakeBlock.x === gridBlock.x && snakeBlock.y === gridBlock.y) {
                     gridBlock.occupied = true;
-            } else {
-                gridBlock.occupied = false;
-            }
-        }, this);
+                    alreadyChecked = true;
+                } else if (!alreadyChecked) {
+                    gridBlock.occupied = false;
+                }
+            }, this);
+        }
     }, this);
 
     // check if the snake is dead
