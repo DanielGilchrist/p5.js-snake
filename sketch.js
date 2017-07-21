@@ -45,16 +45,24 @@ function draw() {
 function keyPressed() {
     switch (keyCode) {
         case UP_ARROW:
-            snake.changeDir(0, -BLOCK_WIDTH);
+            if (snake.size === 0 || (snake.xdir !== 0 && snake.ydir === 0)) {
+                snake.changeDir(0, -BLOCK_WIDTH);
+            }
             break;
         case DOWN_ARROW:
-            snake.changeDir(0, BLOCK_WIDTH);
+            if (snake.size === 0 || (snake.xdir !== 0 && snake.ydir === 0)) {
+                snake.changeDir(0, BLOCK_WIDTH);
+            }
             break;
         case LEFT_ARROW:
-            snake.changeDir(-BLOCK_WIDTH, 0);
+            if (snake.size === 0 || (snake.xdir === 0 && snake.ydir !== 0)) {
+                snake.changeDir(-BLOCK_WIDTH, 0);
+            }
             break;
         case RIGHT_ARROW:
-            snake.changeDir(BLOCK_WIDTH, 0);
+            if (snake.size === 0 || (snake.xdir === 0 && snake.ydir !== 0)) {
+                snake.changeDir(BLOCK_WIDTH, 0);
+            }
             break;
     }
 }
