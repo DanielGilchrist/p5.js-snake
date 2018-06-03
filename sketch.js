@@ -5,15 +5,15 @@ const SNAKE_COLOUR = [117, 232, 116];
 const FOOD_COLOUR = [230, 80, 90];
 
 // window size definitions
-var canvasWidth;
-var canvasHeight;
+let canvasWidth;
+let canvasHeight;
 
 // globals
-var grid;
-var snake;
-var food;
-var score;
-var gridColour;
+let grid;
+let snake;
+let food;
+let score;
+let gridColour;
 
 function setup() {
     canvasWidth = windowWidth - 20;
@@ -25,7 +25,7 @@ function setup() {
     reset();
 }
 
-function draw() {  
+function draw() {
     updateGameState();
     grid.draw();
     food.draw();
@@ -34,8 +34,8 @@ function draw() {
 }
 
 /*function windowResized() {
-    var newWidth = windowWidth - 20;
-    var newHeight = windowHeight - 20;
+    const newWidth = windowWidth - 20;
+    const newHeight = windowHeight - 20;
 
     resizeCanvas(newWidth, newHeight);
     grid = new Grid(newWidth, newHeight, gridColour, BLOCK_WIDTH);

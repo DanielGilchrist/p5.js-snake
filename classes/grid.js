@@ -14,23 +14,23 @@ class Grid {
     }
 
     _populateArray() {
-        var numBlocksHorz = Math.floor(this.width / this.blockWidth);
-        var numBlocksVert = Math.floor(this.height / this.blockWidth);
-        var numBlocksTotal = numBlocksHorz * numBlocksVert;
-        var xCount = 0;
-        var yCount = 0;
+        const numBlocksHorz = Math.floor(this.width / this.blockWidth);
+        const numBlocksVert = Math.floor(this.height / this.blockWidth);
+        const numBlocksTotal = numBlocksHorz * numBlocksVert;
+        let xCount = 0;
+        let yCount = 0;
 
-        for (var i = 0; i < numBlocksTotal; i++) {
+        for (let i = 0; i < numBlocksTotal; i++) {
             if (xCount === numBlocksHorz) {
                 xCount = 0;
                 yCount++;
             }
 
             if (yCount === 0 || xCount === 0 || xCount === numBlocksHorz - 1 || yCount == numBlocksVert - 1) {
-                this.unsafeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount, 
+                this.unsafeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount,
                                                  this.blockWidth, this.unsafeColour));
             } else {
-                this.safeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount, 
+                this.safeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount,
                                                this.blockWidth, this.safeColour));
             }
 
@@ -40,8 +40,8 @@ class Grid {
 
     getUnoccupiedSafeBlock() {
         // "~~" returns the random number as an integer instead of a float
-        var validBlock = false;
-        var index = ~~(Math.random() * this.safeBlocks.length - 1);
+        let validBlock = false;
+        let index = ~~(Math.random() * this.safeBlocks.length - 1);
 
         while(!validBlock) {
             if (this.safeBlocks[index].occupied) {
@@ -57,7 +57,7 @@ class Grid {
     update(snake) {
         // checks if blocks are occupied by the snake and sets them accordingly
         grid.safeBlocks.forEach(function(gridBlock) {
-            var isOccupied = false;
+            let isOccupied = false;
             if (snake.x === gridBlock.x && snake.y === gridBlock.y) {
                 gridBlock.occupied = true;
             } else if (snake.size > 0) {

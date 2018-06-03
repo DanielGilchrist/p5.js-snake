@@ -26,14 +26,14 @@ class Snake {
 
     isDead(grid) {
         // checks if the snake has tried to eat itself
-        for (var i = 0; i < this.body.length; i++) {
+        for (let i = 0; i < this.body.length; i++) {
             if (dist(this.x, this.y, this.body[i].x, this.body[i].y) < 1) {
                 return true;
-            } 
+            }
         }
 
         // checks if the snake goes onto an unsafe block
-        for (var i = 0; i < grid.unsafeBlocks.length; i++) {
+        for (let i = 0; i < grid.unsafeBlocks.length; i++) {
             if (dist(this.x, this.y, grid.unsafeBlocks[i].x, grid.unsafeBlocks[i].y) < 1) {
                 return true;
             }
@@ -43,10 +43,10 @@ class Snake {
     }
 
     update() {
-        for (var i = 0; i < this.body.length - 1; i++) {
+        for (let i = 0; i < this.body.length - 1; i++) {
             this.body[i] = this.body[i + 1];
         }
-        
+
         if (this.size >= 1) {
             this.body[this.size - 1] = createVector(this.x, this.y);
         }

@@ -4,7 +4,7 @@ class Food extends Block {
     }
 
     place(grid) {
-        var block = grid.getUnoccupiedSafeBlock();
+        const block = grid.getUnoccupiedSafeBlock();
         this.x = block.x;
         this.y = block.y;
     }
