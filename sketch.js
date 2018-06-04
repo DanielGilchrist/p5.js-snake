@@ -14,6 +14,7 @@ let snake;
 let food;
 let score;
 let gridColour;
+let inputQueue;
 
 function setup() {
     canvasWidth = windowWidth - 20;
@@ -21,6 +22,8 @@ function setup() {
 
     createCanvas(canvasWidth, canvasHeight);
     frameRate(12);
+
+    inputQueue = [];
 
     reset();
 }
@@ -36,24 +39,16 @@ function draw() {
 function keyPressed() {
     switch (keyCode) {
         case UP_ARROW:
-            if (snake.size === 0 || (snake.xdir !== 0 && snake.ydir === 0)) {
-                snake.changeDir(0, -BLOCK_WIDTH);
-            }
+            inputQueue.push(() => snake.up());
             break;
         case DOWN_ARROW:
-            if (snake.size === 0 || (snake.xdir !== 0 && snake.ydir === 0)) {
-                snake.changeDir(0, BLOCK_WIDTH);
-            }
+            inputQueue.push(() => snake.down());
             break;
         case LEFT_ARROW:
-            if (snake.size === 0 || (snake.xdir === 0 && snake.ydir !== 0)) {
-                snake.changeDir(-BLOCK_WIDTH, 0);
-            }
+            inputQueue.push(() => snake.left());
             break;
         case RIGHT_ARROW:
-            if (snake.size === 0 || (snake.xdir === 0 && snake.ydir !== 0)) {
-                snake.changeDir(BLOCK_WIDTH, 0);
-            }
+            inputQueue.push(() => snake.right());
             break;
         case 80: // 'p'
             window.alert("Paused\nPress the 'OK' button to continue");
@@ -62,6 +57,9 @@ function keyPressed() {
 }
 
 function updateGameState() {
+    // update snakes direction from queue
+    if (inputQueue.length > 0) inputQueue.shift().call();
+
     // update snake
     snake.update();
 
@@ -85,7 +83,7 @@ function updateGameState() {
 }
 
 function random_grid_colour() {
-    return [Math.random() * 130, Math.random() * 130, Math.random() * 130]
+    return [Math.random() * 130, Math.random() * 130, Math.random() * 130];
 }
 
 /*function windowResized() {

@@ -42,6 +42,22 @@ class Snake {
         return false;
     }
 
+    up() {
+        if (this.size === 0 || (this.xdir !== 0 && this.ydir === 0)) this.changeDir(0, -this.width);
+    }
+
+    down() {
+        if (this.size === 0 || (this.xdir !== 0 && this.ydir === 0)) this.changeDir(0, this.width);
+    }
+
+    left() {
+        if (this.size === 0 || (this.xdir === 0 && this.ydir !== 0)) this.changeDir(-this.width, 0);
+    }
+
+    right() {
+        if (this.size === 0 || (this.xdir === 0 && this.ydir !== 0)) this.changeDir(this.width, 0);
+    }
+
     update() {
         for (let i = 0; i < this.body.length - 1; i++) {
             this.body[i] = this.body[i + 1];
