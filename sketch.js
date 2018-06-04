@@ -33,15 +33,6 @@ function draw() {
     score.draw();
 }
 
-/*function windowResized() {
-    const newWidth = windowWidth - 20;
-    const newHeight = windowHeight - 20;
-
-    resizeCanvas(newWidth, newHeight);
-    grid = new Grid(newWidth, newHeight, gridColour, BLOCK_WIDTH);
-    food.place(grid);
-}*/
-
 function keyPressed() {
     switch (keyCode) {
         case UP_ARROW:
@@ -93,8 +84,21 @@ function updateGameState() {
     }
 }
 
+function random_grid_colour() {
+    return [Math.random() * 130, Math.random() * 130, Math.random() * 130]
+}
+
+/*function windowResized() {
+    const newWidth = windowWidth - 20;
+    const newHeight = windowHeight - 20;
+
+    resizeCanvas(newWidth, newHeight);
+    grid = new Grid(newWidth, newHeight, gridColour, BLOCK_WIDTH);
+    food.place(grid);
+}*/
+
 function reset() {
-    gridColour = [(Math.random() * 200) + 100, (Math.random() * 130) + 70, (Math.random() * 256) + 130];
+    gridColour = random_grid_colour();
 
     grid = new Grid(canvasWidth, canvasHeight, gridColour, BLOCK_WIDTH);
 
