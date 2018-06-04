@@ -56,10 +56,10 @@ class Grid {
 
   update(snake) {
     // checks if blocks are occupied by the snake and sets them accordingly
-    for (let i = 0; i < grid.safeBlocks.length; i++) {
-      grid.safeBlocks[i].occupied = snake.body.some((snakeBlock) => {
-        return (snake.x === grid.safeBlocks[i].x && snake.y === grid.safeBlocks[i].y) ||
-          (snakeBlock.x === grid.safeBlocks[i].x && snakeBlock.y === grid.safeBlocks[i].y);
+    for (let i = 0; i < this.safeBlocks.length; i++) {
+      this.safeBlocks[i].occupied = snake.body.some((snakeBlock) => {
+        return (snake.x === this.safeBlocks[i].x && snake.y === this.safeBlocks[i].y) ||
+          (snakeBlock.x === this.safeBlocks[i].x && snakeBlock.y === this.safeBlocks[i].y);
       }, this);
     }
   }
