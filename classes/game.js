@@ -20,14 +20,10 @@ class Game {
 
   newGame() {
     this.gridColour = [Math.random() * 130, Math.random() * 130, Math.random() * 130];
-
     this.grid = new Grid(this.canvasWidth, this.canvasHeight, this.gridColour, this.BLOCK_WIDTH);
-
     this.snake = new Snake(this.grid.safeBlocks[0].x, this.grid.safeBlocks[0].y, this.BLOCK_WIDTH, this.SNAKE_COLOUR);
-
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
     this.food.place(this.grid);
-
     this.score = new Score(this.BLOCK_WIDTH, this.BLOCK_WIDTH - (this.BLOCK_WIDTH / 7), this.BLOCK_WIDTH / 1.5, 0);
   }
 
