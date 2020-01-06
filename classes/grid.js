@@ -13,6 +13,33 @@ class Grid {
     this._populateArray();
   }
 
+  getUnoccupiedSafeBlock() {
+    // "~~" returns the random number as an integer instead of a float
+    let validBlock = false;
+    let index;
+
+    while (!validBlock) {
+      index = ~~(Math.random() * this.safeBlocks.length - 1);
+      if (!this.safeBlocks[index].occupied)
+        validBlock = true;
+    }
+
+    return this.safeBlocks[index];
+  }
+
+  update(snake) {
+    this.safeBlocks.forEach(safeBlock =>
+      safeBlock.occupied = snake.body.some(snakeBlock =>
+        (snake.x === safeBlock.x && snake.y === safeBlock.y) ||
+        (snakeBlock.x === safeBlock.x && snakeBlock.y === safeBlock.y)));
+  }
+
+  draw() {
+    noStroke();
+    this.safeBlocks.concat(this.unsafeBlocks).forEach(block => block.draw())
+  }
+
+  // private
   _populateArray() {
     const numBlocksHorz = Math.floor(this.width / this.blockWidth);
     const numBlocksVert = Math.floor(this.height / this.blockWidth);
@@ -26,7 +53,7 @@ class Grid {
         yCount++;
       }
 
-      if (yCount === 0 || xCount === 0 || xCount === numBlocksHorz - 1 || yCount == numBlocksVert - 1) {
+      if (yCount === 0 || xCount === 0 || xCount === numBlocksHorz - 1 || yCount === numBlocksVert - 1) {
         this.unsafeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount,
           this.blockWidth, this.unsafeColour));
       } else {
@@ -35,44 +62,6 @@ class Grid {
       }
 
       xCount++;
-    }
-  }
-
-  getUnoccupiedSafeBlock() {
-    // "~~" returns the random number as an integer instead of a float
-    let validBlock = false;
-    let index = ~~(Math.random() * this.safeBlocks.length - 1);
-
-    while (!validBlock) {
-      if (this.safeBlocks[index].occupied) {
-        index = ~~(Math.random() * this.safeBlocks.length - 1);
-      } else {
-        validBlock = true;
-      }
-    }
-
-    return this.safeBlocks[index];
-  }
-
-  update(snake) {
-    // checks if blocks are occupied by the snake and sets them accordingly
-    for (let i = 0; i < this.safeBlocks.length; i++) {
-      this.safeBlocks[i].occupied = snake.body.some((snakeBlock) => {
-        return (snake.x === this.safeBlocks[i].x && snake.y === this.safeBlocks[i].y) ||
-          (snakeBlock.x === this.safeBlocks[i].x && snakeBlock.y === this.safeBlocks[i].y);
-      }, this);
-    }
-  }
-
-  draw() {
-    noStroke();
-
-    for (let i = 0; i < this.safeBlocks.length; i++) {
-      this.safeBlocks[i].draw();
-    }
-
-    for (let i = 0; i < this.unsafeBlocks.length; i++) {
-      this.unsafeBlocks[i].draw();
     }
   }
 }

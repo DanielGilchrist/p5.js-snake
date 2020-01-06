@@ -28,34 +28,29 @@ class Game {
   }
 
   update() {
-    // update snakes direction from queue
+    // update snakes direction from the input queue
     this.inputQueue.length > 0 && this.inputQueue.shift().call();
 
-    // update snake
     this.snake.update();
 
-    // update the grid
     this.grid.update(this.snake);
 
-    // check if the snake is dead
     if (this.snake.isDead(this.grid)) {
       window.alert("GAME OVER\nClick 'OK' to restart");
       this.newGame();
     }
 
-    // check if snake ate the food
     if (this.snake.eat(this.food)) {
-      // update score
       this.score.points++;
-
-      // spawn food in new location
       this.food.place(this.grid);
     }
 
-    this.grid.draw();
-    this.food.draw();
-    this.snake.draw();
-    this.score.draw();
+    [
+      this.grid,
+      this.food,
+      this.snake,
+      this.score,
+    ].forEach(object => object.draw())
   }
 
   handleKeyPress(keyCode) {
@@ -73,6 +68,7 @@ class Game {
         this.inputQueue.push(() => this.snake.right());
         break;
       case 80: // 'p'
+        // TODO: Fix issue where game would continue if user switches to a different window
         window.alert("Paused\nPress the 'OK' button to continue");
         break;
     }

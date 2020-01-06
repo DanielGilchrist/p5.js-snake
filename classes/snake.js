@@ -16,20 +16,11 @@ class Snake {
   }
 
   eat(food) {
-    if (this.x === food.x && this.y === food.y) {
-      this.size++;
-      return true;
-    } else {
-      return false;
-    }
+    return (this.x === food.x && this.y === food.y) && ++this.size
   }
 
   isDead(grid) {
-    return this.body.some((block) => {
-      return dist(this.x, this.y, block.x, block.y) < 1;
-    }) || grid.unsafeBlocks.some((block) => {
-      return dist(this.x, this.y, block.x, block.y) < 1;
-    });
+    return this.body.concat(grid.unsafeBlocks).some(block => dist(this.x, this.y, block.x, block.y) < 1);
   }
 
   up() {
@@ -64,8 +55,7 @@ class Snake {
   draw() {
     fill(this.colour);
     rect(this.x, this.y, this.width, this.width); // draw the head
-    for (let i = 0; i < this.body.length; i++) {
-      rect(this.body[i].x, this.body[i].y, this.width, this.width);
-    }
+
+    this.body.forEach(block => rect(block.x, block.y, this.width, this.width))
   }
 }

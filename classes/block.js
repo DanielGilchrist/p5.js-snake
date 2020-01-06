@@ -1,14 +1,14 @@
 class Block {
-    constructor(x, y, width, colour) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.colour = colour;
-        this.occupied = false;
-    }
+  constructor(x, y, width, colour) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.colour = colour;
+    this.occupied = false;
+  }
 
-    draw() {
-        fill(this.colour);
-        rect(this.x, this.y, this.width, this.width);
-    }
+  draw() {
+    fill(this.colour);
+    rect(this.x, this.y, this.width, this.width);
+  }
 }
