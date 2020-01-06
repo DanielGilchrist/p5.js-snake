@@ -14,11 +14,11 @@ class Grid {
   }
 
   getUnoccupiedSafeBlock() {
-    // "~~" returns the random number as an integer instead of a float
     let validBlock = false;
     let index;
 
     while (!validBlock) {
+      // "~~" returns the random number as an integer instead of a float
       index = ~~(Math.random() * this.safeBlocks.length - 1);
       if (!this.safeBlocks[index].occupied)
         validBlock = true;
