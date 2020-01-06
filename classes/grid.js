@@ -7,8 +7,6 @@ class Grid {
     this.blockWidth = blockWidth;
     this.safeBlocks = [];
     this.unsafeBlocks = [];
-    this.numBlocksWidth = Math.floor(this.width / this.blockWidth);
-    this.numBlocksHeight = Math.floor(this.height / this.blockWidth);
 
     this._populateGrid();
   }
@@ -32,34 +30,25 @@ class Grid {
 
   // private
   _populateGrid() {
-    const numBlocksHorz = Math.floor(this.width / this.blockWidth);
-    const numBlocksVert = Math.floor(this.height / this.blockWidth);
-    const numBlocksTotal = numBlocksHorz * numBlocksVert;
-    let xCount = 0;
-    let yCount = 0;
+    const [xLength, yLength] = [this.width, this.height].map(length => Math.floor(length / this.blockWidth));
 
-    const isUnsafeBlock = (xCount, yCount, horizontalCount, verticalCount) =>
-      yCount === 0                   ||
-      xCount === 0                   ||
-      xCount === horizontalCount - 1 ||
-      yCount === verticalCount - 1;
+    const isUnsafeBlock = (xCount, yCount, xLength, yLength) =>
+      xCount === 0           ||
+      yCount === 0           ||
+      xCount === xLength - 1 ||
+      yCount === yLength - 1;
 
-    for (let i = 0; i < numBlocksTotal; i++) {
-      if (xCount === numBlocksHorz) {
-        xCount = 0;
-        yCount++;
+    for (let yCount = 0; yCount < yLength; yCount++) {
+      for (let xCount = 0; xCount < xLength; xCount++) {
+        const blockX = this.blockWidth * xCount;
+        const blockY = this.blockWidth * yCount;
+
+        if (isUnsafeBlock(xCount, yCount, xLength, yLength)) {
+          this.unsafeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.unsafeColour))
+        } else {
+          this.safeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.safeColour))
+        }
       }
-
-      const blockX = this.blockWidth * xCount;
-      const blockY = this.blockWidth * yCount;
-
-      if (isUnsafeBlock(xCount, yCount, numBlocksHorz, numBlocksVert)) {
-        this.unsafeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.unsafeColour))
-      } else {
-        this.safeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.safeColour))
-      }
-
-      xCount++;
     }
   }
 }
