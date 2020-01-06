@@ -18,8 +18,7 @@ class Grid {
     let index;
 
     while (!validBlock) {
-      // "~~" returns the random number as an integer instead of a float
-      index = ~~(Math.random() * this.safeBlocks.length - 1);
+      index = Math.floor(Math.random() * this.safeBlocks.length);
       if (!this.safeBlocks[index].occupied)
         validBlock = true;
     }
