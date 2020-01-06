@@ -47,18 +47,25 @@ class Grid {
     let xCount = 0;
     let yCount = 0;
 
+    const isUnsafeBlock = (xCount, yCount, horizontalCount, verticalCount) =>
+      yCount === 0                   ||
+      xCount === 0                   ||
+      xCount === horizontalCount - 1 ||
+      yCount === verticalCount - 1;
+
     for (let i = 0; i < numBlocksTotal; i++) {
       if (xCount === numBlocksHorz) {
         xCount = 0;
         yCount++;
       }
 
-      if (yCount === 0 || xCount === 0 || xCount === numBlocksHorz - 1 || yCount === numBlocksVert - 1) {
-        this.unsafeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount,
-          this.blockWidth, this.unsafeColour));
+      const blockX = this.blockWidth * xCount;
+      const blockY = this.blockWidth * yCount;
+
+      if (isUnsafeBlock(xCount, yCount, numBlocksHorz, numBlocksVert)) {
+        this.unsafeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.unsafeColour))
       } else {
-        this.safeBlocks.push(new Block(this.blockWidth * xCount, this.blockWidth * yCount,
-          this.blockWidth, this.safeColour));
+        this.safeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.safeColour))
       }
 
       xCount++;
