@@ -10,7 +10,7 @@ class Grid {
     this.numBlocksWidth = Math.floor(this.width / this.blockWidth);
     this.numBlocksHeight = Math.floor(this.height / this.blockWidth);
 
-    this._populateArray();
+    this._populateGrid();
   }
 
   getUnoccupiedSafeBlock() {
@@ -40,7 +40,7 @@ class Grid {
   }
 
   // private
-  _populateArray() {
+  _populateGrid() {
     const numBlocksHorz = Math.floor(this.width / this.blockWidth);
     const numBlocksVert = Math.floor(this.height / this.blockWidth);
     const numBlocksTotal = numBlocksHorz * numBlocksVert;
