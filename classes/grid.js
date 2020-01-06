@@ -13,17 +13,9 @@ class Grid {
     this._populateGrid();
   }
 
-  getUnoccupiedSafeBlock() {
-    let validBlock = false;
-    let index;
-
-    while (!validBlock) {
-      index = Math.floor(Math.random() * this.safeBlocks.length);
-      if (!this.safeBlocks[index].occupied)
-        validBlock = true;
-    }
-
-    return this.safeBlocks[index];
+  findUnoccupiedSafeBlock() {
+    const safeBlock = this.safeBlocks[Math.floor(Math.random() * this.safeBlocks.length)];
+    return safeBlock.occupied ? this.findUnoccupiedSafeBlock() : safeBlock;
   }
 
   update(snake) {
