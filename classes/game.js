@@ -3,7 +3,7 @@ class Game {
     this.BLOCK_WIDTH = 25;
     this.GRID_COLOUR = [207, 181, 242];
     this.SNAKE_COLOUR = [117, 232, 116];
-    this.FOOD_COLOUR = [230, 80, 90]
+    this.FOOD_COLOUR = [230, 80, 90];
     this.canvasWidth = windowWidth - 20;
     this.canvasHeight = windowHeight - 20;
     this.grid;
@@ -50,7 +50,7 @@ class Game {
       this.food,
       this.snake,
       this.score,
-    ].forEach(object => object.draw())
+    ].forEach(object => object.draw());
   }
 
   handleKeyPress(keyCode) {

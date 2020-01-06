@@ -25,7 +25,7 @@ class Grid {
 
   draw() {
     noStroke();
-    this.safeBlocks.concat(this.unsafeBlocks).forEach(block => block.draw())
+    this.safeBlocks.concat(this.unsafeBlocks).forEach(block => block.draw());
   }
 
   // private
@@ -44,9 +44,9 @@ class Grid {
         const blockY = this.blockWidth * yCount;
 
         if (isUnsafeBlock(xCount, yCount, xLength, yLength)) {
-          this.unsafeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.unsafeColour))
+          this.unsafeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.unsafeColour));
         } else {
-          this.safeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.safeColour))
+          this.safeBlocks.push(new Block(blockX, blockY, this.blockWidth, this.safeColour));
         }
       }
     }

@@ -16,7 +16,7 @@ class Snake {
   }
 
   eat(food) {
-    return (this.x === food.x && this.y === food.y) && ++this.size
+    return (this.x === food.x && this.y === food.y) && ++this.size;
   }
 
   isDead(grid) {
@@ -56,6 +56,6 @@ class Snake {
     fill(this.colour);
     rect(this.x, this.y, this.width, this.width); // draw the head
 
-    this.body.forEach(block => rect(block.x, block.y, this.width, this.width))
+    this.body.forEach(block => rect(block.x, block.y, this.width, this.width));
   }
 }
