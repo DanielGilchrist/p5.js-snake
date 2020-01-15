@@ -26,6 +26,7 @@ class Game {
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
     this.food.place(this.grid);
     this.score = new Score(this.BLOCK_WIDTH, this.BLOCK_WIDTH - (this.BLOCK_WIDTH / 7), this.BLOCK_WIDTH / 1.5, 0);
+  }
 
   drawPaused() {
     fill([220, 220, 220]);
