@@ -12,6 +12,7 @@ class Game {
     this.score;
     this.gridColour;
     this.inputQueue = [];
+    this.paused = false;
 
     createCanvas(this.canvasWidth, this.canvasHeight);
     frameRate(12);
@@ -25,9 +26,17 @@ class Game {
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
     this.food.place(this.grid);
     this.score = new Score(this.BLOCK_WIDTH, this.BLOCK_WIDTH - (this.BLOCK_WIDTH / 7), this.BLOCK_WIDTH / 1.5, 0);
+
+  drawPaused() {
+    fill([220, 220, 220]);
+    textSize(50);
+    textStyle(BOLD);
+    text("PAUSED", (this.canvasWidth / 2) - 85, this.canvasHeight / 2);
   }
 
   update() {
+    if (this.paused) return this.drawPaused();
+
     // update snakes direction from the input queue
     this.inputQueue.length > 0 && this.inputQueue.shift().call();
 
@@ -68,8 +77,8 @@ class Game {
         this.inputQueue.push(() => this.snake.right());
         break;
       case 80: // 'p'
-        // TODO: Fix issue where game would continue if user switches to a different window
-        window.alert("Paused\nPress the 'OK' button to continue");
+        // window.alert("Paused\nPress the 'OK' button to continue");
+        this.paused = !this.paused;
         break;
     }
   }
