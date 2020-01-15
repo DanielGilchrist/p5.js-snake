@@ -32,7 +32,8 @@ class Game {
     fill([220, 220, 220]);
     textSize(50);
     textStyle(BOLD);
-    text("PAUSED", (this.canvasWidth / 2) - 85, this.canvasHeight / 2);
+    textAlign(CENTER, CENTER);
+    text("PAUSED", this.canvasWidth / 2, this.canvasHeight / 2);
   }
 
   update() {
