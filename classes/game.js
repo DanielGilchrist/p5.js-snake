@@ -15,7 +15,9 @@ class Game {
     this.paused = false;
 
     createCanvas(this.canvasWidth, this.canvasHeight);
-    frameRate(12);
+    const fr = parseInt((this.canvasWidth / this.canvasHeight) * 10)
+    console.log(fr);
+    frameRate(fr);
     this.newGame();
   }
 
