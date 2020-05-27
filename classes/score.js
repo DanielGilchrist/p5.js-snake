@@ -9,6 +9,7 @@ class Score {
 
   draw() {
     fill(this.colour);
+    textAlign(LEFT, BASELINE);
     textSize(this.size);
     textStyle(BOLD);
     text(`Score: ${this.points}`, this.x, this.y);
