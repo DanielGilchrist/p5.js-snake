@@ -16,7 +16,6 @@ class Game {
 
     createCanvas(this.canvasWidth, this.canvasHeight);
     const fr = parseInt((this.canvasWidth / this.canvasHeight) * 10)
-    console.log(fr);
     frameRate(fr);
     this.newGame();
   }
@@ -67,6 +66,15 @@ class Game {
   }
 
   handleKeyPress(keyCode) {
+    if (keyCode === 80) {
+      this.paused = !this.paused;
+      return;
+    }
+
+    if (this.paused) {
+      return;
+    }
+
     switch (keyCode) {
       case UP_ARROW:
         this.inputQueue.push(() => this.snake.up());
@@ -79,10 +87,6 @@ class Game {
         break;
       case RIGHT_ARROW:
         this.inputQueue.push(() => this.snake.right());
-        break;
-      case 80: // 'p'
-        // window.alert("Paused\nPress the 'OK' button to continue");
-        this.paused = !this.paused;
         break;
     }
   }
