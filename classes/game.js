@@ -15,18 +15,37 @@ class Game {
     this.paused = false;
 
     createCanvas(this.canvasWidth, this.canvasHeight);
-    const fr = parseInt((this.canvasWidth / this.canvasHeight) * 10)
+    const fr = parseInt((this.canvasWidth + this.canvasHeight) / 100);
+    console.log(`Frame Rate: ${fr}`);
     frameRate(fr);
     this.newGame();
   }
 
   newGame() {
     this.gridColour = [Math.random() * 130, Math.random() * 130, Math.random() * 130];
-    this.grid = new Grid(this.canvasWidth, this.canvasHeight, this.gridColour, this.BLOCK_WIDTH);
-    this.snake = new Snake(this.grid.safeBlocks[0].x, this.grid.safeBlocks[0].y, this.BLOCK_WIDTH, this.SNAKE_COLOUR);
+    this.grid = new Grid(
+      this.canvasWidth,
+      this.canvasHeight,
+      this.gridColour,
+      this.BLOCK_WIDTH
+    );
+
+    this.snake = new Snake(
+      this.grid.safeBlocks[0].x,
+      this.grid.safeBlocks[0].y,
+      this.BLOCK_WIDTH,
+      this.SNAKE_COLOUR
+    );
+
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
     this.food.place(this.grid);
-    this.score = new Score(this.BLOCK_WIDTH, this.BLOCK_WIDTH - (this.BLOCK_WIDTH / 7), this.BLOCK_WIDTH / 1.5, 0);
+
+    this.score = new Score(
+      this.BLOCK_WIDTH,
+      this.BLOCK_WIDTH - (this.BLOCK_WIDTH / 7),
+      this.BLOCK_WIDTH / 1.5,
+      0
+    );
   }
 
   drawPaused() {
