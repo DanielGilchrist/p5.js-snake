@@ -1,6 +1,6 @@
 class Game {
   constructor() {
-    this.BLOCK_WIDTH = 25;
+    this.BLOCK_WIDTH = 35;
     this.GRID_COLOUR = [207, 181, 242];
     this.SNAKE_COLOUR = [117, 232, 116];
     this.FOOD_COLOUR = [230, 80, 90];
