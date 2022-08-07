@@ -17,10 +17,9 @@ class Grid {
   }
 
   update(snake) {
+    const snakeBodyLookup = Object.fromEntries(snake.body.map(block => [[block.x, block.y], true]))
     this.safeBlocks.forEach(safeBlock =>
-      safeBlock.occupied = snake.body.some(snakeBlock =>
-        (snake.x === safeBlock.x && snake.y === safeBlock.y) ||
-        (snakeBlock.x === safeBlock.x && snakeBlock.y === safeBlock.y)));
+      safeBlock.occupied = snakeBodyLookup[[safeBlock.x, safeBlock.y]])
   }
 
   draw() {
