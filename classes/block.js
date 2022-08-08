@@ -4,7 +4,6 @@ class Block {
     this.y = y;
     this.width = width;
     this.colour = colour;
-    this.occupied = false;
   }
 
   draw() {

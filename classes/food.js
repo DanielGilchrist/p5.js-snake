@@ -3,9 +3,8 @@ class Food extends Block {
     super(-50, -50, width, colour);
   }
 
-  place(grid) {
-    const block = grid.findUnoccupiedSafeBlock();
-    this.x = block.x;
-    this.y = block.y;
+  place(x, y) {
+    this.x = x;
+    this.y = y;
   }
 }

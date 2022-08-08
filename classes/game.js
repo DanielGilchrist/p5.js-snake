@@ -38,7 +38,7 @@ class Game {
     );
 
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
-    this.food.place(this.grid);
+    this._placeNewFood()
 
     this.score = new Score(
       this.BLOCK_WIDTH,
@@ -64,7 +64,7 @@ class Game {
 
     this.snake.update();
 
-    this.grid.update(this.snake);
+    this.grid.update();
 
     if (this.snake.isDead(this.grid)) {
       window.alert("GAME OVER\nClick 'OK' to restart");
@@ -73,7 +73,7 @@ class Game {
 
     if (this.snake.eat(this.food)) {
       this.score.points++;
-      this.food.place(this.grid);
+      this._placeNewFood();
     }
 
     [
@@ -108,5 +108,17 @@ class Game {
         this.inputQueue.push(() => this.snake.right());
         break;
     }
+  }
+
+  _placeNewFood() {
+    const block = this._findUnoccupiedSafeBlock();
+    this.food.place(block.x, block.y);
+  }
+
+  _findUnoccupiedSafeBlock() {
+    const snakeCoords = this.snake.coords();
+    const unOccupiedSafeBlocks = this.grid.safeBlocks.filter(block => !snakeCoords[[block.x, block.y]]);
+
+    return unOccupiedSafeBlocks[Math.floor(Math.random() * unOccupiedSafeBlocks.length)];
   }
 }

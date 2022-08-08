@@ -18,6 +18,10 @@ class Snake {
     this.eyePosRight  = width / 1.25;
   }
 
+  coords() {
+    return Object.fromEntries(this.body.map(block => [[block.x, block.y], true]))
+  }
+
   changeDir(xdir, ydir) {
     this.xdir = xdir;
     this.ydir = ydir;

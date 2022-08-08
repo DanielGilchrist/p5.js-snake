@@ -11,15 +11,7 @@ class Grid {
     this._populateGrid();
   }
 
-  findUnoccupiedSafeBlock() {
-    const safeBlock = this.safeBlocks[Math.floor(Math.random() * this.safeBlocks.length)];
-    return safeBlock.occupied ? this.findUnoccupiedSafeBlock() : safeBlock;
-  }
-
-  update(snake) {
-    const snakeBodyLookup = Object.fromEntries(snake.body.map(block => [[block.x, block.y], true]))
-    this.safeBlocks.forEach(safeBlock => safeBlock.occupied = snakeBodyLookup[[safeBlock.x, safeBlock.y]] || false)
-  }
+  update() {}
 
   draw() {
     noStroke();
