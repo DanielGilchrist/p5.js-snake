@@ -30,15 +30,16 @@ class Game {
       this.BLOCK_WIDTH
     );
 
+    const safeBlock = this.grid.safeBlocks[0];
     this.snake = new Snake(
-      this.grid.safeBlocks[0].x,
-      this.grid.safeBlocks[0].y,
+      safeBlock.x,
+      safeBlock.y,
       this.BLOCK_WIDTH,
       this.SNAKE_COLOUR
     );
 
     this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
-    this._placeNewFood()
+    this._placeNewFood();
 
     this.score = new Score(
       this.BLOCK_WIDTH,

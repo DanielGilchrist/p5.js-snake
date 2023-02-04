@@ -19,7 +19,7 @@ class Snake {
   }
 
   coords() {
-    return Object.fromEntries(this.body.map(block => [[block.x, block.y], true]))
+    return Object.fromEntries(this.body.map(block => [[block.x, block.y], true]));
   }
 
   changeDir(xdir, ydir) {
@@ -94,7 +94,7 @@ class Snake {
       this.isFacingLeft() || this.isFacingRight() ? this.eyePosFacing : this.eyePosLeft,
       this.isFacingLeft() || this.isFacingRight() ? this.eyePosFacing : this.eyePosRight,
       this.isFacingLeft() || this.isFacingRight() ? this.eyePosLeft   : this.eyePosFacing,
-      this.isFacingLeft() || this.isFacingRight() ? this.eyePosRight  : this.eyePosFacing
+      this.isFacingLeft() || this.isFacingRight() ? this.eyePosRight  : this.eyePosFacing,
     ];
   }
 
