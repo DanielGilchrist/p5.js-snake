@@ -68,7 +68,7 @@ class Game {
     this.grid.update();
 
     if (this.snake.isDead(this.grid)) {
-      window.alert("GAME OVER\nClick 'OK' to restart");
+      window.alert(`GAME OVER! Score: ${this.score.points}\nClick 'OK' to restart`);
       this.newGame();
     }
 
