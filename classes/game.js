@@ -92,10 +92,14 @@ class Game {
     ].forEach(object => object.draw());
   }
 
+  handleDoubleTap () {
+    this._togglePaused()
+  }
+
   handleKeyPress(keyCode) {
     this._with_control_handler(() => {
       if (keyCode === 80) {
-        this.paused = !this.paused;
+        this._togglePaused();
         return;
       }
 
@@ -139,6 +143,10 @@ class Game {
 
   _queueMove (callback) {
     this.inputQueue.push(callback);
+  }
+
+  _togglePaused () {
+    this.paused = !this.paused
   }
 
   _placeNewFood() {

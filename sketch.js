@@ -1,7 +1,11 @@
 let game;
+
 let startTouchX, startTouchY;
 let endTouchX, endTouchY;
-let swipeThreshold = 30;
+const swipeThreshold = 30;
+
+let lastTapTime = 0;
+const doubleTapThreshold = 300;
 
 function setup () {
   game = new Game();
@@ -16,6 +20,14 @@ function keyPressed () {
 }
 
 function touchStarted () {
+  const now = Date.now();
+
+  if (now - lastTapTime < doubleTapThreshold) {
+    game.handleDoubleTap();
+  } else {
+    lastTapTime = now;
+  }
+
   startTouchX = mouseX;
   startTouchY = mouseY;
 }
