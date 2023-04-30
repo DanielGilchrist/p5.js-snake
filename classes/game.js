@@ -93,7 +93,7 @@ class Game {
   }
 
   handleDoubleTap () {
-    this._togglePaused()
+    this._togglePaused();
   }
 
   handleKeyPress(keyCode) {
@@ -105,16 +105,16 @@ class Game {
 
       switch (keyCode) {
         case UP_ARROW:
-          this._queueMove(this.SNAKE_MOVES.UP)
+          this._queueMove(this.SNAKE_MOVES.UP);
           break;
         case DOWN_ARROW:
-          this._queueMove(this.SNAKE_MOVES.DOWN)
+          this._queueMove(this.SNAKE_MOVES.DOWN);
           break;
         case LEFT_ARROW:
-          this._queueMove(this.SNAKE_MOVES.LEFT)
+          this._queueMove(this.SNAKE_MOVES.LEFT);
           break;
         case RIGHT_ARROW:
-          this._queueMove(this.SNAKE_MOVES.RIGHT)
+          this._queueMove(this.SNAKE_MOVES.RIGHT);
           break;
       }
     })
@@ -127,9 +127,9 @@ class Game {
           ? dx > 0
             ? this.SNAKE_MOVES.RIGHT : this.SNAKE_MOVES.LEFT
           : dy > 0
-            ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP
+            ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP;
 
-      this._queueMove(move)
+      this._queueMove(move);
     })
   }
 
@@ -138,7 +138,7 @@ class Game {
       return;
     }
 
-    callback()
+    callback();
   }
 
   _queueMove (callback) {
@@ -146,7 +146,7 @@ class Game {
   }
 
   _togglePaused () {
-    this.paused = !this.paused
+    this.paused = !this.paused;
   }
 
   _placeNewFood() {

@@ -19,7 +19,9 @@ function keyPressed () {
   game.handleKeyPress(keyCode);
 }
 
-function touchStarted () {
+function touchStarted (event) {
+  event.preventDefault();
+
   const now = Date.now();
 
   if (now - lastTapTime < doubleTapThreshold) {
@@ -32,20 +34,24 @@ function touchStarted () {
   startTouchY = mouseY;
 }
 
-function touchMoved () {
+function touchMoved (event) {
+  event.preventDefault();
+
   endTouchX = mouseX;
   endTouchY = mouseY;
 }
 
-function touchEnded () {
+function touchEnded (event) {
+  event.preventDefault();
+
   var dx = endTouchX - startTouchX;
   var dy = endTouchY - startTouchY;
 
   if (_hasSwiped(dx, dy)) {
-    game.handleTouchSwipe(dx, dy)
+    game.handleTouchSwipe(dx, dy);
   }
 }
 
 function _hasSwiped (dx, dy) {
-  return abs(dx) > swipeThreshold || abs(dy) > swipeThreshold
+  return abs(dx) > swipeThreshold || abs(dy) > swipeThreshold;
 }
