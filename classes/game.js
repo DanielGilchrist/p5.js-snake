@@ -14,6 +14,13 @@ class Game {
     this.inputQueue = [];
     this.paused = false;
 
+    this.SNAKE_MOVES = {
+      UP:    () => this.snake.up(),
+      DOWN:  () => this.snake.down(),
+      LEFT:  () => this.snake.left(),
+      RIGHT: () => this.snake.right(),
+    }
+
     createCanvas(this.canvasWidth, this.canvasHeight);
     const fr = parseInt((this.canvasWidth + this.canvasHeight) / 100);
     console.log(`Frame Rate: ${fr}`);
@@ -86,29 +93,52 @@ class Game {
   }
 
   handleKeyPress(keyCode) {
-    if (keyCode === 80) {
-      this.paused = !this.paused;
-      return;
-    }
+    this._with_control_handler(() => {
+      if (keyCode === 80) {
+        this.paused = !this.paused;
+        return;
+      }
 
+      switch (keyCode) {
+        case UP_ARROW:
+          this._queueMove(this.SNAKE_MOVES.UP)
+          break;
+        case DOWN_ARROW:
+          this._queueMove(this.SNAKE_MOVES.DOWN)
+          break;
+        case LEFT_ARROW:
+          this._queueMove(this.SNAKE_MOVES.LEFT)
+          break;
+        case RIGHT_ARROW:
+          this._queueMove(this.SNAKE_MOVES.RIGHT)
+          break;
+      }
+    })
+  }
+
+  handleTouchSwipe (dx, dy) {
+    this._with_control_handler(() => {
+      const move =
+        (abs(dx) > abs(dy))
+          ? dx > 0
+            ? this.SNAKE_MOVES.RIGHT : this.SNAKE_MOVES.LEFT
+          : dy > 0
+            ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP
+
+      this._queueMove(move)
+    })
+  }
+
+  _with_control_handler (callback) {
     if (this.paused) {
       return;
     }
 
-    switch (keyCode) {
-      case UP_ARROW:
-        this.inputQueue.push(() => this.snake.up());
-        break;
-      case DOWN_ARROW:
-        this.inputQueue.push(() => this.snake.down());
-        break;
-      case LEFT_ARROW:
-        this.inputQueue.push(() => this.snake.left());
-        break;
-      case RIGHT_ARROW:
-        this.inputQueue.push(() => this.snake.right());
-        break;
-    }
+    callback()
+  }
+
+  _queueMove (callback) {
+    this.inputQueue.push(callback);
   }
 
   _placeNewFood() {
