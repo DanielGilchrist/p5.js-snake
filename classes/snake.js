@@ -19,7 +19,10 @@ class Snake {
   }
 
   coords() {
-    return Object.fromEntries(this.body.map(block => [[block.x, block.y], true]));
+    return this.body.reduce((coords, block) => {
+      coords[[block.x, block.y]] = true;
+      return coords;
+    }, {});
   }
 
   changeDir(xdir, ydir) {
