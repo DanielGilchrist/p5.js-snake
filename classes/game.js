@@ -22,7 +22,7 @@ class Game {
     }
 
     createCanvas(this.canvasWidth, this.canvasHeight);
-    const fr = parseInt((this.canvasWidth + this.canvasHeight) / 100);
+    const fr = parseInt((this.canvasWidth + this.canvasHeight) / 150);
     console.log(`Frame Rate: ${fr}`);
     frameRate(fr);
     this.newGame();
