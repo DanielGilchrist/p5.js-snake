@@ -97,48 +97,44 @@ class Game {
   }
 
   handleKeyPress(keyCode) {
-    this._with_control_handler(() => {
-      if (keyCode === 80) {
-        this._togglePaused();
-        return;
-      }
+    if (keyCode === 80) {
+      this._togglePaused();
+      return;
+    }
 
-      switch (keyCode) {
-        case UP_ARROW:
-          this._queueMove(this.SNAKE_MOVES.UP);
-          break;
-        case DOWN_ARROW:
-          this._queueMove(this.SNAKE_MOVES.DOWN);
-          break;
-        case LEFT_ARROW:
-          this._queueMove(this.SNAKE_MOVES.LEFT);
-          break;
-        case RIGHT_ARROW:
-          this._queueMove(this.SNAKE_MOVES.RIGHT);
-          break;
-      }
-    })
-  }
-
-  handleTouchSwipe (dx, dy) {
-    this._with_control_handler(() => {
-      const move =
-        (abs(dx) > abs(dy))
-          ? dx > 0
-            ? this.SNAKE_MOVES.RIGHT : this.SNAKE_MOVES.LEFT
-          : dy > 0
-            ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP;
-
-      this._queueMove(move);
-    })
-  }
-
-  _with_control_handler (callback) {
     if (this.paused) {
       return;
     }
 
-    callback();
+    switch (keyCode) {
+      case UP_ARROW:
+        this._queueMove(this.SNAKE_MOVES.UP);
+        break;
+      case DOWN_ARROW:
+        this._queueMove(this.SNAKE_MOVES.DOWN);
+        break;
+      case LEFT_ARROW:
+        this._queueMove(this.SNAKE_MOVES.LEFT);
+        break;
+      case RIGHT_ARROW:
+        this._queueMove(this.SNAKE_MOVES.RIGHT);
+        break;
+    }
+  }
+
+  handleTouchSwipe (dx, dy) {
+    if (this.paused) {
+      return;
+    }
+
+    const move =
+      (abs(dx) > abs(dy))
+        ? dx > 0
+          ? this.SNAKE_MOVES.RIGHT : this.SNAKE_MOVES.LEFT
+        : dy > 0
+          ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP;
+
+    this._queueMove(move);
   }
 
   _queueMove (callback) {
