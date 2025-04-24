@@ -16,7 +16,7 @@ function draw () {
 }
 
 function keyPressed () {
-  game.handleKeyPress(keyCode);
+  game.handleKeyPress(key);
 }
 
 function touchStarted (event) {

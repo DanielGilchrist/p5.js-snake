@@ -96,8 +96,8 @@ class Game {
     this._togglePaused();
   }
 
-  handleKeyPress(keyCode) {
-    if (keyCode === 80) {
+  handleKeyPress(key) {
+    if (key === "p") {
       this._togglePaused();
       return;
     }
@@ -106,7 +106,9 @@ class Game {
       return;
     }
 
-    switch (keyCode) {
+    debugger
+
+    switch (key) {
       case UP_ARROW:
         this._queueMove(this.SNAKE_MOVES.UP);
         break;
