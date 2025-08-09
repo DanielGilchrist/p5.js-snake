@@ -106,8 +106,6 @@ class Game {
       return;
     }
 
-    debugger
-
     switch (key) {
       case UP_ARROW:
         this._queueMove(this.SNAKE_MOVES.UP);
