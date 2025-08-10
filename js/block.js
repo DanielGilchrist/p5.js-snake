@@ -8,6 +8,7 @@ class Block {
 
   draw() {
     fill(this.colour);
+    noStroke();
     rect(this.x, this.y, this.width, this.width);
   }
 }
