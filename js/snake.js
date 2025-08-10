@@ -11,6 +11,8 @@ class Snake {
     this.ydir = 0;
     this.size = initialSize;
     this.body = [];
+    this.dead = false;
+    this.deathTime = 0;
 
     this.eyeSize      = width / 5;
     this.eyePosFacing = width / 2;
@@ -35,7 +37,12 @@ class Snake {
   }
 
   isDead(grid) {
-    return this.body.concat(grid.unsafeBlocks).some(block => dist(this.x, this.y, block.x, block.y) < 1);
+    const dead = this.body.concat(grid.unsafeBlocks).some(block => dist(this.x, this.y, block.x, block.y) < 1);
+    if (dead && !this.dead) {
+      this.dead = true;
+      this.deathTime = millis();
+    }
+    return dead;
   }
 
   up() {
@@ -169,10 +176,26 @@ class Snake {
       yEyeRight
     ] = this.getEyeDimensions();
 
-    fill(0, 0, 0);
-    noStroke();
-    const eyeSize = this.eyeSize * 0.7;
-    circle(this.x + xEyeLeft, this.y + yEyeLeft, eyeSize);
-    circle(this.x + xEyeRight, this.y + yEyeRight, eyeSize);
+    const eyeSize = this.dead ? this.eyeSize * 1.8 : this.eyeSize * 0.7;
+
+    if (this.dead) {
+      this.drawDeadEyes(this.x + xEyeLeft, this.y + yEyeLeft, eyeSize);
+      this.drawDeadEyes(this.x + xEyeRight, this.y + yEyeRight, eyeSize);
+    } else {
+      fill(0, 0, 0);
+      noStroke();
+      circle(this.x + xEyeLeft, this.y + yEyeLeft, eyeSize);
+      circle(this.x + xEyeRight, this.y + yEyeRight, eyeSize);
+    }
+  }
+
+  drawDeadEyes(centerX, centerY, eyeSize) {
+    stroke(0, 0, 0);
+    strokeWeight(2);
+
+    const size = eyeSize * 0.5;
+
+    line(centerX - size/2, centerY - size/2, centerX + size/2, centerY + size/2);
+    line(centerX + size/2, centerY - size/2, centerX - size/2, centerY + size/2);
   }
 }
