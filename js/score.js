@@ -8,10 +8,19 @@ class Score {
   }
 
   draw() {
-    fill(this.colour);
+    push();
+
     textAlign(LEFT, BASELINE);
     textSize(this.size);
     textStyle(BOLD);
-    text(`Score: ${this.points}`, this.x, this.y);
+
+    const scoreText = `Score: ${this.points}`;
+
+    stroke(0, 0, 0);
+    strokeWeight(1);
+    fill(220, 220, 220);
+    text(scoreText, this.x, this.y);
+
+    pop();
   }
 }

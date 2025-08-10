@@ -28,6 +28,11 @@ function touchStarted (event) {
     game.handleDoubleTap();
   } else {
     lastTapTime = now;
+    setTimeout(() => {
+      if (Date.now() - lastTapTime >= doubleTapThreshold) {
+        game.handleSingleTap();
+      }
+    }, doubleTapThreshold);
   }
 
   startTouchX = mouseX;
