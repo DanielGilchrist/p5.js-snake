@@ -18,7 +18,20 @@ class Grid {
     this.safeBlocks.concat(this.unsafeBlocks).forEach(block => block.draw());
   }
 
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+    this._reset_grid();
+  }
+
   // private
+
+  _reset_grid() {
+    this.safeBlocks = [];
+    this.unsafeBlocks = [];
+    this._populateGrid()
+  }
+
   _populateGrid() {
     const xLength = Math.floor(this.width / this.blockWidth);
     const yLength = Math.floor(this.height / this.blockWidth);

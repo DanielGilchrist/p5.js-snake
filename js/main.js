@@ -15,6 +15,11 @@ function draw () {
   game.update();
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  game.resize(windowWidth, windowHeight);
+}
+
 function keyPressed () {
   game.handleKeyPress(key);
 }

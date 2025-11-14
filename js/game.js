@@ -34,44 +34,7 @@ class Game {
     console.log(`Frame Rate: ${fr}`);
 
     frameRate(fr);
-    this.newGame();
-  }
-
-  newGame() {
-    this.gameOver = false;
-    this.gridColour = [
-      this.GRID_COLOUR[0] + Math.random() * 20 - 10,
-      this.GRID_COLOUR[1] + Math.random() * 20 - 10,
-      this.GRID_COLOUR[2] + Math.random() * 20 - 10
-    ];
-    this.grid = new Grid(
-      this.canvasWidth,
-      this.canvasHeight,
-      this.gridColour,
-      this.BLOCK_WIDTH
-    );
-
-    const safeBlock = this.grid.safeBlocks[0];
-    this.snake = new Snake(
-      safeBlock.x,
-      safeBlock.y,
-      this.BLOCK_WIDTH,
-      this.SNAKE_COLOUR
-    );
-
-    this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
-    this._placeNewFood();
-
-    const yLength = Math.floor(this.canvasHeight / this.BLOCK_WIDTH);
-    const gridHeight = yLength * this.BLOCK_WIDTH;
-    const yOffset = (this.canvasHeight - gridHeight) / 2;
-
-    this.score = new Score(
-      this.BLOCK_WIDTH,
-      Math.max(this.BLOCK_WIDTH, yOffset - this.BLOCK_WIDTH / 4),
-      this.BLOCK_WIDTH / 1.5,
-      0
-    );
+    this._newGame();
   }
 
   drawPaused() {
@@ -178,7 +141,7 @@ class Game {
 
   handleDoubleTap () {
     if (this.gameOver) {
-      this.newGame();
+      this._newGame();
       return;
     }
     this._togglePaused();
@@ -186,14 +149,14 @@ class Game {
 
   handleSingleTap() {
     if (this.gameOver) {
-      this.newGame();
+      this._newGame();
       return;
     }
   }
 
   handleKeyPress(key) {
     if (this.gameOver) {
-      this.newGame();
+      this._newGame();
       return;
     }
 
@@ -228,7 +191,7 @@ class Game {
 
   handleTouchSwipe (dx, dy) {
     if (this.gameOver) {
-      this.newGame();
+      this._newGame();
       return;
     }
 
@@ -244,6 +207,12 @@ class Game {
           ? this.SNAKE_MOVES.DOWN : this.SNAKE_MOVES.UP;
 
     this._queueMove(move);
+  }
+
+  resize(width, height) {
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+    this.grid.resize(width, height);
   }
 
   _queueMove (callback) {
@@ -264,5 +233,46 @@ class Game {
     const unOccupiedSafeBlocks = this.grid.safeBlocks.filter(block => !snakeCoords[[block.x, block.y]]);
 
     return unOccupiedSafeBlocks[Math.floor(Math.random() * unOccupiedSafeBlocks.length)];
+  }
+
+  _randomGridColour() {
+    return this.GRID_COLOUR.map(this._randomColour);
+  }
+
+  _randomColour(base) {
+    return base + Math.random() * 20 - 10;
+  }
+
+  _newGame() {
+    this.gameOver = false;
+    this.gridColour = this._randomGridColour;
+    this.grid = new Grid(
+      this.canvasWidth,
+      this.canvasHeight,
+      this.gridColour,
+      this.BLOCK_WIDTH
+    );
+
+    const safeBlock = this.grid.safeBlocks[0];
+    this.snake = new Snake(
+      safeBlock.x,
+      safeBlock.y,
+      this.BLOCK_WIDTH,
+      this.SNAKE_COLOUR
+    );
+
+    this.food = new Food(this.BLOCK_WIDTH, this.FOOD_COLOUR);
+    this._placeNewFood();
+
+    const yLength = Math.floor(this.canvasHeight / this.BLOCK_WIDTH);
+    const gridHeight = yLength * this.BLOCK_WIDTH;
+    const yOffset = (this.canvasHeight - gridHeight) / 2;
+
+    this.score = new Score(
+      this.BLOCK_WIDTH,
+      Math.max(this.BLOCK_WIDTH, yOffset - this.BLOCK_WIDTH / 4),
+      this.BLOCK_WIDTH / 1.5,
+      0
+    );
   }
 }
