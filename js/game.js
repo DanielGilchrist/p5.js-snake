@@ -208,15 +208,19 @@ class Game {
 
     switch (key) {
       case UP_ARROW:
+      case "k":
         this._queueMove(this.SNAKE_MOVES.UP);
         break;
       case DOWN_ARROW:
+      case "j":
         this._queueMove(this.SNAKE_MOVES.DOWN);
         break;
       case LEFT_ARROW:
+      case "h":
         this._queueMove(this.SNAKE_MOVES.LEFT);
         break;
       case RIGHT_ARROW:
+      case "l":
         this._queueMove(this.SNAKE_MOVES.RIGHT);
         break;
     }
