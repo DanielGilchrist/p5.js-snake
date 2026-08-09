@@ -101,6 +101,7 @@ const world = <B>(
     layout,
     vitality,
     scene.bite,
+    current.pending,
   );
   Hud.score(p, scheme, current, layout, current.score);
 };

@@ -196,7 +196,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const stepWorld = (now: Units.Millis): void => {
-          if (now - lastTick < tickInterval() + hitstop) return;
+          if (now - lastTick < Math.max(tickInterval(), hitstop)) return;
 
           previous = state.world.snake;
           lastTick = now;

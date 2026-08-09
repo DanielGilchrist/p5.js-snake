@@ -2,6 +2,7 @@ import type p5 from "p5";
 
 import * as Assert from "../core/assert";
 import type * as Geometry from "../core/geometry";
+import * as Option from "../core/option";
 import * as Snake from "../core/snake";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
@@ -19,6 +20,8 @@ const CREST_LIFT = 0.07;
 const SHADOW_DROP = 0.075;
 const SHADOW_ALPHA = Paint.alpha(44);
 
+const LEAN = 0.16;
+
 const BITE_MS = 220;
 const BITE_BULGE = 0.3;
 
@@ -35,6 +38,25 @@ const bulgeAt = (now: Units.Millis, bite: Units.Millis): number => {
   if (since < 0 || since > BITE_MS) return 1;
 
   return 1 + BITE_BULGE * (1 - since / BITE_MS) ** 2;
+};
+
+const leanOf = (pending: Option.Type<Geometry.Direction>, block: Units.Px): Units.Offset => {
+  if (!pending.some) return Units.NO_OFFSET;
+
+  const reach = block * LEAN;
+
+  switch (pending.value) {
+    case "up":
+      return Units.offset(0, -reach);
+    case "down":
+      return Units.offset(0, reach);
+    case "left":
+      return Units.offset(-reach, 0);
+    case "right":
+      return Units.offset(reach, 0);
+    default:
+      return Assert.never(pending.value);
+  }
 };
 
 const eyeOffsets = (
@@ -138,6 +160,7 @@ export const draw = <B>(
   layout: Layout.Metrics,
   vitality: Vitality,
   bite: Units.Millis,
+  pending: Option.Type<Geometry.Direction>,
 ): void => {
   const block = layout.blockWidth;
   const now = Units.millis(p.millis());
@@ -147,9 +170,10 @@ export const draw = <B>(
   if (nose === undefined) return;
 
   const head = nose.at;
+  const lean = leanOf(pending, block);
   const bulge = bulgeAt(now, bite);
   const crown = block * HEAD_WIDTH * bulge;
-  const crest = Units.point(head.x, head.y - block * CREST_LIFT);
+  const crest = Units.point(head.x + lean.dx, head.y - block * CREST_LIFT + lean.dy);
 
   tube(p, spine, block, scheme.shadow, SHADOW_ALPHA, 1, block * SHADOW_DROP);
 
