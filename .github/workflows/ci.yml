@@ -29,6 +29,8 @@ jobs:
 
       - run: bun run format:check
 
+      - run: bun run test
+
       - run: bun run bundle
 
       - uses: actions/upload-pages-artifact@v5

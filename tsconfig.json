@@ -4,7 +4,7 @@
     "lib": ["ES2022", "DOM"],
     "module": "preserve",
     "moduleResolution": "bundler",
-    "types": [],
+    "types": ["bun"],
 
     "strict": true,
     "noUncheckedIndexedAccess": true,

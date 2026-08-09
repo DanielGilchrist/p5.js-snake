@@ -1,15 +1,26 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc"],
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
     "perf": "error"
   },
-  "rules": {},
+  "rules": {
+    "local/namespace-imports": "error"
+  },
   "env": {
     "builtin": true,
     "browser": true
   },
-  "ignorePatterns": ["dist"]
+  "ignorePatterns": [
+    "dist"
+  ],
+  "jsPlugins": [
+    "./lint/plugin.js"
+  ]
 }

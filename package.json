@@ -7,18 +7,20 @@
     "preinstall": "bun run scripts/check-bun-version.ts",
     "dev": "bun run scripts/dev.ts",
     "build": "bun run check && bun run bundle",
-    "check": "bun run typecheck && bun run lint && bun run format:check",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src scripts",
     "format": "oxfmt src scripts",
     "format:check": "oxfmt --check src scripts",
     "bundle": "bun build src/index.html --outdir dist --minify --sourcemap=linked",
-    "serve": "bun run scripts/serve.ts"
+    "serve": "bun run scripts/serve.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "p5": "^2.3.2"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "oxfmt": "^0.62.0",
     "oxlint": "^1.77.0",
     "typescript": "^7.0.2"
