@@ -1,0 +1,123 @@
+import type * as Game from "../core/game";
+import * as Timeline from "../core/timeline";
+import type * as Scene from "./scene";
+import * as Units from "./units";
+
+const START_SPEED = 5;
+const TOP_SPEED = 190;
+const ACCELERATION = 110;
+
+type Profile = {
+  readonly rampSeconds: number;
+  readonly rampTicks: number;
+  readonly cruiseSeconds: number;
+  readonly peakSpeed: number;
+  readonly seconds: number;
+};
+
+const profileFor = (ticks: number): Profile => {
+  const fullRampSeconds = (TOP_SPEED - START_SPEED) / ACCELERATION;
+  const fullRampTicks = START_SPEED * fullRampSeconds + (ACCELERATION * fullRampSeconds ** 2) / 2;
+
+  if (ticks <= fullRampTicks * 2) {
+    const half = ticks / 2;
+    const peakSpeed = Math.sqrt(START_SPEED ** 2 + 2 * ACCELERATION * half);
+    const rampSeconds = (peakSpeed - START_SPEED) / ACCELERATION;
+
+    return { rampSeconds, rampTicks: half, cruiseSeconds: 0, peakSpeed, seconds: rampSeconds * 2 };
+  }
+
+  const cruiseSeconds = (ticks - fullRampTicks * 2) / TOP_SPEED;
+
+  return {
+    rampSeconds: fullRampSeconds,
+    rampTicks: fullRampTicks,
+    cruiseSeconds,
+    peakSpeed: TOP_SPEED,
+    seconds: fullRampSeconds * 2 + cruiseSeconds,
+  };
+};
+
+const travelled = (profile: Profile, seconds: number): number => {
+  if (seconds <= profile.rampSeconds) {
+    return START_SPEED * seconds + (ACCELERATION * seconds ** 2) / 2;
+  }
+
+  const cruised = seconds - profile.rampSeconds;
+
+  if (cruised <= profile.cruiseSeconds) {
+    return profile.rampTicks + profile.peakSpeed * cruised;
+  }
+
+  const slowing = Math.min(cruised - profile.cruiseSeconds, profile.rampSeconds);
+
+  return (
+    profile.rampTicks +
+    profile.peakSpeed * profile.cruiseSeconds +
+    (profile.peakSpeed * slowing - (ACCELERATION * slowing ** 2) / 2)
+  );
+};
+
+export type Playback<B> = {
+  readonly since: Units.Millis;
+  readonly profile: Profile;
+  readonly total: number;
+  readonly cursor: Timeline.Cursor<B>;
+  readonly ahead: Timeline.Cursor<B>;
+};
+
+export type Frame<B> =
+  | { readonly kind: "drawing"; readonly playback: Playback<B>; readonly scene: Scene.Scene<B> }
+  | { readonly kind: "finished" };
+
+export const worthWatching = <B>(playback: Playback<B>): boolean => playback.total > 1;
+
+export const begin = <B>(
+  timeline: Timeline.Timeline<B>,
+  state: Game.State<B>,
+  now: Units.Millis,
+): Playback<B> => {
+  const cursor = Timeline.cursor(timeline, state);
+
+  return {
+    since: now,
+    profile: profileFor(cursor.tick),
+    total: cursor.tick,
+    cursor,
+    ahead: cursor,
+  };
+};
+
+export const frame = <B>(
+  playback: Playback<B>,
+  timeline: Timeline.Timeline<B>,
+  now: Units.Millis,
+): Frame<B> => {
+  const elapsed = (now - playback.since) / (playback.profile.seconds * 1000);
+
+  if (elapsed >= 1) return { kind: "finished" };
+
+  const clamped = Math.max(0, elapsed);
+  const position = Math.max(
+    0,
+    playback.total - travelled(playback.profile, clamped * playback.profile.seconds),
+  );
+  const target = Math.floor(position);
+
+  let { cursor, ahead } = playback;
+
+  while (cursor.tick > target) {
+    ahead = cursor;
+    cursor = Timeline.back(timeline, cursor);
+  }
+
+  return {
+    kind: "drawing",
+    playback: { ...playback, cursor, ahead },
+    scene: {
+      current: cursor.state,
+      previous: ahead.state.world.snake,
+      alpha: 1 - (position - target),
+    },
+  };
+};

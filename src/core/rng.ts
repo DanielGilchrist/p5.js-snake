@@ -5,7 +5,7 @@ export type State = Brand.Of<number, "Rng">;
 
 export const fromSeed = (seed: number): State => (seed | 0) as State;
 
-export const nextFloat = (state: State): readonly [number, State] => {
+const nextFloat = (state: State): readonly [number, State] => {
   const advanced = (state + 0x6d2b79f5) | 0;
   let t = Math.imul(advanced ^ (advanced >>> 15), 1 | advanced);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;

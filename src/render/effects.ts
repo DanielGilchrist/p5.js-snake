@@ -1,7 +1,7 @@
 import type p5 from "p5";
 
 import * as Assert from "../core/assert";
-import type * as Game from "../core/game";
+import type * as Event from "../core/event";
 import * as Layout from "./layout";
 import * as Palette from "./palette";
 import * as Units from "./units";
@@ -50,25 +50,44 @@ const progress = (effect: Effect, now: Units.Millis): number =>
 const easeOut = (t: number): number => 1 - (1 - t) ** 3;
 
 export const spawn = <B>(
-  event: Game.Event<B>,
+  event: Event.Type<B>,
   layout: Layout.Metrics,
   now: Units.Millis,
 ): readonly Effect[] => {
-  const at = Layout.centreOf(layout, event.at);
-
   switch (event.kind) {
-    case "ate":
+    case "scored": {
+      const at = Layout.centreOf(layout, event.at);
+
       return [
         { kind: "bloom", at, born: now },
         { kind: "ring", at, colour: Palette.PAPER, born: now },
       ];
-    case "died":
+    }
+
+    case "ended": {
+      if (event.ending === "filled") return [];
+
+      const at = Layout.centreOf(layout, event.at);
+
       return [
         { kind: "shake", born: now },
         { kind: "flash", colour: Palette.FOOD, born: now },
         { kind: "ring", at, colour: Palette.FOOD, born: now },
         { kind: "shards", at, born: now },
       ];
+    }
+
+    case "faced":
+    case "queued":
+    case "steered":
+    case "moved":
+    case "grew":
+    case "fed":
+    case "rolled":
+    case "paused":
+    case "resumed":
+      return [];
+
     default:
       return Assert.never(event);
   }

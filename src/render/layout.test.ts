@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import * as Assert from "../core/assert";
 import * as Board from "../core/board";
-import type * as Game from "../core/game";
+import type * as World from "../core/world";
 import * as Layout from "./layout";
 import * as Palette from "./palette";
 import * as Units from "./units";
@@ -79,7 +79,7 @@ describe("layout", () => {
 describe("palette", () => {
   test("every variant produces a tint within the documented range", () => {
     for (let n = 0; n < 100; n++) {
-      const tinted: number = Palette.floorTint(n as Game.Variant);
+      const tinted: number = Palette.floorTint(n as World.Variant);
 
       expect(tinted).toBeGreaterThanOrEqual(-10);
       expect(tinted).toBeLessThanOrEqual(10);
@@ -88,7 +88,7 @@ describe("palette", () => {
 
   test("different variants can produce different tints", () => {
     const tints = new Set(
-      Array.from({ length: 20 }, (_, n) => Palette.floorTint(n as Game.Variant)),
+      Array.from({ length: 20 }, (_, n) => Palette.floorTint(n as World.Variant)),
     );
 
     expect(tints.size).toBeGreaterThan(1);

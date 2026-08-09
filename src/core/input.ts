@@ -15,6 +15,7 @@ const BINDINGS = {
 } as const satisfies Record<string, Geometry.Direction>;
 
 const PAUSE = "p";
+const SKIP = "Enter";
 
 type Bound = keyof typeof BINDINGS;
 
@@ -23,11 +24,13 @@ const isBound = (raw: string): raw is Bound => Object.hasOwn(BINDINGS, raw);
 export type Key =
   | { readonly kind: "turn"; readonly direction: Geometry.Direction }
   | { readonly kind: "pause" }
+  | { readonly kind: "skip" }
   | { readonly kind: "other" };
 
 export const parseKey = (raw: string): Key => {
   if (isBound(raw)) return { kind: "turn", direction: BINDINGS[raw] };
   if (raw === PAUSE) return { kind: "pause" };
+  if (raw === SKIP) return { kind: "skip" };
 
   return { kind: "other" };
 };
@@ -40,6 +43,7 @@ export const commandFor = <B>(state: Game.State<B>, key: Key): Option.Type<Game.
       return Option.some({ kind: "turn", direction: key.direction });
     case "pause":
       return Option.some({ kind: "togglePause" });
+    case "skip":
     case "other":
       return Option.none;
     default:

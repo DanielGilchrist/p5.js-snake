@@ -28,6 +28,16 @@ describe("parseKey", () => {
     expect(Input.parseKey("p")).toEqual({ kind: "pause" });
   });
 
+  test("Enter is the skip key", () => {
+    expect(Input.parseKey("Enter")).toEqual({ kind: "skip" });
+  });
+
+  test("skipping is not a game command", () => {
+    onBoard((_api, state) => {
+      expect(Input.commandFor(state, Input.parseKey("Enter")).some).toBe(false);
+    });
+  });
+
   test("anything else parses as other rather than failing", () => {
     expect(Input.parseKey("q")).toEqual({ kind: "other" });
     expect(Input.parseKey("")).toEqual({ kind: "other" });

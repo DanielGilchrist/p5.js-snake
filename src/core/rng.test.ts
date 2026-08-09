@@ -4,18 +4,11 @@ import * as NonEmpty from "./non-empty";
 import * as Option from "./option";
 import * as Rng from "./rng";
 
+const SPREAD = 1_000_000;
+
 const SEEDS = Array.from({ length: 50 }, (_, i) => Rng.fromSeed(i * 7919));
 
 describe("rng", () => {
-  test("nextFloat stays in [0, 1)", () => {
-    for (const seed of SEEDS) {
-      const [value] = Rng.nextFloat(seed);
-
-      expect(value).toBeGreaterThanOrEqual(0);
-      expect(value).toBeLessThan(1);
-    }
-  });
-
   test("nextInt stays within the bound", () => {
     for (const seed of SEEDS) {
       for (const bound of [1, 2, 7, 880]) {
@@ -29,13 +22,13 @@ describe("rng", () => {
 
   test("the same seed always yields the same draw", () => {
     for (const seed of SEEDS) {
-      expect(Rng.nextFloat(seed)).toEqual(Rng.nextFloat(seed));
+      expect(Rng.nextInt(seed, SPREAD)).toEqual(Rng.nextInt(seed, SPREAD));
     }
   });
 
   test("advancing the state changes the draw", () => {
-    const [first, next] = Rng.nextFloat(Rng.fromSeed(1));
-    const [second] = Rng.nextFloat(next);
+    const [first, next] = Rng.nextInt(Rng.fromSeed(1), SPREAD);
+    const [second] = Rng.nextInt(next, SPREAD);
 
     expect(first).not.toBe(second);
   });

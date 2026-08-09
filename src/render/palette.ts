@@ -1,5 +1,5 @@
 import type * as Brand from "../core/brand";
-import type * as Game from "../core/game";
+import type * as World from "../core/world";
 
 export type Rgb = {
   readonly red: number;
@@ -27,5 +27,5 @@ const TINT_RANGE = 10;
 export const shift = (colour: Rgb, by: Tint): Rgb =>
   rgb(colour.red + by, colour.green + by, colour.blue + by);
 
-export const floorTint = (variant: Game.Variant): Tint =>
+export const floorTint = (variant: World.Variant): Tint =>
   tint((variant % (TINT_RANGE * 2)) - TINT_RANGE);
