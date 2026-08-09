@@ -11,10 +11,10 @@ import * as Snake from "./snake";
 const onBoard = <R>(
   size: Board.GridSize,
   seed: number,
-  run: <B>(api: Board.Api<B>, state: Game.GameState<B>) => R,
+  run: <B>(api: Board.Api<B>, state: Game.State<B>) => R,
 ): R => {
-  const result = Board.withBoard(size, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
-    run(api, Game.newGame(board, Rng.fromSeed(seed))),
+  const result = Board.parse(size, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
+    run(api, Game.start(board, Rng.fromSeed(seed))),
   );
 
   if (!result.ok) Assert.unreachable("fixture board must parse");
@@ -24,15 +24,15 @@ const onBoard = <R>(
 
 const play = <B>(
   api: Board.Api<B>,
-  from: Game.GameState<B>,
+  from: Game.State<B>,
   commands: readonly Game.Command[],
-): Game.GameState<B> =>
+): Game.State<B> =>
   commands.reduce((current, command) => Game.step(api, current, command).state, from);
 
 const ticks = (n: number): readonly Game.Command[] =>
   Array.from({ length: n }, () => ({ kind: "tick" }));
 
-const chase = <B>(state: Game.GameState<B>): Game.Command => {
+const chase = <B>(state: Game.State<B>): Game.Command => {
   const { snake, food } = state.world;
   const dc = food.col - snake.head.col;
   const dr = food.row - snake.head.row;
@@ -44,10 +44,10 @@ const chase = <B>(state: Game.GameState<B>): Game.Command => {
 
 const autoplay = <B>(
   api: Board.Api<B>,
-  from: Game.GameState<B>,
+  from: Game.State<B>,
   turns: number,
-  each?: (s: Game.GameState<B>) => void,
-): Game.GameState<B> => {
+  each?: (s: Game.State<B>) => void,
+): Game.State<B> => {
   let current = from;
 
   for (let i = 0; i < turns; i++) {
@@ -64,20 +64,20 @@ const SMALL: Board.GridSize = { cols: 6, rows: 6 };
 const MEDIUM: Board.GridSize = { cols: 10, rows: 10 };
 const LARGE: Board.GridSize = { cols: 14, rows: 14 };
 
-describe("withBoard", () => {
+describe("parse", () => {
   test("rejects boards with no playable interior", () => {
-    expect(Board.withBoard({ cols: 2, rows: 10 }, () => 1).ok).toBe(false);
-    expect(Board.withBoard({ cols: 10, rows: 2 }, () => 1).ok).toBe(false);
+    expect(Board.parse({ cols: 2, rows: 10 }, () => 1).ok).toBe(false);
+    expect(Board.parse({ cols: 10, rows: 2 }, () => 1).ok).toBe(false);
   });
 
   test("a parsed board always has a playable cell", () => {
-    const result = Board.withBoard({ cols: 3, rows: 3 }, (board) => board.playable.length);
+    const result = Board.parse({ cols: 3, rows: 3 }, (board) => board.playable.length);
 
     expect(result.ok && result.value).toBeGreaterThan(0);
   });
 
   test("walls and playable cells together cover the grid", () => {
-    const result = Board.withBoard(MEDIUM, (board) => board.walls.length + board.playable.length);
+    const result = Board.parse(MEDIUM, (board) => board.walls.length + board.playable.length);
 
     expect(result.ok && result.value).toBe(100);
   });

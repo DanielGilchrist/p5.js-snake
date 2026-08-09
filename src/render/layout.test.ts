@@ -11,7 +11,7 @@ const VIEWPORT: Units.Viewport = { width: Units.px(800), height: Units.px(600) }
 const BLOCK = Units.px(20);
 
 const onLayout = <R>(cols: number, rows: number, run: <B>(board: Board.Grid<B>) => R): R => {
-  const result = Board.withBoard({ cols, rows }, run);
+  const result = Board.parse({ cols, rows }, run);
 
   if (!result.ok) Assert.unreachable("fixture board must parse");
 
@@ -21,7 +21,7 @@ const onLayout = <R>(cols: number, rows: number, run: <B>(board: Board.Grid<B>) 
 describe("layout", () => {
   test("the board is centred in the viewport", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.layoutFor(board, VIEWPORT, BLOCK);
+      const layout = Layout.fit(board, VIEWPORT, BLOCK);
       const drawnWidth = board.cols * layout.blockWidth;
       const drawnHeight = board.rows * layout.blockWidth;
 
@@ -32,7 +32,7 @@ describe("layout", () => {
 
   test("adjacent cells are exactly one block apart", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.layoutFor(board, VIEWPORT, BLOCK);
+      const layout = Layout.fit(board, VIEWPORT, BLOCK);
       const [first] = board.playable;
       const right = board.playable.find((c) => c.col === first.col + 1 && c.row === first.row);
       const below = board.playable.find((c) => c.col === first.col && c.row === first.row + 1);
@@ -51,7 +51,7 @@ describe("layout", () => {
 
   test("centreOf sits half a block inside the corner", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.layoutFor(board, VIEWPORT, BLOCK);
+      const layout = Layout.fit(board, VIEWPORT, BLOCK);
       const corner = Layout.toPixels(layout, board.start);
       const centre = Layout.centreOf(layout, board.start);
 
@@ -62,7 +62,7 @@ describe("layout", () => {
 
   test("every playable cell lands inside the viewport", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.layoutFor(board, VIEWPORT, BLOCK);
+      const layout = Layout.fit(board, VIEWPORT, BLOCK);
 
       for (const cell of board.playable) {
         const at = Layout.toPixels(layout, cell);

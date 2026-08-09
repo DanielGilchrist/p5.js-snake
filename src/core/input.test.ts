@@ -6,10 +6,9 @@ import * as Game from "./game";
 import * as Input from "./input";
 import * as Rng from "./rng";
 
-const onBoard = <R>(run: <B>(api: Board.Api<B>, state: Game.GameState<B>) => R): R => {
-  const result = Board.withBoard(
-    { cols: 10, rows: 10 },
-    <B>(board: Board.Grid<B>, api: Board.Api<B>) => run(api, Game.newGame(board, Rng.fromSeed(1))),
+const onBoard = <R>(run: <B>(api: Board.Api<B>, state: Game.State<B>) => R): R => {
+  const result = Board.parse({ cols: 10, rows: 10 }, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
+    run(api, Game.start(board, Rng.fromSeed(1))),
   );
 
   if (!result.ok) Assert.unreachable("fixture board must parse");

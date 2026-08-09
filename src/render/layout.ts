@@ -6,7 +6,7 @@ export type Metrics = {
   readonly origin: Units.Point;
 };
 
-export const layoutFor = <B>(
+export const fit = <B>(
   board: Board.Grid<B>,
   viewport: Units.Viewport,
   blockWidth: Units.Px,

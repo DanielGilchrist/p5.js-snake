@@ -21,15 +21,15 @@ export const sketch = new p5((p: p5) => {
       height: Units.px(p.windowHeight),
     };
 
-    const started = Board.withBoard(
+    const started = Board.parse(
       { cols: viewport.width / BLOCK_WIDTH, rows: viewport.height / BLOCK_WIDTH },
       <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
-        const layout = Layout.layoutFor(board, viewport, BLOCK_WIDTH);
-        let state = Game.newGame(board, Rng.fromSeed(Date.now()));
+        const layout = Layout.fit(board, viewport, BLOCK_WIDTH);
+        let state = Game.start(board, Rng.fromSeed(Date.now()));
 
         p.draw = () => {
           state = Game.step(api, state, { kind: "tick" }).state;
-          Render.render(p, state, layout);
+          Render.draw(p, state, layout);
         };
 
         p.keyPressed = () => {
@@ -43,7 +43,7 @@ export const sketch = new p5((p: p5) => {
 
     if (!started.ok) {
       const { error } = started;
-      p.draw = () => Render.renderBoardError(p, error);
+      p.draw = () => Render.drawError(p, error);
     }
   };
 });

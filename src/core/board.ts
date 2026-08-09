@@ -29,7 +29,7 @@ export type Api<B> = {
 
 export type GridSize = { readonly cols: number; readonly rows: number };
 
-export type BoardError = { readonly kind: "too-small"; readonly given: GridSize };
+export type Error = { readonly kind: "too-small"; readonly given: GridSize };
 
 export const equals = <B>(a: Cell<B>, b: Cell<B>): boolean => a.col === b.col && a.row === b.row;
 
@@ -44,10 +44,10 @@ const DELTA = {
 
 const MIN_SIDE = 3;
 
-export const withBoard = <R>(
+export const parse = <R>(
   size: GridSize,
   run: <B>(board: Grid<B>, api: Api<B>) => R,
-): Result.Type<R, BoardError> => {
+): Result.Type<R, Error> => {
   const cols = Math.floor(size.cols);
   const rows = Math.floor(size.rows);
 

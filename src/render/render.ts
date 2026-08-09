@@ -241,7 +241,7 @@ const drawWorld = <B>(
   drawScore(p, world, layout);
 };
 
-export const render = <B>(p: p5, state: Game.GameState<B>, layout: Layout.Metrics): void => {
+export const draw = <B>(p: p5, state: Game.State<B>, layout: Layout.Metrics): void => {
   p.background(Palette.BACKGROUND.red, Palette.BACKGROUND.green, Palette.BACKGROUND.blue);
 
   switch (state.kind) {
@@ -274,7 +274,7 @@ export const render = <B>(p: p5, state: Game.GameState<B>, layout: Layout.Metric
   }
 };
 
-const explain = (error: Board.BoardError): string => {
+const explain = (error: Board.Error): string => {
   switch (error.kind) {
     case "too-small":
       return `Window too small to play (${error.given.cols}x${error.given.rows})`;
@@ -283,7 +283,7 @@ const explain = (error: Board.BoardError): string => {
   }
 };
 
-export const renderBoardError = (p: p5, error: Board.BoardError): void => {
+export const drawError = (p: p5, error: Board.Error): void => {
   p.background(Palette.BACKGROUND.red, Palette.BACKGROUND.green, Palette.BACKGROUND.blue);
   fill(p, Palette.TEXT);
   p.textAlign(p.CENTER, p.CENTER);

@@ -32,7 +32,7 @@ export const parseKey = (raw: string): Key => {
   return { kind: "other" };
 };
 
-export const commandFor = <B>(state: Game.GameState<B>, key: Key): Option.Type<Game.Command> => {
+export const commandFor = <B>(state: Game.State<B>, key: Key): Option.Type<Game.Command> => {
   if (state.kind === "over") return Option.some({ kind: "restart" });
 
   switch (key.kind) {

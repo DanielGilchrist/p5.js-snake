@@ -23,7 +23,7 @@ export type World<B> = {
 
 export type Ending = "collision" | "filled";
 
-export type GameState<B> =
+export type State<B> =
   | { readonly kind: "playing"; readonly world: World<B> }
   | { readonly kind: "paused"; readonly world: World<B> }
   | { readonly kind: "over"; readonly world: World<B>; readonly ending: Ending };
@@ -34,33 +34,33 @@ export type Command =
   | { readonly kind: "togglePause" }
   | { readonly kind: "restart" };
 
-export type GameEvent<B> =
+export type Event<B> =
   | { readonly kind: "ate"; readonly at: Board.Cell<B> }
   | { readonly kind: "died"; readonly at: Board.Cell<B> };
 
 export type Step<B> = {
-  readonly state: GameState<B>;
-  readonly events: readonly GameEvent<B>[];
+  readonly state: State<B>;
+  readonly events: readonly Event<B>[];
 };
 
-type StateKind = GameState<never>["kind"];
-type StateFields<B, K extends StateKind> = Omit<Extract<GameState<B>, { kind: K }>, "kind">;
+type StateKind = State<never>["kind"];
+type StateFields<B, K extends StateKind> = Omit<Extract<State<B>, { kind: K }>, "kind">;
 
 const State = {
-  playing: <B>(fields: StateFields<B, "playing">): GameState<B> => ({ kind: "playing", ...fields }),
-  paused: <B>(fields: StateFields<B, "paused">): GameState<B> => ({ kind: "paused", ...fields }),
-  over: <B>(fields: StateFields<B, "over">): GameState<B> => ({ kind: "over", ...fields }),
+  playing: <B>(fields: StateFields<B, "playing">): State<B> => ({ kind: "playing", ...fields }),
+  paused: <B>(fields: StateFields<B, "paused">): State<B> => ({ kind: "paused", ...fields }),
+  over: <B>(fields: StateFields<B, "over">): State<B> => ({ kind: "over", ...fields }),
 } satisfies Record<StateKind, unknown>;
 
-type EventKind = GameEvent<never>["kind"];
-type EventFields<B, K extends EventKind> = Omit<Extract<GameEvent<B>, { kind: K }>, "kind">;
+type EventKind = Event<never>["kind"];
+type EventFields<B, K extends EventKind> = Omit<Extract<Event<B>, { kind: K }>, "kind">;
 
 const Event = {
-  ate: <B>(fields: EventFields<B, "ate">): GameEvent<B> => ({ kind: "ate", ...fields }),
-  died: <B>(fields: EventFields<B, "died">): GameEvent<B> => ({ kind: "died", ...fields }),
+  ate: <B>(fields: EventFields<B, "ate">): Event<B> => ({ kind: "ate", ...fields }),
+  died: <B>(fields: EventFields<B, "died">): Event<B> => ({ kind: "died", ...fields }),
 } satisfies Record<EventKind, unknown>;
 
-const unchanged = <B>(state: GameState<B>): Step<B> => ({ state, events: [] });
+const unchanged = <B>(state: State<B>): Step<B> => ({ state, events: [] });
 
 const playOn = <B>(world: World<B>): Step<B> => ({ state: State.playing({ world }), events: [] });
 
@@ -110,7 +110,7 @@ const freeCell = <B>(
   return [Option.some(cell), next];
 };
 
-export const newGame = <B>(board: Board.Grid<B>, state: Rng.State): GameState<B> => {
+export const start = <B>(board: Board.Grid<B>, state: Rng.State): State<B> => {
   const snake = Snake.spawn(board.start, "right");
   const [drawn, seeded] = Rng.nextInt(state, VARIANTS);
   const [food, next] = freeCell(board, snake, seeded);
@@ -166,7 +166,7 @@ const tick = <B>(api: Board.Api<B>, world: World<B>): Step<B> => {
     : playOn(withSnake(steered, snake));
 };
 
-export const step = <B>(api: Board.Api<B>, state: GameState<B>, command: Command): Step<B> => {
+export const step = <B>(api: Board.Api<B>, state: State<B>, command: Command): Step<B> => {
   switch (command.kind) {
     case "tick":
       return state.kind === "playing" ? tick(api, state.world) : unchanged(state);
@@ -189,7 +189,7 @@ export const step = <B>(api: Board.Api<B>, state: GameState<B>, command: Command
       }
 
     case "restart":
-      return unchanged(newGame(state.world.board, state.world.rng));
+      return unchanged(start(state.world.board, state.world.rng));
 
     default:
       return Assert.never(command);

@@ -9,14 +9,14 @@ const on = <R>(
   rows: number,
   run: <B>(board: Board.Grid<B>, api: Board.Api<B>) => R,
 ): R => {
-  const result = Board.withBoard({ cols, rows }, run);
+  const result = Board.parse({ cols, rows }, run);
 
   if (!result.ok) Assert.unreachable("fixture board must parse");
 
   return result.value;
 };
 
-describe("withBoard", () => {
+describe("parse", () => {
   test("fractional sizes are floored", () => {
     const size = on(10.9, 10.9, (board) => `${board.cols}x${board.rows}`);
 
