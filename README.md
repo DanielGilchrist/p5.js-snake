@@ -2,7 +2,7 @@
 
 Made using [p5.js](https://p5js.org/)
 
-<img width="1004" height="604" alt="image" src="https://github.com/user-attachments/assets/34080829-6fbf-45ad-8b11-191b2873749d" />
+<img width="1004" height="604" alt="image" src="https://github.com/user-attachments/assets/42f9c977-ddf4-4d5f-a88c-6ba7f4e9d5c7" />
 
 # Controls
 

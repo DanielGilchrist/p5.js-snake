@@ -64,7 +64,8 @@ type Phase<B> =
   | { readonly kind: "live" }
   | { readonly kind: "rewinding"; readonly playback: Rewind.Playback<B> }
   | { readonly kind: "settings"; readonly cursor: number }
-  | { readonly kind: "help" };
+  | { readonly kind: "help" }
+  | { readonly kind: "frozen" };
 
 const live = { kind: "live" } as const;
 
@@ -73,6 +74,8 @@ const rewinding = <B>(playback: Rewind.Playback<B>): Phase<B> => ({ kind: "rewin
 const adjusting = <B>(cursor: number): Phase<B> => ({ kind: "settings", cursor });
 
 const helping = { kind: "help" } as const;
+
+const frozen = { kind: "frozen" } as const;
 
 const HELP_LINES: readonly (readonly [string, string])[] = [
   ["Move", "Arrows or H J K L"],
@@ -231,6 +234,12 @@ export const sketch = new p5((p: p5) => {
           if (phase.kind === "settings") {
             paintWorld(now);
             Panel.draw(p, scheme, menuNow(), layout.blockWidth, phase.cursor);
+
+            return;
+          }
+
+          if (phase.kind === "frozen") {
+            paintWorld(now);
 
             return;
           }
@@ -413,6 +422,15 @@ export const sketch = new p5((p: p5) => {
         p.keyPressed = () => {
           const now = Units.millis(p.millis());
           const key = Input.parseKey(p.key);
+
+          if (key.kind === "freeze") {
+            if (phase.kind === "frozen") resume(now);
+            else phase = frozen;
+
+            return;
+          }
+
+          if (phase.kind === "frozen") return;
 
           if (phase.kind === "help") {
             if (key.kind === "menu") phase = adjusting(0);

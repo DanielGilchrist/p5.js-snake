@@ -18,6 +18,7 @@ const PAUSE = "p";
 const SKIP = "Enter";
 const MENU = "s";
 const HELP = "?";
+const FREEZE = "P";
 
 type Bound = keyof typeof BINDINGS;
 
@@ -29,6 +30,7 @@ export type Key =
   | { readonly kind: "skip" }
   | { readonly kind: "menu" }
   | { readonly kind: "help" }
+  | { readonly kind: "freeze" }
   | { readonly kind: "other" };
 
 export const turn = (direction: Geometry.Direction): Key => ({ kind: "turn", direction });
@@ -41,6 +43,8 @@ const menu = { kind: "menu" } as const;
 
 const help = { kind: "help" } as const;
 
+const freeze = { kind: "freeze" } as const;
+
 export const other = { kind: "other" } as const;
 
 export const parseKey = (raw: string): Key => {
@@ -49,6 +53,7 @@ export const parseKey = (raw: string): Key => {
   if (raw === SKIP) return skip;
   if (raw === MENU) return menu;
   if (raw === HELP) return help;
+  if (raw === FREEZE) return freeze;
 
   return other;
 };
@@ -64,6 +69,7 @@ export const commandFor = <B>(state: Game.State<B>, key: Key): Option.Type<Game.
     case "skip":
     case "menu":
     case "help":
+    case "freeze":
     case "other":
       return Option.none;
     default:
