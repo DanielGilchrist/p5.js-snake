@@ -39,11 +39,11 @@ const vault = Storage.browser();
 type Shell =
   | { readonly kind: "desk"; readonly stage: Units.Region }
   | {
-      readonly kind: "handheld";
-      readonly stage: Units.Region;
-      readonly device: Units.Region;
-      readonly pad: Pad.Pad;
-    };
+    readonly kind: "handheld";
+    readonly stage: Units.Region;
+    readonly device: Units.Region;
+    readonly pad: Pad.Pad;
+  };
 
 const touchFirst = (): boolean => window.matchMedia("(pointer: coarse)").matches;
 
@@ -78,9 +78,9 @@ const helping = { kind: "help" } as const;
 const frozen = { kind: "frozen" } as const;
 
 const HELP_LINES: readonly (readonly [string, string])[] = [
-  ["Move", "Arrows or H J K L"],
+  ["Move", "Arrows, H J K L or W S A D"],
   ["Pause", "P"],
-  ["Settings", "S"],
+  ["Settings", "Shift+S"],
   ["Controls", "?"],
 ];
 

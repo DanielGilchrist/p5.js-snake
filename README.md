@@ -9,9 +9,9 @@ Made using [p5.js](https://p5js.org/)
 ## Keyboard
 | Key | |
 | --- | --- |
-| Arrow keys or `hjkl` | Move |
+| Arrow keys, `hjkl` or `wsad` | Move |
 | `p` | Pause |
-| `s` | Settings |
+| `Shift+S` | Settings |
 | `?` | Controls |
 
 # Development

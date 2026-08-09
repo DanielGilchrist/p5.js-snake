@@ -12,11 +12,15 @@ const BINDINGS = {
   j: "down",
   h: "left",
   l: "right",
+  w: "up",
+  s: "down",
+  a: "left",
+  d: "right",
 } as const satisfies Record<string, Geometry.Direction>;
 
 const PAUSE = "p";
 const SKIP = "Enter";
-const MENU = "s";
+const MENU = "S";
 const HELP = "?";
 const FREEZE = "P";
 
