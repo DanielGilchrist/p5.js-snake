@@ -98,6 +98,15 @@ describe("step", () => {
     });
   });
 
+  test("the first turn after a tick applies immediately", () => {
+    onBoard(MEDIUM, 1, (api, state) => {
+      const turned = play(api, state, [{ kind: "turn", direction: "down" }]);
+
+      expect(turned.world.snake.facing).toBe("down");
+      expect(turned.world.pending.some).toBe(false);
+    });
+  });
+
   test("pause freezes the world", () => {
     onBoard(MEDIUM, 3, (api, state) => {
       const running = play(api, state, ticks(2));
@@ -184,32 +193,33 @@ describe("determinism", () => {
 });
 
 describe("input buffering", () => {
-  test("queued turns apply one per tick", () => {
+  test("a second turn in the same tick waits for the next one", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const queued = play(api, state, [
         { kind: "turn", direction: "down" },
         { kind: "turn", direction: "left" },
       ]);
 
-      expect(queued.world.buffered.length).toBe(2);
+      expect(queued.world.snake.facing).toBe("down");
+      expect(queued.world.pending.some).toBe(true);
 
-      const { state: afterFirst } = Game.step(api, queued, { kind: "tick" });
+      const { state: afterTick } = Game.step(api, queued, { kind: "tick" });
 
-      expect(afterFirst.world.snake.facing).toBe("down");
-      expect(afterFirst.world.buffered.length).toBe(1);
+      expect(afterTick.world.snake.facing).toBe("left");
+      expect(afterTick.world.pending.some).toBe(false);
     });
   });
 
-  test("the buffer is bounded", () => {
+  test("only one direction change happens per tick", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const directions: readonly Geometry.Direction[] = ["down", "left", "up", "right", "down"];
-      const queued = play(
+      const spammed = play(
         api,
         state,
         directions.map((direction) => ({ kind: "turn", direction })),
       );
 
-      expect(queued.world.buffered.length).toBeLessThanOrEqual(2);
+      expect(spammed.world.snake.facing).toBe("down");
     });
   });
 });
@@ -250,7 +260,7 @@ describe("restart", () => {
       expect(restarted.kind).toBe("playing");
       expect(restarted.world.score).toBe(0);
       expect(Snake.length(restarted.world.snake)).toBe(1);
-      expect(restarted.world.buffered).toEqual([]);
+      expect(restarted.world.pending.some).toBe(false);
       expect(restarted.world.board).toBe(played.world.board);
     });
   });
@@ -280,7 +290,7 @@ describe("turning", () => {
       const attempted = play(api, paused, [{ kind: "turn", direction: "down" }]);
 
       expect(attempted.kind).toBe("paused");
-      expect(attempted.world.buffered).toEqual([]);
+      expect(attempted.world.pending.some).toBe(false);
     });
   });
 
@@ -339,6 +349,72 @@ describe("invariants across many seeds", () => {
 });
 
 describe("end to end", () => {
+  test("a perpendicular turn pair cannot fold the snake back into its neck", () => {
+    for (let seed = 0; seed < 12; seed++) {
+      onBoard({ cols: 15, rows: 13 }, seed, (api, state) => {
+        // grow a body, then let pending drain so facing matches the last move
+        const grown = play(api, autoplay(api, state, 120, undefined), ticks(2));
+        if (grown.kind !== "playing") return;
+        if (Snake.length(grown.world.snake) < 3) return;
+
+        const { head, tail } = grown.world.snake;
+        const [neck] = tail;
+        if (neck === undefined) return;
+
+        const dc = head.col - neck.col;
+        const dr = head.row - neck.row;
+
+        const back: Geometry.Direction =
+          dc > 0 ? "left" : dc < 0 ? "right" : dr > 0 ? "up" : "down";
+        const side: Geometry.Direction = dc === 0 ? "left" : "up";
+
+        const folded = play(api, grown, [
+          { kind: "turn", direction: side },
+          { kind: "turn", direction: back },
+          { kind: "tick" },
+        ]);
+
+        const cells = Snake.segments(folded.world.snake).map(Board.key);
+        expect(new Set(cells).size).toBe(cells.length);
+        expect(folded.kind).toBe("playing");
+      });
+    }
+  });
+
+  test("bursts of turns between ticks never fold the snake into itself", () => {
+    const turns: readonly Geometry.Direction[] = ["up", "down", "left", "right"];
+
+    for (let seed = 0; seed < 20; seed++) {
+      onBoard({ cols: 13, rows: 11 }, seed, (api, state) => {
+        let current = autoplay(api, state, 120, undefined);
+        if (current.kind === "over") return;
+
+        expect(Snake.length(current.world.snake)).toBeGreaterThan(2);
+
+        let picker = Rng.fromSeed(seed * 977 + 5);
+
+        for (let i = 0; i < 220; i++) {
+          const bursts = (i % 3) + 1;
+
+          for (let n = 0; n < bursts; n++) {
+            const [direction, next] = Rng.choose(
+              picker,
+              turns as NonEmpty.List<Geometry.Direction>,
+            );
+            picker = next;
+            current = Game.step(api, current, { kind: "turn", direction }).state;
+          }
+
+          current = Game.step(api, current, { kind: "tick" }).state;
+          if (current.kind === "over") break;
+
+          const cells = Snake.segments(current.world.snake).map(Board.key);
+          expect(new Set(cells).size).toBe(cells.length);
+        }
+      });
+    }
+  });
+
   test("pausing and resuming does not change how a game plays out", () => {
     const script: readonly Game.Command[] = [
       { kind: "turn", direction: "down" },

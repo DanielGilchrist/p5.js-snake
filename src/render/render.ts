@@ -5,7 +5,7 @@ import type * as Brand from "../core/brand";
 import * as Assert from "../core/assert";
 import type * as Game from "../core/game";
 import type * as Geometry from "../core/geometry";
-import type * as Snake from "../core/snake";
+import * as Snake from "../core/snake";
 import * as Layout from "./layout";
 import * as Palette from "./palette";
 import * as Units from "./units";
@@ -164,21 +164,43 @@ const drawSegment = (
   p.rect(at.x + 1, at.y + 1, block - 2, block - 2, block * radius);
 };
 
+const glide = <B>(
+  snake: Snake.State<B>,
+  previous: Snake.State<B>,
+  blend: number,
+  layout: Layout.Metrics,
+): readonly Units.Point[] => {
+  const now = Snake.segments(snake);
+  const before = Snake.segments(previous);
+
+  return now.map((cell, index) => {
+    const to = Layout.toPixels(layout, cell);
+    const from = before[index];
+
+    return from === undefined ? to : Layout.lerp(Layout.toPixels(layout, from), to, blend);
+  });
+};
+
 const drawSnake = <B>(
   p: p5,
   snake: Snake.State<B>,
+  previous: Snake.State<B>,
+  blend: number,
   layout: Layout.Metrics,
   vitality: Vitality,
 ): void => {
   const block = layout.blockWidth;
-  const head = Layout.toPixels(layout, snake.head);
+  const points = glide(snake, previous, blend, layout);
+  const [head] = points;
 
-  drawSegment(p, head, block, HEAD_RADIUS, HEAD_ALPHA);
+  if (head === undefined) return;
 
-  for (const segment of snake.tail) {
-    drawSegment(p, Layout.toPixels(layout, segment), block, TAIL_RADIUS, TAIL_ALPHA);
+  for (let i = points.length - 1; i >= 1; i--) {
+    const at = points[i];
+    if (at !== undefined) drawSegment(p, at, block, TAIL_RADIUS, TAIL_ALPHA);
   }
 
+  drawSegment(p, head, block, HEAD_RADIUS, HEAD_ALPHA);
   drawEyes(p, head, snake.facing, block, vitality);
 };
 
@@ -234,29 +256,37 @@ const drawWorld = <B>(
   world: Game.World<B>,
   layout: Layout.Metrics,
   vitality: Vitality,
+  scene: Scene<B>,
 ): void => {
   drawGrid(p, world, layout);
   drawFood(p, world.food, layout, Units.millis(p.millis()));
-  drawSnake(p, world.snake, layout, vitality);
+  drawSnake(p, world.snake, scene.previous, scene.alpha, layout, vitality);
   drawScore(p, world, layout);
 };
 
-export const draw = <B>(p: p5, state: Game.State<B>, layout: Layout.Metrics): void => {
+export type Scene<B> = {
+  readonly current: Game.State<B>;
+  readonly previous: Snake.State<B>;
+  readonly alpha: number;
+};
+
+export const draw = <B>(p: p5, scene: Scene<B>, layout: Layout.Metrics): void => {
+  const state = scene.current;
   p.background(Palette.BACKGROUND.red, Palette.BACKGROUND.green, Palette.BACKGROUND.blue);
 
   switch (state.kind) {
     case "playing":
-      drawWorld(p, state.world, layout, "alive");
+      drawWorld(p, state.world, layout, "alive", scene);
       return;
 
     case "paused":
-      drawWorld(p, state.world, layout, "alive");
+      drawWorld(p, state.world, layout, "alive", scene);
       drawBanner(p, [{ text: "PAUSED", size: Units.px(50) }], alpha(80));
       return;
 
     case "over": {
       const outcome = describeEnding(state.ending);
-      drawWorld(p, state.world, layout, outcome.vitality);
+      drawWorld(p, state.world, layout, outcome.vitality, scene);
       drawBanner(
         p,
         [

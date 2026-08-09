@@ -18,8 +18,11 @@ export type World<B> = {
   readonly score: number;
   readonly rng: Rng.State;
   readonly variant: Variant;
-  readonly buffered: readonly Geometry.Direction[];
+  readonly pending: Option.Type<Geometry.Direction>;
+  readonly steering: Steering;
 };
+
+export type Steering = "ready" | "used";
 
 export type Ending = "collision" | "filled";
 
@@ -91,7 +94,6 @@ const withRng = <B>(world: World<B>, rng: Rng.State): World<B> => ({ ...world, r
 
 const scored = <B>(world: World<B>): World<B> => ({ ...world, score: world.score + 1 });
 
-const MAX_BUFFERED = 2;
 const VARIANTS = 20;
 
 const freeCell = <B>(
@@ -123,25 +125,29 @@ export const start = <B>(board: Board.Grid<B>, state: Rng.State): State<B> => {
       score: 0,
       rng: next,
       variant: variant(drawn),
-      buffered: [],
+      pending: Option.none,
+      steering: "ready",
     },
   });
 };
 
-const bufferTurn = <B>(world: World<B>, direction: Geometry.Direction): World<B> =>
-  world.buffered.length >= MAX_BUFFERED
-    ? world
-    : { ...world, buffered: [...world.buffered, direction] };
+const steer = <B>(world: World<B>, direction: Geometry.Direction): World<B> =>
+  world.steering === "ready"
+    ? { ...world, snake: Snake.turn(world.snake, direction), steering: "used" }
+    : { ...world, pending: Option.some(direction) };
 
-const applyBufferedTurn = <B>(world: World<B>): World<B> => {
-  const [next, ...rest] = world.buffered;
+const releasePending = <B>(world: World<B>): World<B> =>
+  world.pending.some
+    ? {
+        ...world,
+        snake: Snake.turn(world.snake, world.pending.value),
+        pending: Option.none,
+        steering: "used",
+      }
+    : { ...world, steering: "ready" };
 
-  return next === undefined
-    ? world
-    : { ...world, snake: Snake.turn(world.snake, next), buffered: rest };
-};
-
-const eat = <B>(world: World<B>, snake: Snake.State<B>): Step<B> => {
+const eat = <B>(world: World<B>): Step<B> => {
+  const snake = world.snake;
   const fed = Snake.grow(snake);
   const [next, rng] = freeCell(world.board, fed, world.rng);
   const grown = scored(withSnake(world, fed));
@@ -152,18 +158,17 @@ const eat = <B>(world: World<B>, snake: Snake.State<B>): Step<B> => {
 };
 
 const tick = <B>(api: Board.Api<B>, world: World<B>): Step<B> => {
-  const steered = applyBufferedTurn(world);
-  const moved = Snake.advance(api, steered.snake);
+  const moved = Snake.advance(api, world.snake);
 
-  if (moved.kind === "hitWall") return dieAt(steered, steered.snake.head);
+  if (moved.kind === "hitWall") return dieAt(world, world.snake.head);
 
   const { snake } = moved;
 
-  if (Snake.biteSelf(snake)) return dieAt(withSnake(steered, snake), snake.head);
+  if (Snake.biteSelf(snake)) return dieAt(withSnake(world, snake), snake.head);
 
-  return Board.equals(snake.head, steered.food)
-    ? eat(steered, snake)
-    : playOn(withSnake(steered, snake));
+  const ready = releasePending({ ...world, snake, steering: "ready" });
+
+  return Board.equals(snake.head, ready.food) ? eat(ready) : playOn(ready);
 };
 
 export const step = <B>(api: Board.Api<B>, state: State<B>, command: Command): Step<B> => {
@@ -173,7 +178,7 @@ export const step = <B>(api: Board.Api<B>, state: State<B>, command: Command): S
 
     case "turn":
       return state.kind === "playing"
-        ? playOn(bufferTurn(state.world, command.direction))
+        ? playOn(steer(state.world, command.direction))
         : unchanged(state);
 
     case "togglePause":

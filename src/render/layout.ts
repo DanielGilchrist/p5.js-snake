@@ -31,3 +31,8 @@ export const centreOf = <B>(layout: Metrics, target: Board.Cell<B>): Units.Point
     y: Units.px(corner.y + layout.blockWidth / 2),
   };
 };
+
+export const lerp = (from: Units.Point, to: Units.Point, t: number): Units.Point => ({
+  x: Units.px(from.x + (to.x - from.x) * t),
+  y: Units.px(from.y + (to.y - from.y) * t),
+});
