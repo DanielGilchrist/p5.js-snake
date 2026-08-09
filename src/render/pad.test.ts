@@ -137,6 +137,32 @@ describe("pad", () => {
       }
   });
 
+  test("only the cross steers, so sliding onto a button does not turn", () => {
+    for (const control of CONTROLS) {
+      expect(Pad.steers(control)).toBe(control !== "pause" && control !== "menu");
+    }
+  });
+
+  test("sliding across the cross reports each arm it crosses", () => {
+    for (const viewport of SHAPES)
+      for (const hand of HANDS) {
+        const { pad } = Pad.arrange(viewport, hand);
+        const step = pad.span / 12;
+        const seen: Pad.Control[] = [];
+
+        for (let x = pad.seat.x - pad.span; x <= pad.seat.x + pad.span; x += step) {
+          const found = Pad.hit(pad, Units.point(x, pad.seat.y));
+
+          if (!found.some) continue;
+          if (seen[seen.length - 1] === found.value) continue;
+
+          seen.push(found.value);
+        }
+
+        expect(seen).toEqual(["left", "right"]);
+      }
+  });
+
   test("directions turn, pause pauses, and flip is not a game input", () => {
     for (const control of CONTROLS) {
       const key = Pad.keyOf(control);

@@ -166,6 +166,8 @@ const facing = (control: Control): Option.Type<Geometry.Direction> => {
   }
 };
 
+export const steers = (control: Control): boolean => facing(control).some;
+
 export const keyOf = (control: Control): Option.Type<Input.Key> => {
   const direction = facing(control);
 

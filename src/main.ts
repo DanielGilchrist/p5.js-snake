@@ -117,6 +117,7 @@ export const sketch = new p5((p: p5) => {
           );
         let held: Option.Type<Pad.Control> = Option.none;
         let heldUntil = 0;
+        let thumb: Option.Type<number> = Option.none;
 
         const baseInterval =
           1000 / Math.max(MIN_TICKS_PER_SECOND, Math.floor((board.cols + board.rows) / 4.3));
@@ -202,7 +203,7 @@ export const sketch = new p5((p: p5) => {
           Effects.draw(p, scheme, effects, layout, now);
 
           if (shell.kind === "handheld") {
-            if (now > heldUntil) held = Option.none;
+            if (!thumb.some && now > heldUntil) held = Option.none;
 
             Keys.draw(p, scheme, shell.pad, held);
           }
@@ -350,16 +351,64 @@ export const sketch = new p5((p: p5) => {
           if (key.some) press(key.value, now);
         };
 
+        const slid = (at: Units.Point): void => {
+          if (shell.kind !== "handheld" || phase.kind !== "live") return;
+
+          const control = Pad.hit(shell.pad, at);
+          const steering = control.some && Pad.steers(control.value);
+
+          if (!steering) {
+            held = Option.none;
+
+            return;
+          }
+
+          if (held.some && held.value === control.value) return;
+
+          held = control;
+
+          const key = Pad.keyOf(control.value);
+
+          if (key.some) press(key.value, Units.millis(p.millis()));
+        };
+
+        const lifted = (): void => {
+          thumb = Option.none;
+          heldUntil = Units.millis(p.millis()) + PRESS_FEEDBACK_MS;
+        };
+
         window.addEventListener(
           "pointerdown",
           (event: PointerEvent) => {
             if (shell.kind !== "handheld" && phase.kind !== "settings") return;
 
             event.preventDefault();
+
+            if (!thumb.some) thumb = Option.some(event.pointerId);
+
             tapped(Units.point(event.clientX, event.clientY));
           },
           { passive: false },
         );
+
+        window.addEventListener(
+          "pointermove",
+          (event: PointerEvent) => {
+            if (!thumb.some || thumb.value !== event.pointerId) return;
+
+            event.preventDefault();
+            slid(Units.point(event.clientX, event.clientY));
+          },
+          { passive: false },
+        );
+
+        for (const ending of ["pointerup", "pointercancel"] as const) {
+          window.addEventListener(ending, (event: PointerEvent) => {
+            if (!thumb.some || thumb.value !== event.pointerId) return;
+
+            lifted();
+          });
+        }
 
         p.keyPressed = () => {
           const now = Units.millis(p.millis());
