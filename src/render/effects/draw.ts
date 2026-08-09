@@ -6,7 +6,7 @@ import type * as Layout from "../layout";
 import type * as Units from "../units";
 import * as Debris from "./debris";
 import * as Effect from "./effect";
-import * as Puff from "./puff";
+import * as Scuff from "./scuff";
 import * as Swallow from "./swallow";
 import * as Veil from "./veil";
 
@@ -21,28 +21,20 @@ export const draw = (
 
   for (const effect of effects) {
     const t = Effect.progress(effect, now);
+    const seconds = Effect.spanOf(effect) / 1000;
 
     switch (effect.kind) {
-      case "puff":
-        Puff.puff(p, scheme, effect.at, t, block, effect.born);
-        break;
-      case "dust":
-        Puff.dust(p, scheme, effect.at, t, block);
-        break;
-      case "wisps":
-        Puff.wisps(p, scheme, effect.at, t, block, effect.born);
-        break;
       case "swallow":
-        Swallow.draw(p, scheme, effect.at, t, block);
+        Swallow.draw(p, effect.at, effect.colour, effect.flow, t, block);
         break;
       case "crumbs":
-        Debris.crumbs(p, effect.at, t, block, effect.colour, effect.flow);
+        Debris.crumbs(p, scheme, effect.at, t, block, effect.colour, effect.flow, seconds);
         break;
       case "shards":
-        Debris.shards(p, scheme, effect.at, t, block);
+        Debris.shards(p, scheme, effect.at, t, block, effect.colour, seconds);
         break;
-      case "ring":
-        Veil.ring(p, effect.at, effect.colour, t, block);
+      case "scuff":
+        Scuff.draw(p, scheme, effect.at, effect.colour, t, block, effect.born);
         break;
       case "dim":
         Veil.dim(p, effect.colour, t);

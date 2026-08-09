@@ -45,13 +45,10 @@ const kindsOf = (effects: readonly Effects.Effect[]): Set<string> =>
   new Set(effects.map((effect) => effect.kind));
 
 describe("effects", () => {
-  test("eating stacks a puff, a swallow and a punch on the same beat", () => {
+  test("eating bursts the fruit: splat, pulp and a punch on one beat", () => {
     const kinds = kindsOf(onEat());
 
-    expect(kinds).toContain("puff");
     expect(kinds).toContain("swallow");
-    expect(kinds).toContain("dust");
-    expect(kinds).toContain("wisps");
     expect(kinds).toContain("crumbs");
     expect(kinds).toContain("shake");
   });
@@ -60,7 +57,30 @@ describe("effects", () => {
     const kinds = kindsOf(onEat());
 
     expect(kinds).not.toContain("shards");
+    expect(kinds).not.toContain("scuff");
     expect(kinds).not.toContain("dim");
+  });
+
+  test("dying spills blood, not fruit", () => {
+    const dead = onDeath();
+
+    expect(kindsOf(dead)).toContain("scuff");
+    expect(kindsOf(dead)).toContain("shards");
+
+    for (const effect of dead) {
+      if (effect.kind === "shards" || effect.kind === "scuff") {
+        expect(effect.colour).not.toEqual(Palette.EARTHENWARE.foodDeep);
+        expect(effect.colour).not.toEqual(Palette.EARTHENWARE.food);
+      }
+    }
+  });
+
+  test("the death mark outlasts the debris that made it", () => {
+    const dead = onDeath();
+    const late = Effects.alive(dead, Units.millis(700));
+
+    expect(kindsOf(late)).toContain("scuff");
+    expect(Effects.alive(dead, Units.millis(10_000))).toEqual([]);
   });
 
   test("the swallow outlasts the freeze so the food is seen going in", () => {
@@ -72,21 +92,15 @@ describe("effects", () => {
     expect(Effects.alive([swallow], Units.millis(400))).toEqual([]);
   });
 
-  test("the puff is the shortest-lived layer, so the dust settles after it", () => {
+  test("the fruit vanishes before its pulp settles", () => {
     const eaten = onEat();
-    const outlives = (kind: string): boolean =>
+    const gone = (kind: string): boolean =>
       eaten
         .filter((effect) => effect.kind === kind)
-        .every((effect) => Effects.alive([effect], Units.millis(200)).length === 1);
+        .every((effect) => Effects.alive([effect], Units.millis(200)).length === 0);
 
-    expect(
-      Effects.alive(
-        eaten.filter((e) => e.kind === "puff"),
-        Units.millis(200),
-      ),
-    ).toEqual([]);
-    expect(outlives("crumbs")).toBe(true);
-    expect(outlives("dust")).toBe(true);
+    expect(gone("swallow")).toBe(true);
+    expect(gone("crumbs")).toBe(false);
   });
 
   test("dying shakes harder and longer than eating", () => {
@@ -123,22 +137,26 @@ describe("effects", () => {
     expect(Effects.shakeOffset(quiet, Units.millis(5))).toEqual(Units.NO_OFFSET);
   });
 
-  test("undoing a bite gives the crumbs back rather than taking them", () => {
+  test("undoing a bite puts the fruit back together", () => {
     const reversed = undoing((at) => Event.scored(at));
 
+    expect(kindsOf(reversed)).toContain("swallow");
     expect(kindsOf(reversed)).toContain("crumbs");
-    expect(kindsOf(reversed)).toContain("dust");
 
     for (const effect of reversed) {
-      if (effect.kind === "crumbs") expect(effect.flow).toBe("outward");
+      if (effect.kind === "crumbs" || effect.kind === "swallow") {
+        expect(effect.flow).toBe("inward");
+      }
     }
   });
 
-  test("eating draws the crumbs inward, undoing it throws them out", () => {
+  test("eating throws the pulp out, undoing it draws it back", () => {
     const eaten = onEat().filter((effect) => effect.kind === "crumbs");
 
+    expect(eaten.length).toBeGreaterThan(0);
+
     for (const effect of eaten) {
-      if (effect.kind === "crumbs") expect(effect.flow).toBe("inward");
+      if (effect.kind === "crumbs") expect(effect.flow).toBe("outward");
     }
   });
 

@@ -11,7 +11,7 @@ export type Tint = Brand.Of<number, "Tint">;
 
 const tint = (n: number): Tint => n as Tint;
 
-export const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
+const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
 export type Scheme = {
   readonly background: Rgb;
@@ -28,6 +28,8 @@ export type Scheme = {
   readonly eye: Rgb;
   readonly snake: Rgb;
   readonly snakeDeep: Rgb;
+  readonly blood: Rgb;
+  readonly bloodDeep: Rgb;
   readonly food: Rgb;
   readonly foodDeep: Rgb;
   readonly plum: Rgb;
@@ -57,6 +59,8 @@ export const EARTHENWARE: Scheme = scheme({
   eye: rgb(72, 58, 46),
   snake: rgb(122, 150, 116),
   snakeDeep: rgb(96, 122, 92),
+  blood: rgb(146, 40, 34),
+  bloodDeep: rgb(104, 24, 20),
   food: rgb(203, 104, 82),
   foodDeep: rgb(170, 80, 62),
   plum: rgb(141, 95, 116),
@@ -84,6 +88,8 @@ export const STONEWARE: Scheme = scheme({
   eye: rgb(24, 20, 17),
   snake: rgb(148, 178, 136),
   snakeDeep: rgb(112, 140, 102),
+  blood: rgb(158, 36, 30),
+  bloodDeep: rgb(112, 22, 18),
   food: rgb(232, 138, 108),
   foodDeep: rgb(196, 108, 82),
   plum: rgb(190, 132, 162),

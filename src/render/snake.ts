@@ -140,13 +140,14 @@ export const draw = <B>(
   bite: Units.Millis,
 ): void => {
   const block = layout.blockWidth;
+  const now = Units.millis(p.millis());
   const spine = Spine.of(snake, previous, blend, layout);
   const [nose] = spine;
 
   if (nose === undefined) return;
 
   const head = nose.at;
-  const bulge = bulgeAt(Units.millis(p.millis()), bite);
+  const bulge = bulgeAt(now, bite);
   const crown = block * HEAD_WIDTH * bulge;
   const crest = Units.point(head.x, head.y - block * CREST_LIFT);
 

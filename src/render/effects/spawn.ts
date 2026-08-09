@@ -16,9 +16,11 @@ export const unspawn = <B>(
     case "scored": {
       const at = Layout.centreOf(layout, event.at);
 
+      const pulp = Morsel.skinAt(scheme, event.at);
+
       return [
-        Effect.dust(at, now),
-        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), "outward", now),
+        Effect.swallow(at, pulp, "inward", now),
+        Effect.crumbs(at, pulp, "inward", now),
         Effect.punch(now),
       ];
     }
@@ -50,12 +52,11 @@ export const spawn = <B>(
     case "scored": {
       const at = Layout.centreOf(layout, event.at);
 
+      const pulp = Morsel.skinAt(scheme, event.at);
+
       return [
-        Effect.dust(at, now),
-        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), "inward", now),
-        Effect.wisps(at, now),
-        Effect.swallow(at, now),
-        Effect.puff(at, now),
+        Effect.swallow(at, pulp, "outward", now),
+        Effect.crumbs(at, pulp, "outward", now),
         Effect.punch(now),
       ];
     }
@@ -66,10 +67,10 @@ export const spawn = <B>(
       const at = Layout.centreOf(layout, event.at);
 
       return [
+        Effect.scuff(at, scheme.bloodDeep, now),
         Effect.quake(now),
         Effect.dim(scheme.shadow, now),
-        Effect.ring(at, scheme.foodDeep, now),
-        Effect.shards(at, now),
+        Effect.shards(at, scheme.blood, now),
       ];
     }
 
