@@ -39,11 +39,11 @@ const vault = Storage.browser();
 type Shell =
   | { readonly kind: "desk"; readonly stage: Units.Region }
   | {
-    readonly kind: "handheld";
-    readonly stage: Units.Region;
-    readonly device: Units.Region;
-    readonly pad: Pad.Pad;
-  };
+      readonly kind: "handheld";
+      readonly stage: Units.Region;
+      readonly device: Units.Region;
+      readonly pad: Pad.Pad;
+    };
 
 const touchFirst = (): boolean => window.matchMedia("(pointer: coarse)").matches;
 

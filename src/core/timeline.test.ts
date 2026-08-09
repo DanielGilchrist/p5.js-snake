@@ -69,7 +69,7 @@ describe("timeline", () => {
       expect(state.kind).toBe("over");
       expect(kinds).toContain("moved");
       expect(kinds).toContain("scored");
-      expect(kinds).toContain("queued");
+      expect(kinds).toContain("steered");
       expect(kinds).toContain("paused");
       expect(kinds).toContain("ended");
     });

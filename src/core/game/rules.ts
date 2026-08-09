@@ -7,6 +7,7 @@ import type * as Geometry from "../geometry";
 import * as Option from "../option";
 import * as Rng from "../rng";
 import * as Snake from "../snake";
+import * as Turns from "../turns";
 import * as World from "../world";
 import * as State from "./state";
 
@@ -25,8 +26,7 @@ export const start = <B>(board: Board.Grid<B>, rng: Rng.State): State.Type<B> =>
       score: 0,
       rng: next,
       variant: World.variant(drawn),
-      pending: Option.none,
-      steering: "ready",
+      turns: Turns.EMPTY,
     }),
   });
 };
@@ -35,36 +35,9 @@ const steer = <B>(
   world: World.Type<B>,
   direction: Geometry.Direction,
 ): readonly Event.Type<B>[] => {
-  switch (world.steering) {
-    case "used":
-      return [Event.queued(world, Option.some(direction))];
+  const queued = Turns.steer(world.turns, world.snake.facing, direction);
 
-    case "ready": {
-      const turn: readonly Event.Type<B>[] = Snake.canFace(world.snake, direction)
-        ? [Event.faced(world, direction)]
-        : [];
-
-      return [...turn, Event.steered(world, "used")];
-    }
-
-    default:
-      return Assert.never(world.steering);
-  }
-};
-
-const release = <B>(world: World.Type<B>): readonly Event.Type<B>[] => {
-  const target: World.Steering = world.pending.some ? "used" : "ready";
-  const steered: readonly Event.Type<B>[] =
-    world.steering === target ? [] : [Event.steered(world, target)];
-
-  if (!world.pending.some) return steered;
-
-  const direction = world.pending.value;
-  const turn: readonly Event.Type<B>[] = Snake.canFace(world.snake, direction)
-    ? [Event.faced(world, direction)]
-    : [];
-
-  return [...turn, Event.queued(world, Option.none), ...steered];
+  return queued.some ? [Event.steered(world, queued.value)] : [];
 };
 
 const feed = <B>(
@@ -81,24 +54,27 @@ const feed = <B>(
 };
 
 const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B>[] => {
-  const moved = Snake.advance(api, world.snake);
+  const turn = Turns.next(world.turns);
+  const steering: readonly Event.Type<B>[] = turn.some
+    ? [Event.faced(world, turn.value), Event.steered(world, Turns.rest(world.turns))]
+    : [];
+  const facing = turn.some ? Snake.face(world.snake, turn.value) : world.snake;
+  const moved = Snake.advance(api, facing);
 
   if (moved.kind === "hitWall") {
-    return [Event.ended("collision", world.snake.head)];
+    return [...steering, Event.ended("collision", facing.head)];
   }
 
   const motion = Event.moved(moved.to, moved.dropped);
-  const snake = Snake.march(world.snake, moved.to, moved.dropped);
+  const snake = Snake.march(facing, moved.to, moved.dropped);
 
   if (Snake.biteSelf(snake)) {
-    return [motion, Event.ended("collision", snake.head)];
+    return [...steering, motion, Event.ended("collision", snake.head)];
   }
 
-  const steering = release(world);
-
   return Board.equals(snake.head, world.food)
-    ? [motion, ...steering, ...feed(world, snake, snake.head)]
-    : [motion, ...steering];
+    ? [...steering, motion, ...feed(world, snake, snake.head)]
+    : [...steering, motion];
 };
 
 export const decide = <B>(

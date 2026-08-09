@@ -4,16 +4,12 @@ import type * as Geometry from "./geometry";
 import type * as Option from "./option";
 import type * as Rng from "./rng";
 import * as Snake from "./snake";
+import type * as Turns from "./turns";
 import * as World from "./world";
 
 type Change<B> =
   | { readonly kind: "faced"; readonly from: Geometry.Direction; readonly to: Geometry.Direction }
-  | {
-      readonly kind: "queued";
-      readonly from: Option.Type<Geometry.Direction>;
-      readonly to: Option.Type<Geometry.Direction>;
-    }
-  | { readonly kind: "steered"; readonly from: World.Steering; readonly to: World.Steering }
+  | { readonly kind: "steered"; readonly from: Turns.Queue; readonly to: Turns.Queue }
   | {
       readonly kind: "moved";
       readonly to: Board.Cell<B>;
@@ -37,15 +33,9 @@ export const faced = <B>(world: World.Type<B>, to: Geometry.Direction): Type<B> 
   to,
 });
 
-export const queued = <B>(world: World.Type<B>, to: Option.Type<Geometry.Direction>): Type<B> => ({
-  kind: "queued",
-  from: world.pending,
-  to,
-});
-
-export const steered = <B>(world: World.Type<B>, to: World.Steering): Type<B> => ({
+export const steered = <B>(world: World.Type<B>, to: Turns.Queue): Type<B> => ({
   kind: "steered",
-  from: world.steering,
+  from: world.turns,
   to,
 });
 
@@ -85,10 +75,8 @@ export const forward = <B>(world: World.Type<B>, change: Change<B>): World.Type<
   switch (change.kind) {
     case "faced":
       return World.withSnake(world, Snake.face(world.snake, change.to));
-    case "queued":
-      return World.withPending(world, change.to);
     case "steered":
-      return World.withSteering(world, change.to);
+      return World.withTurns(world, change.to);
     case "moved":
       return World.withSnake(world, Snake.march(world.snake, change.to, change.dropped));
     case "grew":
@@ -108,10 +96,8 @@ export const backward = <B>(world: World.Type<B>, change: Change<B>): World.Type
   switch (change.kind) {
     case "faced":
       return World.withSnake(world, Snake.face(world.snake, change.from));
-    case "queued":
-      return World.withPending(world, change.from);
     case "steered":
-      return World.withSteering(world, change.from);
+      return World.withTurns(world, change.from);
     case "moved":
       return World.withSnake(world, Snake.retreat(world.snake, change.dropped));
     case "grew":

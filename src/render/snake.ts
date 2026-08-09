@@ -40,12 +40,12 @@ const bulgeAt = (now: Units.Millis, bite: Units.Millis): number => {
   return 1 + BITE_BULGE * (1 - since / BITE_MS) ** 2;
 };
 
-const leanOf = (pending: Option.Type<Geometry.Direction>, block: Units.Px): Units.Offset => {
-  if (!pending.some) return Units.NO_OFFSET;
+const leanOf = (turning: Option.Type<Geometry.Direction>, block: Units.Px): Units.Offset => {
+  if (!turning.some) return Units.NO_OFFSET;
 
   const reach = block * LEAN;
 
-  switch (pending.value) {
+  switch (turning.value) {
     case "up":
       return Units.offset(0, -reach);
     case "down":
@@ -55,7 +55,7 @@ const leanOf = (pending: Option.Type<Geometry.Direction>, block: Units.Px): Unit
     case "right":
       return Units.offset(reach, 0);
     default:
-      return Assert.never(pending.value);
+      return Assert.never(turning.value);
   }
 };
 
@@ -160,7 +160,7 @@ export const draw = <B>(
   layout: Layout.Metrics,
   vitality: Vitality,
   bite: Units.Millis,
-  pending: Option.Type<Geometry.Direction>,
+  turning: Option.Type<Geometry.Direction>,
 ): void => {
   const block = layout.blockWidth;
   const now = Units.millis(p.millis());
@@ -170,7 +170,7 @@ export const draw = <B>(
   if (nose === undefined) return;
 
   const head = nose.at;
-  const lean = leanOf(pending, block);
+  const lean = leanOf(turning, block);
   const bulge = bulgeAt(now, bite);
   const crown = block * HEAD_WIDTH * bulge;
   const crest = Units.point(head.x + lean.dx, head.y - block * CREST_LIFT + lean.dy);

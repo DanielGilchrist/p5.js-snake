@@ -27,7 +27,6 @@ export const unspawn = <B>(
 
     case "ended":
     case "faced":
-    case "queued":
     case "steered":
     case "moved":
     case "grew":
@@ -75,7 +74,6 @@ export const spawn = <B>(
     }
 
     case "faced":
-    case "queued":
     case "steered":
     case "moved":
     case "grew":

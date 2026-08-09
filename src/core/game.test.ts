@@ -98,12 +98,18 @@ describe("step", () => {
     });
   });
 
-  test("the first turn after a tick applies immediately", () => {
+  test("a turn is buffered on press and taken by the next tick", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const turned = play(api, state, [{ kind: "turn", direction: "down" }]);
 
-      expect(turned.world.snake.facing).toBe("down");
-      expect(turned.world.pending.some).toBe(false);
+      expect(turned.world.turns).toEqual(["down"]);
+      expect(turned.world.snake.facing).toBe("right");
+
+      const ticked = play(api, turned, ticks(1));
+
+      expect(ticked.world.snake.facing).toBe("down");
+      expect(ticked.world.turns).toEqual([]);
+      expect(ticked.world.snake.head.row - state.world.snake.head.row).toBe(1);
     });
   });
 
@@ -200,13 +206,17 @@ describe("input buffering", () => {
         { kind: "turn", direction: "left" },
       ]);
 
-      expect(queued.world.snake.facing).toBe("down");
-      expect(queued.world.pending.some).toBe(true);
+      expect(queued.world.turns).toEqual(["down", "left"]);
 
-      const { state: afterTick } = Game.step(api, queued, { kind: "tick" });
+      const first = play(api, queued, ticks(1));
 
-      expect(afterTick.world.snake.facing).toBe("left");
-      expect(afterTick.world.pending.some).toBe(false);
+      expect(first.world.snake.facing).toBe("down");
+      expect(first.world.turns).toEqual(["left"]);
+
+      const second = play(api, first, ticks(1));
+
+      expect(second.world.snake.facing).toBe("left");
+      expect(second.world.turns).toEqual([]);
     });
   });
 
@@ -219,7 +229,24 @@ describe("input buffering", () => {
         directions.map((direction) => ({ kind: "turn", direction })),
       );
 
-      expect(spammed.world.snake.facing).toBe("down");
+      expect(spammed.world.snake.facing).toBe("right");
+
+      const ticked = play(api, spammed, ticks(1));
+
+      expect(ticked.world.snake.facing).toBe("down");
+    });
+  });
+
+  test("spam past the buffer is dropped, it does not overwrite what you asked for first", () => {
+    onBoard(MEDIUM, 1, (api, state) => {
+      const directions: readonly Geometry.Direction[] = ["down", "left", "up", "right", "down"];
+      const spammed = play(
+        api,
+        state,
+        directions.map((direction) => ({ kind: "turn", direction })),
+      );
+
+      expect(spammed.world.turns).toEqual(["down", "left"]);
     });
   });
 });
@@ -260,7 +287,7 @@ describe("restart", () => {
       expect(restarted.kind).toBe("playing");
       expect(restarted.world.score).toBe(0);
       expect(Snake.length(restarted.world.snake)).toBe(1);
-      expect(restarted.world.pending.some).toBe(false);
+      expect(restarted.world.turns).toEqual([]);
       expect(restarted.world.board).toBe(played.world.board);
     });
   });
@@ -284,13 +311,41 @@ describe("turning", () => {
     });
   });
 
+  test("a reversal you cannot make does not cost you the turn you actually wanted", () => {
+    onBoard(MEDIUM, 1, (api, state) => {
+      const asked = play(api, state, [
+        { kind: "turn", direction: "left" },
+        { kind: "turn", direction: "down" },
+      ]);
+
+      expect(asked.world.turns).toEqual(["down"]);
+
+      const ticked = play(api, asked, ticks(1));
+
+      expect(ticked.world.snake.facing).toBe("down");
+      expect(ticked.world.snake.head.row - state.world.snake.head.row).toBe(1);
+    });
+  });
+
+  test("pressing the way you are already going does not spend the buffer", () => {
+    onBoard(MEDIUM, 1, (api, state) => {
+      const asked = play(api, state, [
+        { kind: "turn", direction: "right" },
+        { kind: "turn", direction: "down" },
+        { kind: "turn", direction: "left" },
+      ]);
+
+      expect(asked.world.turns).toEqual(["down", "left"]);
+    });
+  });
+
   test("turns are ignored while paused", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const paused = play(api, state, [{ kind: "togglePause" }]);
       const attempted = play(api, paused, [{ kind: "turn", direction: "down" }]);
 
       expect(attempted.kind).toBe("paused");
-      expect(attempted.world.pending.some).toBe(false);
+      expect(attempted.world.turns).toEqual([]);
     });
   });
 

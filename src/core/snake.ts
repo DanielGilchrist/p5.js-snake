@@ -1,5 +1,5 @@
 import * as Board from "./board";
-import * as Geometry from "./geometry";
+import type * as Geometry from "./geometry";
 import * as NonEmpty from "./non-empty";
 import * as Option from "./option";
 
@@ -88,6 +88,3 @@ export const occupies = <B>(snake: State<B>, target: Board.Cell<B>): boolean =>
 
 export const biteSelf = <B>(snake: State<B>): boolean =>
   snake.tail.some((s) => Board.equals(s, snake.head));
-
-export const canFace = <B>(snake: State<B>, direction: Geometry.Direction): boolean =>
-  !Geometry.isReverse(snake.facing, direction);

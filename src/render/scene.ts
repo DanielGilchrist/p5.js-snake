@@ -7,6 +7,7 @@ import * as Palette from "./palette";
 import * as Keys from "./keys";
 import type * as Game from "../core/game";
 import type * as Snake from "../core/snake";
+import * as Turns from "../core/turns";
 import type * as World from "../core/world";
 import * as FoodView from "./food";
 import * as GridView from "./grid";
@@ -101,7 +102,7 @@ const world = <B>(
     layout,
     vitality,
     scene.bite,
-    current.pending,
+    Turns.next(current.turns),
   );
   Hud.score(p, scheme, current, layout, current.score, Units.millis(p.millis()));
 };
