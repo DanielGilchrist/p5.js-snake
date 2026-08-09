@@ -10,34 +10,10 @@ import type * as Units from "./units";
 
 const SPROUT_MS = 320;
 
-const STOP_MOTION_FPS = 12;
-
-const CALM_BREATH_RATE = 0.0026;
-const EAGER_BREATH_RATE = 0.011;
-const CALM_BREATH_DEPTH = 0.02;
-const EAGER_BREATH_DEPTH = 0.06;
-const EAGER_LEAN = 0.09;
-
-const TENSION_RANGE = 6;
-
 const CONTACT_WIDTH = 0.86;
 const CONTACT_HEIGHT = 0.2;
 const CONTACT_DROP = 0.34;
 const CONTACT_ALPHA = 70;
-
-const tensionOf = <B>(world: World.Type<B>): number => {
-  const distance = Math.hypot(
-    world.food.col - world.snake.head.col,
-    world.food.row - world.snake.head.row,
-  );
-
-  return Math.min(1, Math.max(0, 1 - distance / TENSION_RANGE));
-};
-
-const mix = (from: number, to: number, t: number): number => from + (to - from) * t;
-
-const framed = (now: Units.Millis): number =>
-  Math.floor((now * STOP_MOTION_FPS) / 1000) * (1000 / STOP_MOTION_FPS);
 
 export const draw = <B>(
   p: p5,
@@ -55,12 +31,7 @@ export const draw = <B>(
   const centre = Layout.centreOf(layout, world.food);
   const crop = Morsel.at(world.food);
   const seed = Morsel.seedAt(world.food);
-  const tension = tensionOf(world);
-
-  const posed = framed(now);
-  const beat = Math.sin(posed * mix(CALM_BREATH_RATE, EAGER_BREATH_RATE, tension));
-  const breath = 1 + beat * mix(CALM_BREATH_DEPTH, EAGER_BREATH_DEPTH, tension);
-  const lean = beat * EAGER_LEAN * tension;
+  const { breath, lean } = Morsel.stir(world, now);
   const swell = Ease.outBack(arrival);
 
   const width = block * crop.width * swell * breath;

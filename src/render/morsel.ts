@@ -2,9 +2,11 @@ import type p5 from "p5";
 
 import * as Assert from "../core/assert";
 import type * as Board from "../core/board";
+import type * as World from "../core/world";
 import * as Paint from "./paint";
 import type * as Palette from "./palette";
 import * as Sculpt from "./sculpt";
+import type * as Units from "./units";
 
 export type Topper = "sprig" | "stalk" | "tuft" | "bare";
 
@@ -100,8 +102,6 @@ const ROOT = morsel({
 });
 
 const CROP = [APPLE, PEAR, BERRIES, ROOT] as const;
-
-export const EMBLEM: Morsel = APPLE;
 
 export const at = <B>(cell: Board.Cell<B>): Morsel => {
   const pick = Math.abs(cell.col * 7 + cell.row * 13) % CROP.length;
@@ -270,4 +270,40 @@ export const draw = (
 ): void => {
   topper(p, scheme, crop.topper, width, height);
   body(p, scheme, crop, seed, width, height);
+};
+
+const STOP_MOTION_FPS = 12;
+
+const TENSION_RANGE = 6;
+
+const CALM_BREATH_RATE = 0.0026;
+const EAGER_BREATH_RATE = 0.011;
+const CALM_BREATH_DEPTH = 0.02;
+const EAGER_BREATH_DEPTH = 0.06;
+const EAGER_LEAN = 0.09;
+
+export type Stir = {
+  readonly breath: number;
+  readonly lean: number;
+  readonly tension: number;
+};
+
+const mix = (from: number, to: number, t: number): number => from + (to - from) * t;
+
+const framed = (now: Units.Millis): number =>
+  Math.floor((now * STOP_MOTION_FPS) / 1000) * (1000 / STOP_MOTION_FPS);
+
+export const stir = <B>(world: World.Type<B>, now: Units.Millis): Stir => {
+  const distance = Math.hypot(
+    world.food.col - world.snake.head.col,
+    world.food.row - world.snake.head.row,
+  );
+  const tension = Math.min(1, Math.max(0, 1 - distance / TENSION_RANGE));
+  const beat = Math.sin(framed(now) * mix(CALM_BREATH_RATE, EAGER_BREATH_RATE, tension));
+
+  return {
+    breath: 1 + beat * mix(CALM_BREATH_DEPTH, EAGER_BREATH_DEPTH, tension),
+    lean: beat * EAGER_LEAN * tension,
+    tension,
+  };
 };

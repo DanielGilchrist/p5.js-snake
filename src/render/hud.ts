@@ -12,7 +12,8 @@ export type Line = { readonly text: string; readonly scale: number };
 
 export const line = (text: string, scale: number): Line => ({ text, scale });
 
-const PLATE_WIDTH = 3.4;
+const PLATE_PAD = 0.62;
+const PLATE_MIN = 2.1;
 const PLATE_HEIGHT = 0.72;
 const PLATE_RADIUS = 0.24;
 const PLATE_SINK = 16;
@@ -21,6 +22,7 @@ const PLATE_LIP = 26;
 const DIGIT_RATIO = 0.42;
 const TOKEN_RATIO = 0.4;
 const TOKEN_GAP = 0.34;
+const TOKEN_SIT = 0.11;
 
 const TABLET_PAD_X = 1.4;
 const TABLET_PAD_Y = 0.9;
@@ -55,19 +57,31 @@ export const score = <B>(
   world: World.Type<B>,
   layout: Layout.Metrics,
   points: number,
+  now: Units.Millis,
 ): void => {
   const block = layout.blockWidth;
   const middle = Units.point(
     layout.origin.x + (world.board.cols * block) / 2,
     layout.origin.y + block / 2,
   );
-  const width = block * PLATE_WIDTH;
   const height = block * PLATE_HEIGHT;
   const cut = cutOf(block);
 
   p.push();
   p.translate(middle.x, middle.y);
   p.noStroke();
+
+  p.textAlign(p.CENTER, p.CENTER);
+  p.textStyle(p.BOLD);
+  p.textSize(block * DIGIT_RATIO);
+
+  const label = `${points}`;
+  const token = block * TOKEN_RATIO;
+  const gap = block * TOKEN_GAP;
+  const digits = p.textWidth(label);
+  const group = token + gap + digits;
+  const width = Math.max(block * PLATE_MIN, group + block * PLATE_PAD * 2);
+  const start = -group / 2;
 
   Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
   p.rect(-width / 2, -height / 2, width, height, block * PLATE_RADIUS);
@@ -78,19 +92,21 @@ export const score = <B>(
   Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
   p.rect(-width / 2, -height / 2, width, height - cut, block * PLATE_RADIUS);
 
-  p.textAlign(p.CENTER, p.CENTER);
-  p.textStyle(p.BOLD);
-  p.textSize(block * DIGIT_RATIO);
+  engrave(p, scheme, label, start + token + gap + digits / 2, 0, block);
 
-  const label = `${points}`;
-  const token = block * TOKEN_RATIO;
-  const shift = block * TOKEN_GAP * 0.5;
-
-  engrave(p, scheme, label, shift, 0, block);
+  const { breath, lean } = Morsel.stir(world, now);
 
   p.push();
-  p.translate(shift - p.textWidth(label) / 2 - block * TOKEN_GAP, -token * 0.06);
-  Morsel.draw(p, scheme, Morsel.EMBLEM, 11, token, token * 0.92);
+  p.translate(start + token / 2, token * TOKEN_SIT);
+  p.rotate(lean);
+  Morsel.draw(
+    p,
+    scheme,
+    Morsel.at(world.food),
+    Morsel.seedAt(world.food),
+    token * breath,
+    token * 0.92 * (2 - breath),
+  );
   p.pop();
 
   p.pop();

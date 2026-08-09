@@ -103,7 +103,7 @@ const world = <B>(
     scene.bite,
     current.pending,
   );
-  Hud.score(p, scheme, current, layout, current.score);
+  Hud.score(p, scheme, current, layout, current.score, Units.millis(p.millis()));
 };
 
 export const draw = <B>(
