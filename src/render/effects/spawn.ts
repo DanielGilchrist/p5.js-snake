@@ -6,6 +6,40 @@ import * as Palette from "../palette";
 import type * as Units from "../units";
 import * as Effect from "./effect";
 
+export const unspawn = <B>(
+  scheme: Palette.Scheme,
+  event: Event.Type<B>,
+  layout: Layout.Metrics,
+  now: Units.Millis,
+): readonly Effect.Effect[] => {
+  switch (event.kind) {
+    case "scored": {
+      const at = Layout.centreOf(layout, event.at);
+
+      return [
+        Effect.dust(at, now),
+        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), "outward", now),
+        Effect.punch(now),
+      ];
+    }
+
+    case "ended":
+    case "faced":
+    case "queued":
+    case "steered":
+    case "moved":
+    case "grew":
+    case "fed":
+    case "rolled":
+    case "paused":
+    case "resumed":
+      return [];
+
+    default:
+      return Assert.never(event);
+  }
+};
+
 export const spawn = <B>(
   scheme: Palette.Scheme,
   event: Event.Type<B>,
@@ -18,7 +52,7 @@ export const spawn = <B>(
 
       return [
         Effect.dust(at, now),
-        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), now),
+        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), "inward", now),
         Effect.wisps(at, now),
         Effect.swallow(at, now),
         Effect.puff(at, now),

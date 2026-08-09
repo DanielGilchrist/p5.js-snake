@@ -1,6 +1,7 @@
 import type p5 from "p5";
 
 import * as Ease from "../ease";
+import type * as Effect from "./effect";
 import * as Paint from "../paint";
 import * as Palette from "../palette";
 import type * as Units from "./../units";
@@ -17,8 +18,6 @@ const CRUMB_DRIFT = 1.6;
 const CRUMB_GRAVITY = 0;
 const CRUMB_SIZE = 0.17;
 
-type Flow = "outward" | "inward";
-
 type Grit = {
   readonly count: number;
   readonly drift: number;
@@ -26,7 +25,7 @@ type Grit = {
   readonly size: number;
   readonly spin: number;
   readonly scatter: number;
-  readonly flow: Flow;
+  readonly flow: Effect.Flow;
   readonly fade: number;
 };
 
@@ -98,4 +97,5 @@ export const crumbs = (
   t: number,
   block: Units.Px,
   colour: Palette.Rgb,
-): void => grit(p, at, t, block, CRUMBS, colour);
+  flow: Effect.Flow,
+): void => grit(p, at, t, block, { ...CRUMBS, flow }, colour);

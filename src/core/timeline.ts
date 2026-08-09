@@ -30,8 +30,14 @@ const ticks = <B>(timeline: Timeline<B>): number =>
 export const cursor = <B>(timeline: Timeline<B>, state: Game.State<B>): Cursor<B> =>
   cursorAt(state, timeline.log.length, ticks(timeline));
 
-export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Cursor<B> => {
+export type Step<B> = {
+  readonly cursor: Cursor<B>;
+  readonly undone: readonly Event.Type<B>[];
+};
+
+export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Step<B> => {
   let { state, index, tick } = from;
+  const undone: Event.Type<B>[] = [];
 
   while (index > 0) {
     const event = timeline.log[index - 1];
@@ -40,6 +46,7 @@ export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Cursor<B> => {
 
     state = Game.revert(state, event);
     index -= 1;
+    undone.push(event);
 
     if (event.kind === "moved") {
       tick -= 1;
@@ -47,5 +54,5 @@ export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Cursor<B> => {
     }
   }
 
-  return cursorAt(state, index, tick);
+  return { cursor: cursorAt(state, index, tick), undone };
 };

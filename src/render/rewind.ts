@@ -1,3 +1,4 @@
+import type * as Event from "../core/event";
 import type * as Game from "../core/game";
 import * as Timeline from "../core/timeline";
 import * as Scene from "./scene";
@@ -75,16 +76,21 @@ const withCursors = <B>(
 ): Playback<B> => ({ ...playback, cursor, ahead });
 
 export type Frame<B> =
-  | { readonly kind: "drawing"; readonly playback: Playback<B>; readonly scene: Scene.Scene<B> }
+  | {
+      readonly kind: "drawing";
+      readonly playback: Playback<B>;
+      readonly scene: Scene.Scene<B>;
+      readonly undone: readonly Event.Type<B>[];
+    }
   | { readonly kind: "finished" };
 
 const finished = { kind: "finished" } as const;
 
-const drawing = <B>(playback: Playback<B>, scene: Scene.Scene<B>): Frame<B> => ({
-  kind: "drawing",
-  playback,
-  scene,
-});
+const drawing = <B>(
+  playback: Playback<B>,
+  scene: Scene.Scene<B>,
+  undone: readonly Event.Type<B>[],
+): Frame<B> => ({ kind: "drawing", playback, scene, undone });
 
 export const worthWatching = <B>(playback: Playback<B>): boolean => playback.total > 1;
 
@@ -121,14 +127,19 @@ export const frame = <B>(
   const target = Math.floor(position);
 
   let { cursor, ahead } = playback;
+  const undone: Event.Type<B>[] = [];
 
   while (cursor.tick > target) {
+    const step = Timeline.back(timeline, cursor);
+
     ahead = cursor;
-    cursor = Timeline.back(timeline, cursor);
+    cursor = step.cursor;
+    undone.push(...step.undone);
   }
 
   return drawing(
     withCursors(playback, cursor, ahead),
     Scene.of(ahead.state, cursor.state.world.snake, position - target, SETTLED),
+    undone,
   );
 };

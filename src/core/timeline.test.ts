@@ -108,7 +108,7 @@ describe("timeline", () => {
       played(seed, ({ timeline, state }) => {
         let position = Timeline.cursor(timeline, state);
 
-        while (position.index > 0) position = Timeline.back(timeline, position);
+        while (position.index > 0) position = Timeline.back(timeline, position).cursor;
 
         expect(position.tick).toBe(0);
         expect(position.state).toEqual(timeline.initial);
@@ -124,7 +124,7 @@ describe("timeline", () => {
 
       while (position.tick > 0) {
         const before = Snake.segments(position.state.world.snake);
-        position = Timeline.back(timeline, position);
+        position = Timeline.back(timeline, position).cursor;
         const after = Snake.segments(position.state.world.snake);
 
         expect(Board.equals(before[0], after[0])).toBe(false);
@@ -140,7 +140,7 @@ describe("timeline", () => {
       let position = Timeline.cursor(timeline, state);
       const halfway = Math.floor(position.tick / 2);
 
-      while (position.tick > halfway) position = Timeline.back(timeline, position);
+      while (position.tick > halfway) position = Timeline.back(timeline, position).cursor;
 
       const resumed = Game.step(api, position.state, { kind: "tick" }).state;
 

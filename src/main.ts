@@ -175,7 +175,21 @@ export const sketch = new p5((p: p5) => {
 
           phase = rewinding(frame.playback);
 
+          effects = [
+            ...Effects.alive(effects, now),
+            ...frame.undone.flatMap((event) => Effects.unspawn(scheme, event, layout, now)),
+          ];
+
+          const shake = Effects.shakeOffset(effects, now);
+
+          p.push();
+          p.translate(shake.dx, shake.dy);
+
           Render.draw(p, frame.scene, layout, surface, chrome());
+
+          p.pop();
+
+          Effects.draw(p, scheme, effects, layout, now);
           Render.drawSkipHint(p, scheme, shell.kind === "handheld" ? "touch" : "keys");
 
           if (shell.kind === "handheld") Keys.draw(p, scheme, shell.pad, Option.none);

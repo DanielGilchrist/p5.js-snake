@@ -36,7 +36,7 @@ export const draw = (
         Swallow.draw(p, scheme, effect.at, t, block);
         break;
       case "crumbs":
-        Debris.crumbs(p, effect.at, t, block, effect.colour);
+        Debris.crumbs(p, effect.at, t, block, effect.colour, effect.flow);
         break;
       case "shards":
         Debris.shards(p, scheme, effect.at, t, block);

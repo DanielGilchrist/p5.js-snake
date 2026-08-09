@@ -2,6 +2,8 @@ import * as Assert from "../../core/assert";
 import type * as Palette from "../palette";
 import * as Units from "../units";
 
+export type Flow = "inward" | "outward";
+
 export type Effect =
   | { readonly kind: "puff"; readonly at: Units.Point; readonly born: Units.Millis }
   | { readonly kind: "dust"; readonly at: Units.Point; readonly born: Units.Millis }
@@ -11,6 +13,7 @@ export type Effect =
       readonly kind: "crumbs";
       readonly at: Units.Point;
       readonly colour: Palette.Rgb;
+      readonly flow: Flow;
       readonly born: Units.Millis;
     }
   | {
@@ -61,12 +64,12 @@ export const swallow = (at: Units.Point, born: Units.Millis): Effect => ({
   born,
 });
 
-export const crumbs = (at: Units.Point, colour: Palette.Rgb, born: Units.Millis): Effect => ({
-  kind: "crumbs",
-  at,
-  colour,
-  born,
-});
+export const crumbs = (
+  at: Units.Point,
+  colour: Palette.Rgb,
+  flow: Flow,
+  born: Units.Millis,
+): Effect => ({ kind: "crumbs", at, colour, flow, born });
 
 export const ring = (at: Units.Point, colour: Palette.Rgb, born: Units.Millis): Effect => ({
   kind: "ring",
