@@ -82,7 +82,7 @@ describe("spine", () => {
   test("the body keeps a constant length while turning", () => {
     onBoard((api, board) => {
       const { before, after } = turning(api, board, "down");
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
       const expected = (Snake.length(after) - 1) * layout.blockWidth;
 
       for (const blend of BLENDS) {
@@ -96,7 +96,7 @@ describe("spine", () => {
   test("no joint gap ever collapses mid-turn", () => {
     onBoard((api, board) => {
       const { before, after } = turning(api, board, "down");
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
 
       for (const blend of BLENDS) {
         for (const gap of gapsOf(Spine.of(after, before, blend, layout))) {
@@ -110,7 +110,7 @@ describe("spine", () => {
     onBoard((api, board) => {
       const before = bodyOf(api, board);
       const after = step(api, before);
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
       const expected = (Snake.length(after) - 1) * layout.blockWidth;
 
       for (const blend of BLENDS) {
@@ -122,7 +122,7 @@ describe("spine", () => {
   test("the ends land exactly on the old and new snake", () => {
     onBoard((api, board) => {
       const { before, after } = turning(api, board, "down");
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
 
       const settled = Spine.of(after, before, 1, layout)[0];
       const started = Spine.of(after, before, 0, layout)[0];
@@ -135,7 +135,7 @@ describe("spine", () => {
   test("a snake that has not moved never slides, however the clock runs", () => {
     onBoard((api, board) => {
       const snake = bodyOf(api, board);
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
       const cells = Snake.segments(snake);
       const settled = cells.map((cell) => Layout.centreOf(layout, cell));
 
@@ -151,7 +151,7 @@ describe("spine", () => {
     onBoard((api, board) => {
       const before = bodyOf(api, board);
       const after = step(api, Snake.grow(before));
-      const layout = Layout.fit(board, Units.viewport(600, 600));
+      const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
 
       expect(Snake.length(after)).toBe(Snake.length(before) + 1);
 

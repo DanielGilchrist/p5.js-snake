@@ -13,8 +13,9 @@ const tint = (n: number): Tint => n as Tint;
 
 export const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
-export const BACKGROUND: Rgb = rgb(196, 184, 168);
-export const WALL: Rgb = rgb(201, 185, 164);
+export const BACKGROUND: Rgb = rgb(168, 157, 143);
+export const WALL: Rgb = rgb(190, 174, 154);
+export const BODY: Rgb = rgb(205, 192, 174);
 export const FLOOR: Rgb = rgb(233, 225, 210);
 export const SNAKE: Rgb = rgb(122, 150, 116);
 export const SNAKE_DEEP: Rgb = rgb(96, 122, 92);

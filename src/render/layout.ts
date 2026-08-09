@@ -21,13 +21,15 @@ const MIN_SURROUND = 18;
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
 
-const surroundOf = (viewport: Units.Viewport): number =>
-  Math.max(MIN_SURROUND, Math.min(viewport.width, viewport.height) * SURROUND);
+export const desk = (viewport: Units.Viewport): Units.Region => {
+  const surround = Math.max(MIN_SURROUND, Math.min(viewport.width, viewport.height) * SURROUND);
 
-const insetOf = (viewport: Units.Viewport): Units.Viewport => {
-  const surround = surroundOf(viewport);
-
-  return Units.viewport(viewport.width - surround * 2, viewport.height - surround * 2);
+  return Units.region({
+    left: surround,
+    top: surround,
+    width: viewport.width - surround * 2,
+    height: viewport.height - surround * 2,
+  });
 };
 
 const blockFor = (available: Units.Viewport, cols: number, rows: number): number =>
@@ -39,8 +41,8 @@ const wasteOf = (available: Units.Viewport, cols: number, rows: number): number 
   return Math.abs(available.width - cols * block) + Math.abs(available.height - rows * block);
 };
 
-export const cellsFor = (viewport: Units.Viewport, target: number): Board.GridSize => {
-  const available = insetOf(viewport);
+export const cellsFor = (stage: Units.Region, target: number): Board.GridSize => {
+  const available = Units.sizeOf(stage);
   const around = clamp(Math.round(available.width / target), MIN_COLS, MAX_COLS);
   let best = Board.size(around, MIN_ROWS);
   let tightest = Number.POSITIVE_INFINITY;
@@ -67,14 +69,14 @@ export const cellsFor = (viewport: Units.Viewport, target: number): Board.GridSi
   return best;
 };
 
-export const fit = <B>(board: Board.Grid<B>, viewport: Units.Viewport): Metrics => {
-  const block = blockFor(insetOf(viewport), board.cols, board.rows);
+export const fit = <B>(board: Board.Grid<B>, stage: Units.Region): Metrics => {
+  const block = blockFor(Units.sizeOf(stage), board.cols, board.rows);
 
   return metrics(
     Units.px(block),
     Units.point(
-      (viewport.width - board.cols * block) / 2,
-      (viewport.height - board.rows * block) / 2,
+      stage.left + (stage.width - board.cols * block) / 2,
+      stage.top + (stage.height - board.rows * block) / 2,
     ),
   );
 };

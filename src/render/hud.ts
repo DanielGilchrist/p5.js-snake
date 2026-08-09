@@ -92,6 +92,7 @@ export const tablet = (
   p: p5,
   lines: readonly Line[],
   layout: Layout.Metrics,
+  stage: Units.Region,
   wash: Paint.Alpha,
 ): void => {
   const block = layout.blockWidth;
@@ -114,7 +115,7 @@ export const tablet = (
 
   const width = widest + block * TABLET_PAD_X * 2;
   const height = tall + block * TABLET_PAD_Y * 2;
-  const middle = Units.point(p.width / 2, p.height / 2);
+  const middle = Units.point(stage.left + stage.width / 2, stage.top + stage.height / 2);
 
   Paint.fillWith(p, Palette.SHADOW, wash);
   p.rect(0, 0, p.width, p.height);

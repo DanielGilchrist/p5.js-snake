@@ -11,7 +11,7 @@ const BORN = Units.millis(0);
 
 const onEvent = (make: <B>(at: Board.Cell<B>) => Event.Type<B>): readonly Effects.Effect[] => {
   const result = Board.parse(Board.size(12, 12), <B>(board: Board.Grid<B>) => {
-    const layout = Layout.fit(board, Units.viewport(400, 400));
+    const layout = Layout.fit(board, Layout.desk(Units.viewport(400, 400)));
 
     return Effects.spawn(make(board.start), layout, BORN);
   });

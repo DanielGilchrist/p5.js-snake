@@ -30,10 +30,10 @@ describe("layout", () => {
 
   test("the board stays a comfortable object on every screen", () => {
     for (const screen of SCREENS) {
-      const size = Layout.cellsFor(screen, 34);
+      const size = Layout.cellsFor(Layout.desk(screen), 34);
 
       onLayout(size.cols, size.rows, (board) => {
-        const layout = Layout.fit(board, screen);
+        const layout = Layout.fit(board, Layout.desk(screen));
 
         expect(layout.blockWidth).toBeGreaterThanOrEqual(22);
         expect(layout.blockWidth).toBeLessThanOrEqual(64);
@@ -47,10 +47,10 @@ describe("layout", () => {
 
   test("a huge screen does not give a huge board", () => {
     const huge = Units.viewport(5120, 2160);
-    const size = Layout.cellsFor(huge, 34);
+    const size = Layout.cellsFor(Layout.desk(huge), 34);
 
     onLayout(size.cols, size.rows, (board) => {
-      const layout = Layout.fit(board, huge);
+      const layout = Layout.fit(board, Layout.desk(huge));
 
       expect(board.cols * layout.blockWidth).toBeLessThan(huge.width * 0.5);
       expect(board.cols).toBeLessThanOrEqual(28);
@@ -60,14 +60,14 @@ describe("layout", () => {
 
   test("the board keeps a playable aspect on an ultrawide", () => {
     const wide = Units.viewport(3440, 1440);
-    const size = Layout.cellsFor(wide, 34);
+    const size = Layout.cellsFor(Layout.desk(wide), 34);
 
     expect(size.rows / size.cols).toBeGreaterThan(0.4);
   });
 
   test("the board is centred in the viewport", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.fit(board, VIEWPORT);
+      const layout = Layout.fit(board, Layout.desk(VIEWPORT));
       const drawnWidth = board.cols * layout.blockWidth;
       const drawnHeight = board.rows * layout.blockWidth;
 
@@ -78,7 +78,7 @@ describe("layout", () => {
 
   test("adjacent cells are exactly one block apart", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.fit(board, VIEWPORT);
+      const layout = Layout.fit(board, Layout.desk(VIEWPORT));
       const [first] = board.playable;
       const right = board.playable.find((c) => c.col === first.col + 1 && c.row === first.row);
       const below = board.playable.find((c) => c.col === first.col && c.row === first.row + 1);
@@ -99,7 +99,7 @@ describe("layout", () => {
 
   test("centreOf sits half a block inside the corner", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.fit(board, VIEWPORT);
+      const layout = Layout.fit(board, Layout.desk(VIEWPORT));
       const corner = Layout.toPixels(layout, board.start);
       const centre = Layout.centreOf(layout, board.start);
 
@@ -110,7 +110,7 @@ describe("layout", () => {
 
   test("every playable cell lands inside the viewport", () => {
     onLayout(10, 10, (board) => {
-      const layout = Layout.fit(board, VIEWPORT);
+      const layout = Layout.fit(board, Layout.desk(VIEWPORT));
 
       for (const cell of board.playable) {
         const at = Layout.toPixels(layout, cell);

@@ -1,10 +1,22 @@
 import type p5 from "p5";
 
+import * as Assert from "../core/assert";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
+import type * as Scene from "./scene";
 
-const LABEL = "ENTER";
 const TRAILING = "to skip";
+
+const labelFor = (prompt: Scene.Prompt): string => {
+  switch (prompt) {
+    case "keys":
+      return "ENTER";
+    case "touch":
+      return "TAP";
+    default:
+      return Assert.never(prompt);
+  }
+};
 
 const TEXT_SIZE = 13;
 const CAP_HEIGHT = 26;
@@ -16,7 +28,9 @@ const CAP_FILL = Paint.alpha(210);
 const LABEL_ALPHA = Paint.alpha(245);
 const TRAILING_ALPHA = Paint.alpha(210);
 
-export const draw = (p: p5): void => {
+export const draw = (p: p5, prompt: Scene.Prompt): void => {
+  const LABEL = labelFor(prompt);
+
   p.push();
   p.textSize(TEXT_SIZE);
   p.textAlign(p.LEFT, p.CENTER);

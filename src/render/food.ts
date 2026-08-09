@@ -1,7 +1,6 @@
 import type p5 from "p5";
 
 import type * as World from "../core/world";
-import * as Clay from "./clay";
 import * as Ease from "./ease";
 import * as Layout from "./layout";
 import * as Morsel from "./morsel";
@@ -79,9 +78,7 @@ export const draw = <B>(
   p.translate(centre.x, centre.y);
   p.rotate(lean);
 
-  Clay.cast(p, Clay.CONTACT, Palette.SHADOW, () => {
-    Morsel.draw(p, crop, seed, width, height);
-  });
+  Morsel.draw(p, crop, seed, width, height);
 
   p.pop();
 };

@@ -1,13 +1,11 @@
 import type p5 from "p5";
 
 import type * as World from "../core/world";
-import * as Clay from "./clay";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
 import * as Surface from "./surface";
 
-const FRAME_RADIUS = 0.55;
 const FLOOR_RADIUS = 0.32;
 const RECESS_WEIGHT = 3;
 const RECESS_ALPHA = 34;
@@ -25,10 +23,7 @@ export const draw = <B>(
 
   p.noStroke();
 
-  Clay.cast(p, Clay.RAISED, Palette.SHADOW, () => {
-    Paint.fill(p, Palette.WALL);
-    p.rect(origin.x, origin.y, width, height, block * FRAME_RADIUS);
-  });
+  Surface.casement(p, surface);
 
   Paint.fill(p, Palette.shift(Palette.FLOOR, Palette.floorTint(world.variant)));
   p.rect(

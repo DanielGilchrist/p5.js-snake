@@ -20,6 +20,27 @@ export const NO_OFFSET = offset(0, 0);
 
 export type Viewport = { readonly width: Px; readonly height: Px };
 
+export type Region = {
+  readonly left: Px;
+  readonly top: Px;
+  readonly width: Px;
+  readonly height: Px;
+};
+
+export const region = (fields: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): Region => ({
+  left: px(fields.left),
+  top: px(fields.top),
+  width: px(fields.width),
+  height: px(fields.height),
+});
+
+export const sizeOf = (of: Region): Viewport => viewport(of.width, of.height);
+
 export const viewport = (width: number, height: number): Viewport => ({
   width: px(width),
   height: px(height),

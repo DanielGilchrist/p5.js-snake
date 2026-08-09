@@ -18,10 +18,6 @@ const shadow = (fields: { blur: number; drop: number; opacity: number }): Shadow
 
 export const RAISED = shadow({ blur: 20, drop: 9, opacity: 0.3 });
 
-export const RESTING = shadow({ blur: 11, drop: 5, opacity: 0.26 });
-
-export const CONTACT = shadow({ blur: 7, drop: 3, opacity: 0.22 });
-
 const rgba = (colour: Palette.Rgb, opacity: number): string =>
   `rgba(${colour.red}, ${colour.green}, ${colour.blue}, ${opacity})`;
 

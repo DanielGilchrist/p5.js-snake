@@ -7,6 +7,8 @@ export type Alpha = Brand.Of<number, "Alpha">;
 
 export const alpha = (n: number): Alpha => n as Alpha;
 
+export const OPAQUE = alpha(255);
+
 export const fill = (p: p5, colour: Palette.Rgb): void => {
   p.fill(colour.red, colour.green, colour.blue);
 };

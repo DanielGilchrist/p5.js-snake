@@ -2,6 +2,7 @@ import type p5 from "p5";
 
 import type * as Board from "../core/board";
 import type * as Layout from "./layout";
+import * as Clay from "./clay";
 import * as Palette from "./palette";
 import * as Sculpt from "./sculpt";
 import * as Units from "./units";
@@ -10,6 +11,8 @@ export type Surface = {
   readonly grain: p5.Graphics;
   readonly at: Units.Point;
   readonly art: p5.Graphics;
+  readonly frame: p5.Graphics;
+  readonly frameAt: Units.Point;
 };
 
 const SPECKS_PER_CELL = 3;
@@ -164,6 +167,30 @@ const bake = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphi
   return art;
 };
 
+const FRAME_RADIUS = 0.55;
+const FRAME_BLEED = 46;
+
+const casing = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphics => {
+  const block = layout.blockWidth;
+  const width = board.cols * block;
+  const height = board.rows * block;
+  const frame = p.createGraphics(
+    Math.ceil(width + FRAME_BLEED * 2),
+    Math.ceil(height + FRAME_BLEED * 2),
+  );
+
+  frame.pixelDensity(1);
+  frame.clear();
+  frame.noStroke();
+
+  Clay.cast(frame, Clay.RAISED, Palette.SHADOW, () => {
+    frame.fill(Palette.WALL.red, Palette.WALL.green, Palette.WALL.blue);
+    frame.rect(FRAME_BLEED, FRAME_BLEED, width, height, block * FRAME_RADIUS);
+  });
+
+  return frame;
+};
+
 export const of = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): Surface => {
   const block = layout.blockWidth;
   const cols = board.cols - 2;
@@ -181,7 +208,13 @@ export const of = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): Surf
     grain,
     at: Units.point(layout.origin.x + block, layout.origin.y + block),
     art: bake(p, board, layout),
+    frame: casing(p, board, layout),
+    frameAt: Units.point(layout.origin.x - FRAME_BLEED, layout.origin.y - FRAME_BLEED),
   };
+};
+
+export const casement = (p: p5, surface: Surface): void => {
+  p.image(surface.frame, surface.frameAt.x, surface.frameAt.y);
 };
 
 export const floor = (p: p5, surface: Surface): void => {

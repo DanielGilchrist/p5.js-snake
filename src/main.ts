@@ -3,10 +3,13 @@ import p5 from "p5";
 import * as Board from "./core/board";
 import * as Game from "./core/game";
 import * as Input from "./core/input";
+import * as Option from "./core/option";
 import * as Rng from "./core/rng";
 import * as Timeline from "./core/timeline";
 import * as Effects from "./render/effects";
+import * as Keys from "./render/keys";
 import * as Layout from "./render/layout";
+import * as Pad from "./render/pad";
 import * as Render from "./render";
 import * as Rewind from "./render/rewind";
 import * as Surface from "./render/surface";
@@ -18,6 +21,49 @@ const SPEED_UP_MS = 2;
 const FASTEST_FRACTION = 0.55;
 const HITSTOP_MS = 115;
 const ENDING_GRACE_MS = 600;
+const PRESS_FEEDBACK_MS = 130;
+const MAX_DENSITY = 2;
+const HAND_SETTING = "snake.hand";
+
+const storedHand = (): Pad.Hand => {
+  try {
+    return window.localStorage.getItem(HAND_SETTING) === "left" ? "left" : "right";
+  } catch {
+    return "right";
+  }
+};
+
+const rememberHand = (hand: Pad.Hand): void => {
+  try {
+    window.localStorage.setItem(HAND_SETTING, hand);
+  } catch {
+    return;
+  }
+};
+
+type Shell =
+  | { readonly kind: "desk"; readonly stage: Units.Region }
+  | {
+      readonly kind: "handheld";
+      readonly stage: Units.Region;
+      readonly device: Units.Region;
+      readonly pad: Pad.Pad;
+    };
+
+const touchFirst = (): boolean => window.matchMedia("(pointer: coarse)").matches;
+
+const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
+  if (!touchFirst()) return { kind: "desk", stage: Layout.desk(viewport) };
+
+  const handheld = Pad.arrange(viewport, hand);
+
+  return {
+    kind: "handheld",
+    stage: handheld.stage,
+    device: handheld.device,
+    pad: handheld.pad,
+  };
+};
 
 type Phase<B> =
   | { readonly kind: "live" }
@@ -29,15 +75,18 @@ const rewinding = <B>(playback: Rewind.Playback<B>): Phase<B> => ({ kind: "rewin
 
 export const sketch = new p5((p: p5) => {
   p.setup = () => {
+    p.pixelDensity(Math.min(MAX_DENSITY, p.displayDensity()));
     p.createCanvas(p.windowWidth, p.windowHeight).parent(document.body);
     p.frameRate(60);
 
     const viewport = Units.viewport(p.windowWidth, p.windowHeight);
+    let hand = storedHand();
+    let shell = shellFor(viewport, hand);
 
     const started = Board.parse(
-      Layout.cellsFor(viewport, TARGET_BLOCK),
+      Layout.cellsFor(shell.stage, TARGET_BLOCK),
       <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
-        let layout = Layout.fit(board, viewport);
+        let layout = Layout.fit(board, shell.stage);
         let surface = Surface.of(p, board, layout);
 
         let state = Game.start(board, Rng.fromSeed(Date.now()));
@@ -49,6 +98,15 @@ export const sketch = new p5((p: p5) => {
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
+
+        const chrome = (): Render.Chrome =>
+          Render.chrome(
+            shell.stage,
+            shell.kind === "handheld" ? Option.some(shell.device) : Option.none,
+            shell.kind === "handheld" ? "touch" : "keys",
+          );
+        let held: Option.Type<Pad.Control> = Option.none;
+        let heldUntil = 0;
 
         const baseInterval =
           1000 / Math.max(MIN_TICKS_PER_SECOND, Math.floor((board.cols + board.rows) / 4.3));
@@ -103,8 +161,10 @@ export const sketch = new p5((p: p5) => {
 
           phase = rewinding(frame.playback);
 
-          Render.draw(p, frame.scene, layout, surface);
-          Render.drawSkipHint(p);
+          Render.draw(p, frame.scene, layout, surface, chrome());
+          Render.drawSkipHint(p, shell.kind === "handheld" ? "touch" : "keys");
+
+          if (shell.kind === "handheld") Keys.draw(p, shell.pad, Option.none);
         };
 
         const drawLive = (now: Units.Millis): void => {
@@ -123,11 +183,17 @@ export const sketch = new p5((p: p5) => {
           p.push();
           p.translate(shake.dx, shake.dy);
 
-          Render.draw(p, Render.scene(state, previous, alpha, bite), layout, surface);
+          Render.draw(p, Render.scene(state, previous, alpha, bite), layout, surface, chrome());
 
           p.pop();
 
           Effects.draw(p, effects, layout, now);
+
+          if (shell.kind === "handheld") {
+            if (now > heldUntil) held = Option.none;
+
+            Keys.draw(p, shell.pad, held);
+          }
         };
 
         p.draw = () => {
@@ -144,20 +210,17 @@ export const sketch = new p5((p: p5) => {
 
         p.windowResized = () => {
           p.resizeCanvas(p.windowWidth, p.windowHeight);
-          layout = Layout.fit(board, Units.viewport(p.windowWidth, p.windowHeight));
+          shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), hand);
+          layout = Layout.fit(board, shell.stage);
           surface = Surface.of(p, board, layout);
           effects = [];
         };
 
-        p.keyPressed = () => {
-          const now = Units.millis(p.millis());
-
+        const press = (key: Input.Key, now: Units.Millis): void => {
           if (now < inputLockedUntil) return;
 
-          const key = Input.parseKey(p.key);
-
           if (phase.kind === "rewinding") {
-            if (key.kind === "skip") restart(now);
+            restart(now);
 
             return;
           }
@@ -177,6 +240,54 @@ export const sketch = new p5((p: p5) => {
           }
 
           apply(command.value);
+        };
+
+        const tapped = (at: Units.Point): void => {
+          if (shell.kind !== "handheld") return;
+
+          const now = Units.millis(p.millis());
+          const control = Pad.hit(shell.pad, at);
+
+          if (control.some) {
+            held = control;
+            heldUntil = now + PRESS_FEEDBACK_MS;
+          }
+
+          if (control.some && control.value === "flip") {
+            hand = Pad.other(hand);
+            rememberHand(hand);
+            shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), hand);
+
+            return;
+          }
+
+          const key = control.some ? Pad.keyOf(control.value) : Option.some(Input.other);
+
+          if (key.some) press(key.value, now);
+        };
+
+        window.addEventListener(
+          "pointerdown",
+          (event: PointerEvent) => {
+            if (shell.kind !== "handheld") return;
+
+            event.preventDefault();
+            tapped(Units.point(event.clientX, event.clientY));
+          },
+          { passive: false },
+        );
+
+        p.keyPressed = () => {
+          const now = Units.millis(p.millis());
+          const key = Input.parseKey(p.key);
+
+          if (phase.kind === "rewinding") {
+            if (key.kind === "skip" && now >= inputLockedUntil) restart(now);
+
+            return;
+          }
+
+          press(key, now);
         };
       },
     );

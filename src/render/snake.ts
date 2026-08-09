@@ -3,7 +3,6 @@ import type p5 from "p5";
 import * as Assert from "../core/assert";
 import type * as Geometry from "../core/geometry";
 import * as Snake from "../core/snake";
-import * as Clay from "./clay";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
@@ -16,6 +15,9 @@ const HEAD_WIDTH = 0.94;
 const TAIL_WIDTH = 0.52;
 const CREST_RATIO = 0.78;
 const CREST_LIFT = 0.07;
+
+const SHADOW_DROP = 0.075;
+const SHADOW_ALPHA = Paint.alpha(44);
 
 const BITE_MS = 220;
 const BITE_BULGE = 0.3;
@@ -106,11 +108,12 @@ const tube = (
   spine: readonly Spine.Joint[],
   block: Units.Px,
   colour: Palette.Rgb,
+  opacity: Paint.Alpha,
   scale: number,
   lift: number,
 ): void => {
   p.noFill();
-  Paint.stroke(p, colour);
+  Paint.strokeWith(p, colour, opacity);
   p.strokeCap(p.ROUND);
   p.strokeJoin(p.ROUND);
 
@@ -145,14 +148,19 @@ export const draw = <B>(
   const crown = block * HEAD_WIDTH * bulge;
   const crest = Units.point(head.x, head.y - block * CREST_LIFT);
 
-  Clay.cast(p, Clay.RESTING, Palette.SHADOW, () => {
-    tube(p, spine, block, Palette.SNAKE_DEEP, 1, 0);
-    p.noStroke();
-    Paint.fill(p, Palette.SNAKE_DEEP);
-    p.circle(head.x, head.y, crown);
-  });
+  tube(p, spine, block, Palette.SHADOW, SHADOW_ALPHA, 1, block * SHADOW_DROP);
 
-  tube(p, spine, block, Palette.SNAKE, CREST_RATIO, -block * CREST_LIFT);
+  p.noStroke();
+  Paint.fillWith(p, Palette.SHADOW, SHADOW_ALPHA);
+  p.circle(head.x, head.y + block * SHADOW_DROP, crown);
+
+  tube(p, spine, block, Palette.SNAKE_DEEP, Paint.OPAQUE, 1, 0);
+
+  p.noStroke();
+  Paint.fill(p, Palette.SNAKE_DEEP);
+  p.circle(head.x, head.y, crown);
+
+  tube(p, spine, block, Palette.SNAKE, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
 
   p.noStroke();
   Paint.fill(p, Palette.SNAKE);
