@@ -3,40 +3,53 @@ import type p5 from "p5";
 import * as Assert from "../core/assert";
 import type * as Geometry from "../core/geometry";
 import * as Snake from "../core/snake";
+import * as Clay from "./clay";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
+import * as Spine from "./spine";
 import * as Units from "./units";
 
 export type Vitality = "alive" | "dead";
 
-const EDGE = Palette.tint(40);
+const HEAD_WIDTH = 0.94;
+const TAIL_WIDTH = 0.52;
+const CREST_RATIO = 0.78;
+const CREST_LIFT = 0.07;
 
-const HEAD_ALPHA = Paint.OPAQUE;
-const TAIL_ALPHA = Paint.alpha(200);
-const HEAD_RADIUS = 0.3;
-const TAIL_RADIUS = 0.2;
+const BITE_MS = 220;
+const BITE_BULGE = 0.3;
 
 const EYE_RATIO = 1 / 5;
 const LIVE_EYE_SCALE = 0.7;
 const DEAD_EYE_SCALE = 1.8;
 
+const widthAt = (along: number, block: Units.Px): number =>
+  block * (HEAD_WIDTH + (TAIL_WIDTH - HEAD_WIDTH) * along);
+
+const bulgeAt = (now: Units.Millis, bite: Units.Millis): number => {
+  const since = now - bite;
+
+  if (since < 0 || since > BITE_MS) return 1;
+
+  return 1 + BITE_BULGE * (1 - since / BITE_MS) ** 2;
+};
+
 const eyeOffsets = (
   facing: Geometry.Direction,
-  size: Units.Px,
+  size: number,
 ): readonly [Units.Offset, Units.Offset] => {
-  const forward = size / 2 + size * 0.15;
-  const backward = size / 2 - size * 0.15;
-  const nearSide = size / 4;
-  const farSide = size / 1.25;
+  const forward = size * 0.28;
+  const nearSide = -size * 0.24;
+  const farSide = size * 0.24;
 
   switch (facing) {
     case "up":
-      return [Units.offset(nearSide, backward), Units.offset(farSide, backward)];
+      return [Units.offset(nearSide, -forward), Units.offset(farSide, -forward)];
     case "down":
       return [Units.offset(nearSide, forward), Units.offset(farSide, forward)];
     case "left":
-      return [Units.offset(backward, nearSide), Units.offset(backward, farSide)];
+      return [Units.offset(-forward, nearSide), Units.offset(-forward, farSide)];
     case "right":
       return [Units.offset(forward, nearSide), Units.offset(forward, farSide)];
     default:
@@ -48,14 +61,14 @@ const eyes = (
   p: p5,
   head: Units.Point,
   facing: Geometry.Direction,
-  block: Units.Px,
+  size: number,
   vitality: Vitality,
 ): void => {
-  const offsets = eyeOffsets(facing, block);
+  const offsets = eyeOffsets(facing, size);
 
   switch (vitality) {
     case "dead": {
-      const half = (block * EYE_RATIO * DEAD_EYE_SCALE) / 4;
+      const half = (size * EYE_RATIO * DEAD_EYE_SCALE) / 4;
 
       Paint.stroke(p, Palette.INK);
       p.strokeWeight(2);
@@ -71,15 +84,13 @@ const eyes = (
     }
 
     case "alive": {
-      const size = block * EYE_RATIO * LIVE_EYE_SCALE;
-
-      Paint.fill(p, Palette.INK);
       p.noStroke();
+      Paint.fill(p, Palette.INK);
 
       for (const offset of offsets) {
         const at = Units.shiftBy(head, offset);
 
-        p.circle(at.x, at.y, size);
+        p.circle(at.x, at.y, size * EYE_RATIO * LIVE_EYE_SCALE);
       }
 
       return;
@@ -90,34 +101,28 @@ const eyes = (
   }
 };
 
-const segment = (
+const tube = (
   p: p5,
-  at: Units.Point,
+  spine: readonly Spine.Joint[],
   block: Units.Px,
-  radius: number,
-  opacity: Paint.Alpha,
+  colour: Palette.Rgb,
+  scale: number,
+  lift: number,
 ): void => {
-  Paint.fillWith(p, Palette.SNAKE, opacity);
-  Paint.stroke(p, Palette.shift(Palette.SNAKE, EDGE));
-  p.strokeWeight(1);
-  p.rect(at.x + 1, at.y + 1, block - 2, block - 2, block * radius);
-};
+  p.noFill();
+  Paint.stroke(p, colour);
+  p.strokeCap(p.ROUND);
+  p.strokeJoin(p.ROUND);
 
-const glide = <B>(
-  snake: Snake.State<B>,
-  previous: Snake.State<B>,
-  blend: number,
-  layout: Layout.Metrics,
-): readonly Units.Point[] => {
-  const now = Snake.segments(snake);
-  const before = Snake.segments(previous);
+  for (let i = spine.length - 1; i >= 1; i--) {
+    const from = spine[i];
+    const to = spine[i - 1];
 
-  return now.map((cell, index) => {
-    const to = Layout.toPixels(layout, cell);
-    const from = before[index];
+    if (from === undefined || to === undefined) continue;
 
-    return from === undefined ? to : Layout.lerp(Layout.toPixels(layout, from), to, blend);
-  });
+    p.strokeWeight(widthAt(to.along, block) * scale);
+    p.line(from.at.x, from.at.y + lift, to.at.x, to.at.y + lift);
+  }
 };
 
 export const draw = <B>(
@@ -127,19 +132,31 @@ export const draw = <B>(
   blend: number,
   layout: Layout.Metrics,
   vitality: Vitality,
+  bite: Units.Millis,
 ): void => {
   const block = layout.blockWidth;
-  const points = glide(snake, previous, blend, layout);
-  const [head] = points;
+  const spine = Spine.of(snake, previous, blend, layout);
+  const [nose] = spine;
 
-  if (head === undefined) return;
+  if (nose === undefined) return;
 
-  for (let i = points.length - 1; i >= 1; i--) {
-    const at = points[i];
+  const head = nose.at;
+  const bulge = bulgeAt(Units.millis(p.millis()), bite);
+  const crown = block * HEAD_WIDTH * bulge;
+  const crest = Units.point(head.x, head.y - block * CREST_LIFT);
 
-    if (at !== undefined) segment(p, at, block, TAIL_RADIUS, TAIL_ALPHA);
-  }
+  Clay.cast(p, Clay.RESTING, Palette.SHADOW, () => {
+    tube(p, spine, block, Palette.SNAKE_DEEP, 1, 0);
+    p.noStroke();
+    Paint.fill(p, Palette.SNAKE_DEEP);
+    p.circle(head.x, head.y, crown);
+  });
 
-  segment(p, head, block, HEAD_RADIUS, HEAD_ALPHA);
-  eyes(p, head, snake.facing, block, vitality);
+  tube(p, spine, block, Palette.SNAKE, CREST_RATIO, -block * CREST_LIFT);
+
+  p.noStroke();
+  Paint.fill(p, Palette.SNAKE);
+  p.circle(crest.x, crest.y, crown * CREST_RATIO);
+
+  eyes(p, crest, snake.facing, crown * CREST_RATIO, vitality);
 };

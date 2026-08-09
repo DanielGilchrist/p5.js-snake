@@ -12,9 +12,9 @@ const CAP_RADIUS = 6;
 const CAP_PADDING = 10;
 const CAP_GAP = 8;
 
-const CAP_FILL = Paint.alpha(26);
-const LABEL_ALPHA = Paint.alpha(230);
-const TRAILING_ALPHA = Paint.alpha(150);
+const CAP_FILL = Paint.alpha(210);
+const LABEL_ALPHA = Paint.alpha(245);
+const TRAILING_ALPHA = Paint.alpha(210);
 
 export const draw = (p: p5): void => {
   p.push();
@@ -32,13 +32,8 @@ export const draw = (p: p5): void => {
   const top = middle - CAP_HEIGHT / 2;
 
   p.noStroke();
-  Paint.fillWith(p, Palette.PAPER, CAP_FILL);
+  Paint.fillWith(p, Palette.INK, CAP_FILL);
   p.rect(left, top, capWidth, CAP_HEIGHT, CAP_RADIUS);
-
-  p.noFill();
-  Paint.stroke(p, Palette.TEXT);
-  p.strokeWeight(1);
-  p.rect(left + 0.5, top + 0.5, capWidth - 1, CAP_HEIGHT - 1, CAP_RADIUS);
 
   p.noStroke();
   p.textStyle(p.BOLD);
@@ -46,7 +41,7 @@ export const draw = (p: p5): void => {
   p.text(LABEL, left + CAP_PADDING, middle);
 
   p.textStyle(p.NORMAL);
-  Paint.fillWith(p, Palette.TEXT, TRAILING_ALPHA);
+  Paint.fillWith(p, Palette.INK, TRAILING_ALPHA);
   p.text(TRAILING, left + capWidth + CAP_GAP, middle);
   p.pop();
 };

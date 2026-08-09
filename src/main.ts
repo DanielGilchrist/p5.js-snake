@@ -9,13 +9,14 @@ import * as Effects from "./render/effects";
 import * as Layout from "./render/layout";
 import * as Render from "./render";
 import * as Rewind from "./render/rewind";
+import * as Surface from "./render/surface";
 import * as Units from "./render/units";
 
-const BLOCK_WIDTH = Units.px(35);
+const TARGET_BLOCK = 34;
 const MIN_TICKS_PER_SECOND = 10;
 const SPEED_UP_MS = 2;
 const FASTEST_FRACTION = 0.55;
-const HITSTOP_MS = 90;
+const HITSTOP_MS = 115;
 const ENDING_GRACE_MS = 600;
 
 type Phase<B> =
@@ -34,22 +35,23 @@ export const sketch = new p5((p: p5) => {
     const viewport = Units.viewport(p.windowWidth, p.windowHeight);
 
     const started = Board.parse(
-      Board.size(viewport.width / BLOCK_WIDTH, viewport.height / BLOCK_WIDTH),
+      Layout.cellsFor(viewport, TARGET_BLOCK),
       <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
-        const layout = Layout.fit(board, viewport, BLOCK_WIDTH);
+        let layout = Layout.fit(board, viewport);
+        let surface = Surface.of(p, board, layout);
 
         let state = Game.start(board, Rng.fromSeed(Date.now()));
         let timeline = Timeline.start(state);
         let previous = state.world.snake;
         let effects: readonly Effects.Effect[] = [];
         let phase: Phase<B> = live;
+        let bite = Units.millis(0);
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
 
         const baseInterval =
-          1000 /
-          Math.max(MIN_TICKS_PER_SECOND, Math.floor((viewport.width + viewport.height) / 150));
+          1000 / Math.max(MIN_TICKS_PER_SECOND, Math.floor((board.cols + board.rows) / 4.3));
 
         const fastestInterval = baseInterval * FASTEST_FRACTION;
 
@@ -64,9 +66,12 @@ export const sketch = new p5((p: p5) => {
 
           if (command.kind === "restart") {
             timeline = Timeline.start(state);
+            bite = now;
           } else {
             Timeline.record(timeline, stepped.events);
           }
+
+          if (stepped.events.some((event) => event.kind === "scored")) bite = now;
 
           if (stepped.events.some((event) => event.kind === "scored")) hitstop = HITSTOP_MS;
 
@@ -98,7 +103,7 @@ export const sketch = new p5((p: p5) => {
 
           phase = rewinding(frame.playback);
 
-          Render.draw(p, frame.scene, layout);
+          Render.draw(p, frame.scene, layout, surface);
           Render.drawSkipHint(p);
         };
 
@@ -118,7 +123,7 @@ export const sketch = new p5((p: p5) => {
           p.push();
           p.translate(shake.dx, shake.dy);
 
-          Render.draw(p, Render.scene(state, previous, alpha), layout);
+          Render.draw(p, Render.scene(state, previous, alpha, bite), layout, surface);
 
           p.pop();
 
@@ -135,6 +140,13 @@ export const sketch = new p5((p: p5) => {
           }
 
           drawLive(now);
+        };
+
+        p.windowResized = () => {
+          p.resizeCanvas(p.windowWidth, p.windowHeight);
+          layout = Layout.fit(board, Units.viewport(p.windowWidth, p.windowHeight));
+          surface = Surface.of(p, board, layout);
+          effects = [];
         };
 
         p.keyPressed = () => {

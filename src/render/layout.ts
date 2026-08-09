@@ -1,4 +1,4 @@
-import type * as Board from "../core/board";
+import * as Board from "../core/board";
 import * as Units from "./units";
 
 export type Metrics = {
@@ -8,18 +8,76 @@ export type Metrics = {
 
 const metrics = (blockWidth: Units.Px, origin: Units.Point): Metrics => ({ blockWidth, origin });
 
-export const fit = <B>(
-  board: Board.Grid<B>,
-  viewport: Units.Viewport,
-  blockWidth: Units.Px,
-): Metrics =>
-  metrics(
-    blockWidth,
+const MIN_COLS = 12;
+const MIN_ROWS = 10;
+const MIN_ASPECT = 0.5;
+const MAX_COLS = 28;
+const MAX_ROWS = 18;
+const MIN_BLOCK = 22;
+const MAX_BLOCK = 64;
+const SEARCH = 4;
+const SURROUND = 0.035;
+const MIN_SURROUND = 18;
+
+const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
+
+const surroundOf = (viewport: Units.Viewport): number =>
+  Math.max(MIN_SURROUND, Math.min(viewport.width, viewport.height) * SURROUND);
+
+const insetOf = (viewport: Units.Viewport): Units.Viewport => {
+  const surround = surroundOf(viewport);
+
+  return Units.viewport(viewport.width - surround * 2, viewport.height - surround * 2);
+};
+
+const blockFor = (available: Units.Viewport, cols: number, rows: number): number =>
+  clamp(Math.min(available.width / cols, available.height / rows), MIN_BLOCK, MAX_BLOCK);
+
+const wasteOf = (available: Units.Viewport, cols: number, rows: number): number => {
+  const block = blockFor(available, cols, rows);
+
+  return Math.abs(available.width - cols * block) + Math.abs(available.height - rows * block);
+};
+
+export const cellsFor = (viewport: Units.Viewport, target: number): Board.GridSize => {
+  const available = insetOf(viewport);
+  const around = clamp(Math.round(available.width / target), MIN_COLS, MAX_COLS);
+  let best = Board.size(around, MIN_ROWS);
+  let tightest = Number.POSITIVE_INFINITY;
+
+  for (
+    let cols = clamp(around - SEARCH, MIN_COLS, MAX_COLS);
+    cols <= Math.min(around + SEARCH, MAX_COLS);
+    cols++
+  ) {
+    const shortest = Math.max(MIN_ROWS, Math.round(cols * MIN_ASPECT));
+    const rows = clamp(
+      Math.round((available.height * cols) / available.width),
+      Math.min(shortest, MAX_ROWS),
+      MAX_ROWS,
+    );
+    const waste = wasteOf(available, cols, rows);
+
+    if (waste < tightest) {
+      tightest = waste;
+      best = Board.size(cols, rows);
+    }
+  }
+
+  return best;
+};
+
+export const fit = <B>(board: Board.Grid<B>, viewport: Units.Viewport): Metrics => {
+  const block = blockFor(insetOf(viewport), board.cols, board.rows);
+
+  return metrics(
+    Units.px(block),
     Units.point(
-      (viewport.width - board.cols * blockWidth) / 2,
-      (viewport.height - board.rows * blockWidth) / 2,
+      (viewport.width - board.cols * block) / 2,
+      (viewport.height - board.rows * block) / 2,
     ),
   );
+};
 
 export const toPixels = <B>(layout: Metrics, target: Board.Cell<B>): Units.Point =>
   Units.point(

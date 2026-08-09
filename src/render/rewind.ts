@@ -58,6 +58,8 @@ const travelled = (profile: Profile, seconds: number): number => {
   );
 };
 
+const SETTLED = Units.millis(0);
+
 export type Playback<B> = {
   readonly since: Units.Millis;
   readonly profile: Profile;
@@ -127,6 +129,6 @@ export const frame = <B>(
 
   return drawing(
     withCursors(playback, cursor, ahead),
-    Scene.of(cursor.state, ahead.state.world.snake, 1 - (position - target)),
+    Scene.of(ahead.state, cursor.state.world.snake, position - target, SETTLED),
   );
 };
