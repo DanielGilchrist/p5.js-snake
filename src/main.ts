@@ -16,6 +16,7 @@ const MIN_TICKS_PER_SECOND = 10;
 const SPEED_UP_MS = 2;
 const FASTEST_FRACTION = 0.55;
 const HITSTOP_MS = 90;
+const ENDING_GRACE_MS = 600;
 
 export const sketch = new p5((p: p5) => {
   p.setup = () => {
@@ -43,6 +44,7 @@ export const sketch = new p5((p: p5) => {
         let phase: Phase = { kind: "live" };
         let lastTick = 0;
         let hitstop = 0;
+        let inputLockedUntil = 0;
 
         const baseInterval =
           1000 /
@@ -66,6 +68,10 @@ export const sketch = new p5((p: p5) => {
           }
 
           if (stepped.events.some((event) => event.kind === "scored")) hitstop = HITSTOP_MS;
+
+          if (stepped.events.some((event) => event.kind === "ended")) {
+            inputLockedUntil = now + ENDING_GRACE_MS;
+          }
 
           effects = [
             ...effects,
@@ -132,6 +138,9 @@ export const sketch = new p5((p: p5) => {
 
         p.keyPressed = () => {
           const now = Units.millis(p.millis());
+
+          if (now < inputLockedUntil) return;
+
           const key = Input.parseKey(p.key);
 
           if (phase.kind === "rewinding") {
