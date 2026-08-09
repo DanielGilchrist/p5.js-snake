@@ -1,6 +1,6 @@
-import { type Direction } from "./geometry";
-import type { NonEmpty } from "./non-empty";
-import { err, ok, type Result } from "./result";
+import type * as Geometry from "./geometry";
+import type * as NonEmpty from "./non-empty";
+import * as Result from "./result";
 
 declare const region: unique symbol;
 
@@ -11,10 +11,10 @@ export type Row<B> = number & Region<B>;
 
 export type Cell<B> = { readonly col: Col<B>; readonly row: Row<B> };
 
-export type Board<B> = {
+export type Grid<B> = {
   readonly cols: number;
   readonly rows: number;
-  readonly playable: NonEmpty<Cell<B>>;
+  readonly playable: NonEmpty.List<Cell<B>>;
   readonly walls: readonly Cell<B>[];
   readonly start: Cell<B>;
 };
@@ -23,8 +23,8 @@ export type Move<B> =
   | { readonly kind: "inside"; readonly cell: Cell<B> }
   | { readonly kind: "hitWall" };
 
-export type BoardApi<B> = {
-  readonly move: (from: Cell<B>, direction: Direction) => Move<B>;
+export type Api<B> = {
+  readonly move: (from: Cell<B>, direction: Geometry.Direction) => Move<B>;
 };
 
 export type GridSize = { readonly cols: number; readonly rows: number };
@@ -40,19 +40,19 @@ const DELTA = {
   down: [0, 1],
   left: [-1, 0],
   right: [1, 0],
-} as const satisfies Record<Direction, readonly [number, number]>;
+} as const satisfies Record<Geometry.Direction, readonly [number, number]>;
 
 const MIN_SIDE = 3;
 
 export const withBoard = <R>(
   size: GridSize,
-  run: <B>(board: Board<B>, api: BoardApi<B>) => R,
-): Result<R, BoardError> => {
+  run: <B>(board: Grid<B>, api: Api<B>) => R,
+): Result.Type<R, BoardError> => {
   const cols = Math.floor(size.cols);
   const rows = Math.floor(size.rows);
 
   if (cols < MIN_SIDE || rows < MIN_SIDE) {
-    return err({ kind: "too-small", given: { cols, rows } });
+    return Result.err({ kind: "too-small", given: { cols, rows } });
   }
 
   type B = never;
@@ -78,15 +78,9 @@ export const withBoard = <R>(
     }
   }
 
-  const board: Board<B> = {
-    cols,
-    rows,
-    playable: [start, ...rest],
-    walls,
-    start,
-  };
+  const board: Grid<B> = { cols, rows, playable: [start, ...rest], walls, start };
 
-  const api: BoardApi<B> = {
+  const api: Api<B> = {
     move: (from, direction) => {
       const [dc, dr] = DELTA[direction];
       const col = from.col + dc;
@@ -96,5 +90,5 @@ export const withBoard = <R>(
     },
   };
 
-  return ok(run(board, api));
+  return Result.ok(run(board, api));
 };

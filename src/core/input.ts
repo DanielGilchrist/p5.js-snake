@@ -1,6 +1,7 @@
-import type { Command, GameState } from "./game";
-import type { Direction } from "./geometry";
-import { assertNever, none, some, type Option } from "./result";
+import * as Assert from "./assert";
+import type * as Game from "./game";
+import type * as Geometry from "./geometry";
+import * as Option from "./option";
 
 const BINDINGS = {
   ArrowUp: "up",
@@ -11,7 +12,7 @@ const BINDINGS = {
   j: "down",
   h: "left",
   l: "right",
-} as const satisfies Record<string, Direction>;
+} as const satisfies Record<string, Geometry.Direction>;
 
 const PAUSE = "p";
 
@@ -20,7 +21,7 @@ type Bound = keyof typeof BINDINGS;
 const isBound = (raw: string): raw is Bound => Object.hasOwn(BINDINGS, raw);
 
 export type Key =
-  | { readonly kind: "turn"; readonly direction: Direction }
+  | { readonly kind: "turn"; readonly direction: Geometry.Direction }
   | { readonly kind: "pause" }
   | { readonly kind: "other" };
 
@@ -31,17 +32,17 @@ export const parseKey = (raw: string): Key => {
   return { kind: "other" };
 };
 
-export const commandFor = <B>(state: GameState<B>, key: Key): Option<Command> => {
-  if (state.kind === "over") return some({ kind: "restart" });
+export const commandFor = <B>(state: Game.GameState<B>, key: Key): Option.Type<Game.Command> => {
+  if (state.kind === "over") return Option.some({ kind: "restart" });
 
   switch (key.kind) {
     case "turn":
-      return some({ kind: "turn", direction: key.direction });
+      return Option.some({ kind: "turn", direction: key.direction });
     case "pause":
-      return some({ kind: "togglePause" });
+      return Option.some({ kind: "togglePause" });
     case "other":
-      return none;
+      return Option.none;
     default:
-      return assertNever(key);
+      return Assert.never(key);
   }
 };

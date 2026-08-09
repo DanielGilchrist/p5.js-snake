@@ -1,55 +1,58 @@
 import { describe, expect, test } from "bun:test";
 
-import { equals, key, withBoard, type Board, type BoardApi, type GridSize } from "./board";
-import { newGame, step, type Command, type GameState } from "./game";
-import type { Direction } from "./geometry";
-import type { NonEmpty } from "./non-empty";
-import { choose, rng } from "./rng";
-import { length, segments } from "./snake";
+import * as Assert from "./assert";
+import * as Board from "./board";
+import * as Game from "./game";
+import type * as Geometry from "./geometry";
+import * as NonEmpty from "./non-empty";
+import * as Rng from "./rng";
+import * as Snake from "./snake";
 
 const onBoard = <R>(
-  size: GridSize,
+  size: Board.GridSize,
   seed: number,
-  run: <B>(api: BoardApi<B>, state: GameState<B>) => R,
+  run: <B>(api: Board.Api<B>, state: Game.GameState<B>) => R,
 ): R => {
-  const result = withBoard(size, <B>(board: Board<B>, api: BoardApi<B>) =>
-    run(api, newGame(board, rng(seed))),
+  const result = Board.withBoard(size, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
+    run(api, Game.newGame(board, Rng.fromSeed(seed))),
   );
 
-  if (!result.ok) throw new Error("fixture board must parse");
+  if (!result.ok) Assert.unreachable("fixture board must parse");
 
   return result.value;
 };
 
 const play = <B>(
-  api: BoardApi<B>,
-  from: GameState<B>,
-  commands: readonly Command[],
-): GameState<B> => commands.reduce((current, command) => step(api, current, command).state, from);
+  api: Board.Api<B>,
+  from: Game.GameState<B>,
+  commands: readonly Game.Command[],
+): Game.GameState<B> =>
+  commands.reduce((current, command) => Game.step(api, current, command).state, from);
 
-const ticks = (n: number): readonly Command[] =>
+const ticks = (n: number): readonly Game.Command[] =>
   Array.from({ length: n }, () => ({ kind: "tick" }));
 
-const chase = <B>(state: GameState<B>): Command => {
+const chase = <B>(state: Game.GameState<B>): Game.Command => {
   const { snake, food } = state.world;
   const dc = food.col - snake.head.col;
   const dr = food.row - snake.head.row;
-  const direction: Direction = dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up";
+  const direction: Geometry.Direction =
+    dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up";
 
   return { kind: "turn", direction };
 };
 
 const autoplay = <B>(
-  api: BoardApi<B>,
-  from: GameState<B>,
+  api: Board.Api<B>,
+  from: Game.GameState<B>,
   turns: number,
-  each?: (s: GameState<B>) => void,
-): GameState<B> => {
+  each?: (s: Game.GameState<B>) => void,
+): Game.GameState<B> => {
   let current = from;
 
   for (let i = 0; i < turns; i++) {
-    current = step(api, current, chase(current)).state;
-    current = step(api, current, { kind: "tick" }).state;
+    current = Game.step(api, current, chase(current)).state;
+    current = Game.step(api, current, { kind: "tick" }).state;
     if (current.kind === "over") break;
     each?.(current);
   }
@@ -57,24 +60,24 @@ const autoplay = <B>(
   return current;
 };
 
-const SMALL: GridSize = { cols: 6, rows: 6 };
-const MEDIUM: GridSize = { cols: 10, rows: 10 };
-const LARGE: GridSize = { cols: 14, rows: 14 };
+const SMALL: Board.GridSize = { cols: 6, rows: 6 };
+const MEDIUM: Board.GridSize = { cols: 10, rows: 10 };
+const LARGE: Board.GridSize = { cols: 14, rows: 14 };
 
 describe("withBoard", () => {
   test("rejects boards with no playable interior", () => {
-    expect(withBoard({ cols: 2, rows: 10 }, () => 1).ok).toBe(false);
-    expect(withBoard({ cols: 10, rows: 2 }, () => 1).ok).toBe(false);
+    expect(Board.withBoard({ cols: 2, rows: 10 }, () => 1).ok).toBe(false);
+    expect(Board.withBoard({ cols: 10, rows: 2 }, () => 1).ok).toBe(false);
   });
 
   test("a parsed board always has a playable cell", () => {
-    const result = withBoard({ cols: 3, rows: 3 }, (board) => board.playable.length);
+    const result = Board.withBoard({ cols: 3, rows: 3 }, (board) => board.playable.length);
 
     expect(result.ok && result.value).toBeGreaterThan(0);
   });
 
   test("walls and playable cells together cover the grid", () => {
-    const result = withBoard(MEDIUM, (board) => board.walls.length + board.playable.length);
+    const result = Board.withBoard(MEDIUM, (board) => board.walls.length + board.playable.length);
 
     expect(result.ok && result.value).toBe(100);
   });
@@ -115,20 +118,20 @@ describe("step", () => {
 
   test("eating grows the snake and scores a point", () => {
     onBoard(LARGE, 11, (api, state) => {
-      const before = length(state.world.snake);
+      const before = Snake.length(state.world.snake);
       const fed = autoplay(api, state, 60);
 
       expect(fed.world.score).toBeGreaterThan(0);
-      expect(length(fed.world.snake)).toBeGreaterThan(before);
+      expect(Snake.length(fed.world.snake)).toBeGreaterThan(before);
     });
   });
 
   test("food never spawns under the snake", () => {
     onBoard({ cols: 12, rows: 12 }, 5, (api, state) => {
       autoplay(api, state, 200, (current) => {
-        expect(segments(current.world.snake).some((s) => equals(s, current.world.food))).toBe(
-          false,
-        );
+        expect(
+          Snake.segments(current.world.snake).some((s) => Board.equals(s, current.world.food)),
+        ).toBe(false);
       });
     });
   });
@@ -136,7 +139,7 @@ describe("step", () => {
   test("the snake never overlaps itself while alive", () => {
     onBoard({ cols: 12, rows: 12 }, 9, (api, state) => {
       autoplay(api, state, 200, (current) => {
-        const cells = segments(current.world.snake).map(key);
+        const cells = Snake.segments(current.world.snake).map(Board.key);
 
         expect(new Set(cells).size).toBe(cells.length);
       });
@@ -146,7 +149,7 @@ describe("step", () => {
   test("the snake never leaves the board while alive", () => {
     onBoard({ cols: 12, rows: 12 }, 4, (api, state) => {
       autoplay(api, state, 200, (current) => {
-        for (const segment of segments(current.world.snake)) {
+        for (const segment of Snake.segments(current.world.snake)) {
           expect(segment.col).toBeGreaterThan(0);
           expect(segment.row).toBeGreaterThan(0);
           expect(segment.col).toBeLessThan(current.world.board.cols - 1);
@@ -159,7 +162,7 @@ describe("step", () => {
 
 describe("determinism", () => {
   test("same seed and same commands produce the same state", () => {
-    const commands: readonly Command[] = [
+    const commands: readonly Game.Command[] = [
       { kind: "turn", direction: "down" },
       ...ticks(5),
       { kind: "turn", direction: "right" },
@@ -174,7 +177,7 @@ describe("determinism", () => {
 
   test("different seeds place food differently", () => {
     const foodFor = (seed: number): string =>
-      onBoard({ cols: 20, rows: 20 }, seed, (_api, state) => key(state.world.food));
+      onBoard({ cols: 20, rows: 20 }, seed, (_api, state) => Board.key(state.world.food));
 
     expect(foodFor(1)).not.toBe(foodFor(2));
   });
@@ -190,7 +193,7 @@ describe("input buffering", () => {
 
       expect(queued.world.buffered.length).toBe(2);
 
-      const { state: afterFirst } = step(api, queued, { kind: "tick" });
+      const { state: afterFirst } = Game.step(api, queued, { kind: "tick" });
 
       expect(afterFirst.world.snake.facing).toBe("down");
       expect(afterFirst.world.buffered.length).toBe(1);
@@ -199,7 +202,7 @@ describe("input buffering", () => {
 
   test("the buffer is bounded", () => {
     onBoard(MEDIUM, 1, (api, state) => {
-      const directions: readonly Direction[] = ["down", "left", "up", "right", "down"];
+      const directions: readonly Geometry.Direction[] = ["down", "left", "up", "right", "down"];
       const queued = play(
         api,
         state,
@@ -213,7 +216,7 @@ describe("input buffering", () => {
 
 describe("winning", () => {
   test("filling the board ends the game as a win", () => {
-    const cycle: readonly Direction[] = ["right", "down", "left", "up"];
+    const cycle: readonly Geometry.Direction[] = ["right", "down", "left", "up"];
 
     for (let seed = 0; seed < 5; seed++) {
       const ending = onBoard({ cols: 4, rows: 4 }, seed, (api, state) => {
@@ -223,8 +226,8 @@ describe("winning", () => {
           const direction = cycle[i % cycle.length];
           if (direction === undefined) break;
 
-          current = step(api, current, { kind: "turn", direction }).state;
-          current = step(api, current, { kind: "tick" }).state;
+          current = Game.step(api, current, { kind: "turn", direction }).state;
+          current = Game.step(api, current, { kind: "tick" }).state;
           if (current.kind === "over") return current.ending;
         }
 
@@ -246,7 +249,7 @@ describe("restart", () => {
 
       expect(restarted.kind).toBe("playing");
       expect(restarted.world.score).toBe(0);
-      expect(length(restarted.world.snake)).toBe(1);
+      expect(Snake.length(restarted.world.snake)).toBe(1);
       expect(restarted.world.buffered).toEqual([]);
       expect(restarted.world.board).toBe(played.world.board);
     });
@@ -265,7 +268,9 @@ describe("turning", () => {
       const after = play(api, queued, ticks(2));
 
       expect(after.kind).toBe("playing");
-      expect(after.world.snake.tail.some((s) => equals(s, after.world.snake.head))).toBe(false);
+      expect(after.world.snake.tail.some((s) => Board.equals(s, after.world.snake.head))).toBe(
+        false,
+      );
     });
   });
 
@@ -283,20 +288,20 @@ describe("turning", () => {
     onBoard(LARGE, 11, (api, state) => {
       let current = state;
       let previousScore = 0;
-      let previousLength = length(current.world.snake);
+      let previousLength = Snake.length(current.world.snake);
 
       for (let i = 0; i < 200; i++) {
-        current = step(api, current, chase(current)).state;
-        current = step(api, current, { kind: "tick" }).state;
+        current = Game.step(api, current, chase(current)).state;
+        current = Game.step(api, current, { kind: "tick" }).state;
         if (current.kind === "over") break;
 
-        const grew = length(current.world.snake) - previousLength;
+        const grew = Snake.length(current.world.snake) - previousLength;
         const scored = current.world.score - previousScore;
 
         expect(grew).toBeLessThanOrEqual(1);
         expect(scored).toBeLessThanOrEqual(1);
 
-        previousLength = length(current.world.snake);
+        previousLength = Snake.length(current.world.snake);
         previousScore = current.world.score;
       }
 
@@ -311,17 +316,17 @@ describe("invariants across many seeds", () => {
       onBoard({ cols: 11, rows: 9 }, seed, (api, state) => {
         autoplay(api, state, 150, (current) => {
           const { snake, score } = current.world;
-          const cells = segments(snake).map(key);
+          const cells = Snake.segments(snake).map(Board.key);
 
-          expect(length(snake)).toBeLessThanOrEqual(1 + score);
-          if (snake.growth === 0) expect(length(snake)).toBe(1 + score);
+          expect(Snake.length(snake)).toBeLessThanOrEqual(1 + score);
+          if (snake.growth === 0) expect(Snake.length(snake)).toBe(1 + score);
 
           expect(new Set(cells).size).toBe(cells.length);
-          expect(segments(current.world.snake).some((s) => equals(s, current.world.food))).toBe(
-            false,
-          );
+          expect(
+            Snake.segments(current.world.snake).some((s) => Board.equals(s, current.world.food)),
+          ).toBe(false);
 
-          for (const segment of segments(current.world.snake)) {
+          for (const segment of Snake.segments(current.world.snake)) {
             expect(segment.col).toBeGreaterThan(0);
             expect(segment.row).toBeGreaterThan(0);
             expect(segment.col).toBeLessThan(current.world.board.cols - 1);
@@ -335,7 +340,7 @@ describe("invariants across many seeds", () => {
 
 describe("end to end", () => {
   test("pausing and resuming does not change how a game plays out", () => {
-    const script: readonly Command[] = [
+    const script: readonly Game.Command[] = [
       { kind: "turn", direction: "down" },
       ...ticks(4),
       { kind: "turn", direction: "right" },
@@ -344,7 +349,7 @@ describe("end to end", () => {
       ...ticks(3),
     ];
 
-    const interrupted: readonly Command[] = [
+    const interrupted: readonly Game.Command[] = [
       ...script.slice(0, 5),
       { kind: "togglePause" },
       ...ticks(6),
@@ -374,7 +379,7 @@ describe("end to end", () => {
   });
 
   test("random command sequences never corrupt the world", () => {
-    const commands: readonly Command[] = [
+    const commands: readonly Game.Command[] = [
       { kind: "tick" },
       { kind: "togglePause" },
       { kind: "restart" },
@@ -387,21 +392,21 @@ describe("end to end", () => {
     for (let seed = 0; seed < 15; seed++) {
       onBoard({ cols: 9, rows: 9 }, seed, (api, state) => {
         let current = state;
-        let picker = rng(seed * 31 + 1);
+        let picker = Rng.fromSeed(seed * 31 + 1);
 
         for (let i = 0; i < 250; i++) {
-          const [choice, next] = choose(picker, commands as NonEmpty<Command>);
+          const [choice, next] = Rng.choose(picker, commands as NonEmpty.List<Game.Command>);
           picker = next;
-          current = step(api, current, choice).state;
+          current = Game.step(api, current, choice).state;
 
           const { snake, score, board } = current.world;
-          const cells = segments(snake).map(key);
+          const cells = Snake.segments(snake).map(Board.key);
 
           expect(new Set(cells).size).toBe(cells.length);
           expect(score).toBeGreaterThanOrEqual(0);
-          expect(length(snake)).toBeLessThanOrEqual(board.playable.length);
+          expect(Snake.length(snake)).toBeLessThanOrEqual(board.playable.length);
 
-          for (const segment of segments(snake)) {
+          for (const segment of Snake.segments(snake)) {
             expect(segment.col).toBeGreaterThan(0);
             expect(segment.row).toBeGreaterThan(0);
             expect(segment.col).toBeLessThan(board.cols - 1);
@@ -419,7 +424,7 @@ describe("end to end", () => {
 
         expect(restarted.kind).toBe("playing");
         expect(restarted.world.score).toBe(0);
-        expect(length(restarted.world.snake)).toBe(1);
+        expect(Snake.length(restarted.world.snake)).toBe(1);
       }
     });
   });

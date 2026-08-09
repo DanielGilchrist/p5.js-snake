@@ -1,10 +1,12 @@
-export type NonEmpty<T> = readonly [T, ...(readonly T[])];
+import * as Option from "./option";
 
-export const head = <T>(xs: NonEmpty<T>): T => xs[0];
+export type List<T> = readonly [T, ...(readonly T[])];
 
-export const prepend = <T>(x: T, xs: readonly T[]): NonEmpty<T> => [x, ...xs];
+export const head = <T>(xs: List<T>): T => xs[0];
 
-export const fromArray = <T>(xs: readonly T[]): NonEmpty<T> | undefined =>
-  xs.length === 0 ? undefined : (xs as NonEmpty<T>);
+export const prepend = <T>(x: T, xs: readonly T[]): List<T> => [x, ...xs];
 
-export const at = <T>(xs: NonEmpty<T>, index: number): T => xs[index] ?? head(xs);
+export const fromArray = <T>(xs: readonly T[]): Option.Type<List<T>> =>
+  xs.length === 0 ? Option.none : Option.some(xs as List<T>);
+
+export const at = <T>(xs: List<T>, index: number): T => xs[index] ?? head(xs);

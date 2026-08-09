@@ -1,6 +1,6 @@
-import type { Brand } from "../core/brand";
+import type * as Brand from "../core/brand";
 
-export type Px = Brand<number, "Px">;
+export type Px = Brand.Of<number, "Px">;
 
 export const px = (n: number): Px => n as Px;
 
@@ -10,7 +10,7 @@ export type Offset = { readonly dx: Px; readonly dy: Px };
 
 export type Viewport = { readonly width: Px; readonly height: Px };
 
-export type Millis = Brand<number, "Millis">;
+export type Millis = Brand.Of<number, "Millis">;
 
 export const millis = (n: number): Millis => n as Millis;
 

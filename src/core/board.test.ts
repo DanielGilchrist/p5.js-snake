@@ -1,12 +1,17 @@
 import { describe, expect, test } from "bun:test";
 
-import { equals, withBoard, type Board, type BoardApi, type Cell } from "./board";
-import type { Direction } from "./geometry";
+import * as Assert from "./assert";
+import * as Board from "./board";
+import type * as Geometry from "./geometry";
 
-const on = <R>(cols: number, rows: number, run: <B>(board: Board<B>, api: BoardApi<B>) => R): R => {
-  const result = withBoard({ cols, rows }, run);
+const on = <R>(
+  cols: number,
+  rows: number,
+  run: <B>(board: Board.Grid<B>, api: Board.Api<B>) => R,
+): R => {
+  const result = Board.withBoard({ cols, rows }, run);
 
-  if (!result.ok) throw new Error("fixture board must parse");
+  if (!result.ok) Assert.unreachable("fixture board must parse");
 
   return result.value;
 };
@@ -20,8 +25,8 @@ describe("withBoard", () => {
 
   test("the start cell is playable and is not a wall", () => {
     on(8, 8, (board) => {
-      expect(board.playable.some((cell) => equals(cell, board.start))).toBe(true);
-      expect(board.walls.some((cell) => equals(cell, board.start))).toBe(false);
+      expect(board.playable.some((cell) => Board.equals(cell, board.start))).toBe(true);
+      expect(board.walls.some((cell) => Board.equals(cell, board.start))).toBe(false);
     });
   });
 
@@ -51,7 +56,11 @@ describe("withBoard", () => {
   });
 });
 
-const walkUntilWall = <B>(api: BoardApi<B>, from: Cell<B>, direction: Direction): string => {
+const walkUntilWall = <B>(
+  api: Board.Api<B>,
+  from: Board.Cell<B>,
+  direction: Geometry.Direction,
+): string => {
   let current = from;
 
   for (let i = 0; i < 20; i++) {
@@ -90,12 +99,12 @@ describe("move", () => {
   test("moving is reversible while inside the board", () => {
     on(8, 8, (board, api) => {
       const right = api.move(board.start, "right");
-      if (right.kind !== "inside") throw new Error("expected an inside move");
+      if (right.kind !== "inside") Assert.unreachable("expected an inside move");
 
       const back = api.move(right.cell, "left");
 
       expect(back.kind).toBe("inside");
-      if (back.kind === "inside") expect(equals(back.cell, board.start)).toBe(true);
+      if (back.kind === "inside") expect(Board.equals(back.cell, board.start)).toBe(true);
     });
   });
 });
