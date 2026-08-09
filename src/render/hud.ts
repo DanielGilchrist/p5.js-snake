@@ -32,18 +32,26 @@ const sizeOf = (block: Units.Px, scale: number): number => Math.max(MIN_TEXT, bl
 
 const cutOf = (block: Units.Px): number => Math.max(1.2, block * 0.03);
 
-const engrave = (p: p5, text: string, x: number, y: number, block: Units.Px): void => {
+const engrave = (
+  p: p5,
+  scheme: Palette.Scheme,
+  text: string,
+  x: number,
+  y: number,
+  block: Units.Px,
+): void => {
   const cut = cutOf(block);
 
-  Paint.fillWith(p, Palette.PAPER, Paint.alpha(165));
+  Paint.fillWith(p, scheme.markEdge, Paint.alpha(scheme.relief));
   p.text(text, x, y + cut);
 
-  Paint.fill(p, Palette.INK);
+  Paint.fill(p, scheme.mark);
   p.text(text, x, y - cut * 0.4);
 };
 
 export const score = <B>(
   p: p5,
+  scheme: Palette.Scheme,
   world: World.Type<B>,
   layout: Layout.Metrics,
   points: number,
@@ -61,13 +69,13 @@ export const score = <B>(
   p.translate(middle.x, middle.y);
   p.noStroke();
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(PLATE_SINK));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
   p.rect(-width / 2, -height / 2, width, height, block * PLATE_RADIUS);
 
-  Paint.fillWith(p, Palette.PAPER, Paint.alpha(PLATE_LIP));
+  Paint.fillWith(p, scheme.paper, Paint.alpha(PLATE_LIP));
   p.rect(-width / 2, -height / 2 + cut, width, height, block * PLATE_RADIUS);
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(PLATE_SINK));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
   p.rect(-width / 2, -height / 2, width, height - cut, block * PLATE_RADIUS);
 
   p.textAlign(p.CENTER, p.CENTER);
@@ -78,11 +86,11 @@ export const score = <B>(
   const token = block * TOKEN_RATIO;
   const shift = block * TOKEN_GAP * 0.5;
 
-  engrave(p, label, shift, 0, block);
+  engrave(p, scheme, label, shift, 0, block);
 
   p.push();
   p.translate(shift - p.textWidth(label) / 2 - block * TOKEN_GAP, -token * 0.06);
-  Morsel.draw(p, Morsel.EMBLEM, 11, token, token * 0.92);
+  Morsel.draw(p, scheme, Morsel.EMBLEM, 11, token, token * 0.92);
   p.pop();
 
   p.pop();
@@ -90,10 +98,11 @@ export const score = <B>(
 
 export const tablet = (
   p: p5,
+  scheme: Palette.Scheme,
   lines: readonly Line[],
   layout: Layout.Metrics,
   stage: Units.Region,
-  wash: Paint.Alpha,
+  wash: Paint.Alpha = Paint.alpha(140),
 ): void => {
   const block = layout.blockWidth;
 
@@ -117,11 +126,11 @@ export const tablet = (
   const height = tall + block * TABLET_PAD_Y * 2;
   const middle = Units.point(stage.left + stage.width / 2, stage.top + stage.height / 2);
 
-  Paint.fillWith(p, Palette.SHADOW, wash);
+  Paint.fillWith(p, scheme.shadow, wash);
   p.rect(0, 0, p.width, p.height);
 
-  Clay.cast(p, Clay.RAISED, Palette.SHADOW, () => {
-    Paint.fill(p, Palette.WALL);
+  Clay.cast(p, Clay.RAISED, scheme.shadow, () => {
+    Paint.fill(p, scheme.wall);
     p.rect(middle.x - width / 2, middle.y - height / 2, width, height, block * TABLET_RADIUS);
   });
 
@@ -132,7 +141,7 @@ export const tablet = (
 
     p.textSize(size);
     y += (size * LINE_HEIGHT) / 2;
-    engrave(p, entry.text, middle.x, y, block);
+    engrave(p, scheme, entry.text, middle.x, y, block);
     y += (size * LINE_HEIGHT) / 2;
   }
 

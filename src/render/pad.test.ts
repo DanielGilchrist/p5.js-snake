@@ -10,7 +10,7 @@ const LANDSCAPE = Units.viewport(844, 390);
 
 const SHAPES = [PHONE, TALL, SMALL, LANDSCAPE];
 
-const CONTROLS: readonly Pad.Control[] = ["up", "down", "left", "right", "pause", "flip"];
+const CONTROLS: readonly Pad.Control[] = ["up", "down", "left", "right", "pause", "menu"];
 
 const HANDS: readonly Pad.Hand[] = ["right", "left"];
 
@@ -103,14 +103,14 @@ describe("pad", () => {
     for (const viewport of SHAPES)
       for (const hand of HANDS) {
         const { pad } = Pad.arrange(viewport, hand);
-        for (const round of ["pause", "flip"] as const) {
+        for (const round of ["pause", "menu"] as const) {
           const at = Pad.armOf(pad, round);
           const gap = Math.hypot(pad.seat.x - at.x, pad.seat.y - at.y);
 
           expect(gap).toBeGreaterThan(pad.span + pad.button);
         }
 
-        const between = Math.hypot(pad.pause.x - pad.flip.x, pad.pause.y - pad.flip.y);
+        const between = Math.hypot(pad.pause.x - pad.menu.x, pad.pause.y - pad.menu.y);
 
         expect(between).toBeGreaterThan(pad.button * 2);
       }
@@ -141,7 +141,7 @@ describe("pad", () => {
     for (const control of CONTROLS) {
       const key = Pad.keyOf(control);
 
-      if (control === "flip") {
+      if (control === "menu") {
         expect(key.some).toBe(false);
         continue;
       }
@@ -165,8 +165,6 @@ describe("pad", () => {
       const left = Pad.arrange(viewport, "left");
 
       expect(left.stage).toEqual(right.stage);
-      expect(Pad.other("right")).toBe("left");
-      expect(Pad.other("left")).toBe("right");
 
       const middle = right.device.left + right.device.width / 2;
 

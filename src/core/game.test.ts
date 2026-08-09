@@ -352,7 +352,6 @@ describe("end to end", () => {
   test("a perpendicular turn pair cannot fold the snake back into its neck", () => {
     for (let seed = 0; seed < 12; seed++) {
       onBoard({ cols: 15, rows: 13 }, seed, (api, state) => {
-        // grow a body, then let pending drain so facing matches the last move
         const grown = play(api, autoplay(api, state, 120, undefined), ticks(2));
         if (grown.kind !== "playing") return;
         if (Snake.length(grown.world.snake) < 3) return;

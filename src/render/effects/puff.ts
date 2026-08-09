@@ -27,6 +27,7 @@ const spinOf = (born: Units.Millis): number => (born * 0.013) % TURN;
 
 export const puff = (
   p: p5,
+  scheme: Palette.Scheme,
   at: Units.Point,
   t: number,
   block: Units.Px,
@@ -38,7 +39,7 @@ export const puff = (
   const spin = spinOf(born);
 
   p.noStroke();
-  Paint.fillWith(p, Palette.PAPER, Paint.alpha(Ease.fadeOut(t, 1.7) * PUFF_ALPHA));
+  Paint.fillWith(p, scheme.paper, Paint.alpha(Ease.fadeOut(t, 1.7) * PUFF_ALPHA));
 
   for (let i = 0; i < PUFF_LOBES; i++) {
     const angle = (i / PUFF_LOBES) * TURN + spin;
@@ -47,15 +48,22 @@ export const puff = (
   }
 };
 
-export const dust = (p: p5, at: Units.Point, t: number, block: Units.Px): void => {
+export const dust = (
+  p: p5,
+  scheme: Palette.Scheme,
+  at: Units.Point,
+  t: number,
+  block: Units.Px,
+): void => {
   p.noFill();
-  Paint.strokeWith(p, Palette.DUST, Paint.alpha(Ease.fadeOut(t, 1.8) * DUST_ALPHA));
+  Paint.strokeWith(p, scheme.dust, Paint.alpha(Ease.fadeOut(t, 1.8) * DUST_ALPHA));
   p.strokeWeight(Math.max(0.5, DUST_WEIGHT * Ease.fadeOut(t, 1.4)));
   p.circle(at.x, at.y, block * (0.5 + Ease.outQuint(t) * DUST_SPREAD));
 };
 
 export const wisps = (
   p: p5,
+  scheme: Palette.Scheme,
   at: Units.Point,
   t: number,
   block: Units.Px,
@@ -67,7 +75,7 @@ export const wisps = (
   const sweep = WISP_ARC * (1 - t);
 
   p.noFill();
-  Paint.strokeWith(p, Palette.DUST, Paint.alpha(Ease.fadeOut(t, 1.2) * WISP_ALPHA));
+  Paint.strokeWith(p, scheme.dust, Paint.alpha(Ease.fadeOut(t, 1.2) * WISP_ALPHA));
   p.strokeWeight(WISP_WEIGHT * (1 - t) + 0.4);
   p.strokeCap(p.ROUND);
 

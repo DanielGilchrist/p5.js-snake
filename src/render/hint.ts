@@ -28,7 +28,7 @@ const CAP_FILL = Paint.alpha(210);
 const LABEL_ALPHA = Paint.alpha(245);
 const TRAILING_ALPHA = Paint.alpha(210);
 
-export const draw = (p: p5, prompt: Scene.Prompt): void => {
+export const draw = (p: p5, scheme: Palette.Scheme, prompt: Scene.Prompt): void => {
   const LABEL = labelFor(prompt);
 
   p.push();
@@ -46,16 +46,16 @@ export const draw = (p: p5, prompt: Scene.Prompt): void => {
   const top = middle - CAP_HEIGHT / 2;
 
   p.noStroke();
-  Paint.fillWith(p, Palette.INK, CAP_FILL);
+  Paint.fillWith(p, scheme.shadow, CAP_FILL);
   p.rect(left, top, capWidth, CAP_HEIGHT, CAP_RADIUS);
 
   p.noStroke();
   p.textStyle(p.BOLD);
-  Paint.fillWith(p, Palette.PAPER, LABEL_ALPHA);
+  Paint.fillWith(p, scheme.paper, LABEL_ALPHA);
   p.text(LABEL, left + CAP_PADDING, middle);
 
   p.textStyle(p.NORMAL);
-  Paint.fillWith(p, Palette.INK, TRAILING_ALPHA);
+  Paint.fillWith(p, scheme.text, TRAILING_ALPHA);
   p.text(TRAILING, left + capWidth + CAP_GAP, middle);
   p.pop();
 };

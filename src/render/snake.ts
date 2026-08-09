@@ -61,6 +61,7 @@ const eyeOffsets = (
 
 const eyes = (
   p: p5,
+  scheme: Palette.Scheme,
   head: Units.Point,
   facing: Geometry.Direction,
   size: number,
@@ -72,7 +73,7 @@ const eyes = (
     case "dead": {
       const half = (size * EYE_RATIO * DEAD_EYE_SCALE) / 4;
 
-      Paint.stroke(p, Palette.INK);
+      Paint.stroke(p, scheme.mark);
       p.strokeWeight(2);
 
       for (const offset of offsets) {
@@ -87,7 +88,7 @@ const eyes = (
 
     case "alive": {
       p.noStroke();
-      Paint.fill(p, Palette.INK);
+      Paint.fill(p, scheme.mark);
 
       for (const offset of offsets) {
         const at = Units.shiftBy(head, offset);
@@ -130,6 +131,7 @@ const tube = (
 
 export const draw = <B>(
   p: p5,
+  scheme: Palette.Scheme,
   snake: Snake.State<B>,
   previous: Snake.State<B>,
   blend: number,
@@ -148,23 +150,23 @@ export const draw = <B>(
   const crown = block * HEAD_WIDTH * bulge;
   const crest = Units.point(head.x, head.y - block * CREST_LIFT);
 
-  tube(p, spine, block, Palette.SHADOW, SHADOW_ALPHA, 1, block * SHADOW_DROP);
+  tube(p, spine, block, scheme.shadow, SHADOW_ALPHA, 1, block * SHADOW_DROP);
 
   p.noStroke();
-  Paint.fillWith(p, Palette.SHADOW, SHADOW_ALPHA);
+  Paint.fillWith(p, scheme.shadow, SHADOW_ALPHA);
   p.circle(head.x, head.y + block * SHADOW_DROP, crown);
 
-  tube(p, spine, block, Palette.SNAKE_DEEP, Paint.OPAQUE, 1, 0);
+  tube(p, spine, block, scheme.snakeDeep, Paint.OPAQUE, 1, 0);
 
   p.noStroke();
-  Paint.fill(p, Palette.SNAKE_DEEP);
+  Paint.fill(p, scheme.snakeDeep);
   p.circle(head.x, head.y, crown);
 
-  tube(p, spine, block, Palette.SNAKE, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
+  tube(p, spine, block, scheme.snake, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
 
   p.noStroke();
-  Paint.fill(p, Palette.SNAKE);
+  Paint.fill(p, scheme.snake);
   p.circle(crest.x, crest.y, crown * CREST_RATIO);
 
-  eyes(p, crest, snake.facing, crown * CREST_RATIO, vitality);
+  eyes(p, scheme, crest, snake.facing, crown * CREST_RATIO, vitality);
 };

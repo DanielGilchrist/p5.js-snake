@@ -23,29 +23,37 @@ const BAR_WIDTH = 0.2;
 const BAR_HEIGHT = 0.58;
 const BAR_GAP = 0.17;
 
-const SWAP_BAR = 0.15;
-const SWAP_HEAD = 0.42;
-const SWAP_NIB = 0.4;
-const SWAP_GAP = 0.36;
+const GEAR_TEETH = 8;
+const GEAR_TOOTH = 0.5;
+const GEAR_ROOT = 0.72;
+const GEAR_BORE = 0.34;
+const GEAR_BORE_SIDES = 14;
+const GEAR_FILLET = 0.06;
+
 const ROUND_GLYPH = 1.35;
 const CUT = 0.022;
 const LIP_ALPHA = Paint.alpha(52);
 
-export const shell = (p: p5, device: Units.Region, stage: Units.Region): void => {
+export const shell = (
+  p: p5,
+  scheme: Palette.Scheme,
+  device: Units.Region,
+  stage: Units.Region,
+): void => {
   const radius = Math.min(device.width, device.height) * CASE_RADIUS;
   const drop = radius * CASE_DROP;
 
   p.noStroke();
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(58));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(58));
   p.rect(device.left, device.top + drop, device.width, device.height, radius);
 
-  Paint.fill(p, Palette.BODY);
+  Paint.fill(p, scheme.body);
   p.rect(device.left, device.top, device.width, device.height, radius);
 
   const bezel = Math.min(stage.width, stage.height) * 0.03;
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(52));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(52));
   p.rect(
     stage.left - bezel,
     stage.top - bezel,
@@ -73,18 +81,39 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
     case "right":
       p.triangle(tip, 0, back, -flank, back, flank);
       return;
-    case "flip": {
-      const span = reach;
-      const bar = reach * SWAP_BAR;
-      const head = reach * SWAP_HEAD;
-      const nib = reach * SWAP_NIB;
-      const gap = reach * SWAP_GAP;
+    case "menu": {
+      const step = (Math.PI * 2) / GEAR_TEETH;
+      const half = step * GEAR_TOOTH * 0.5;
+      const root = reach * GEAR_ROOT;
+      const bore = reach * GEAR_BORE;
 
-      p.rect(-span, -gap - bar, span * 2 - nib, bar * 2, bar);
-      p.triangle(span, -gap, span - nib, -gap - head, span - nib, -gap + head);
+      p.beginShape();
 
-      p.rect(-span + nib, gap - bar, span * 2 - nib, bar * 2, bar);
-      p.triangle(-span, gap, -span + nib, gap - head, -span + nib, gap + head);
+      for (let i = 0; i < GEAR_TEETH; i++) {
+        const mid = i * step + step / 2;
+
+        p.vertex(
+          Math.cos(mid - step / 2 + GEAR_FILLET) * root,
+          Math.sin(mid - step / 2 + GEAR_FILLET) * root,
+        );
+        p.vertex(Math.cos(mid - half) * reach, Math.sin(mid - half) * reach);
+        p.vertex(Math.cos(mid + half) * reach, Math.sin(mid + half) * reach);
+        p.vertex(
+          Math.cos(mid + step / 2 - GEAR_FILLET) * root,
+          Math.sin(mid + step / 2 - GEAR_FILLET) * root,
+        );
+      }
+
+      p.beginContour();
+
+      for (let i = GEAR_BORE_SIDES; i > 0; i--) {
+        const angle = (i / GEAR_BORE_SIDES) * Math.PI * 2;
+
+        p.vertex(Math.cos(angle) * bore, Math.sin(angle) * bore);
+      }
+
+      p.endContour(p.CLOSE);
+      p.endShape(p.CLOSE);
 
       return;
     }
@@ -105,18 +134,19 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
 
 const engraved = (
   p: p5,
+  scheme: Palette.Scheme,
   control: Pad.Control,
   at: Units.Point,
   reach: number,
   cut: number,
 ): void => {
-  Paint.fillWith(p, Palette.PAPER, LIP_ALPHA);
+  Paint.fillWith(p, scheme.markEdge, LIP_ALPHA);
   p.push();
   p.translate(at.x, at.y + cut);
   arrow(p, control, reach);
   p.pop();
 
-  Paint.fill(p, Palette.INK);
+  Paint.fill(p, scheme.mark);
   p.push();
   p.translate(at.x, at.y);
   arrow(p, control, reach);
@@ -130,26 +160,31 @@ const cross = (p: p5, of: Pad.Pad, lift: number): void => {
   p.rect(-of.arm, -of.span + lift, of.arm * 2, of.span * 2, radius);
 };
 
-export const draw = (p: p5, of: Pad.Pad, held: Option.Type<Pad.Control>): void => {
+export const draw = (
+  p: p5,
+  scheme: Palette.Scheme,
+  of: Pad.Pad,
+  held: Option.Type<Pad.Control>,
+): void => {
   const down = (control: Pad.Control): boolean => held.some && held.value === control;
   const cut = Math.max(1, of.arm * CUT * 2);
-  const turning = held.some && held.value !== "pause" && held.value !== "flip";
+  const turning = held.some && held.value !== "pause" && held.value !== "menu";
 
   p.noStroke();
 
   p.push();
   p.translate(of.seat.x, of.seat.y);
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(SOCKET_ALPHA));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(SOCKET_ALPHA));
   cross(p, of, 0);
 
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(turning ? 40 : 58));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(turning ? 40 : 58));
   p.push();
   p.translate(0, of.arm * DROP);
   cross(p, of, 0);
   p.pop();
 
-  Paint.fill(p, Palette.WALL);
+  Paint.fill(p, scheme.wall);
   p.push();
   p.translate(0, -of.arm * (turning ? SUNK_LIFT : CAP_LIFT));
   cross(p, of, 0);
@@ -161,10 +196,17 @@ export const draw = (p: p5, of: Pad.Pad, held: Option.Type<Pad.Control>): void =
     const at = Pad.armOf(of, control);
     const sunk = down(control) ? SUNK_LIFT : CAP_LIFT;
 
-    engraved(p, control, Units.point(at.x, at.y - of.arm * sunk), of.arm * GLYPH_RATIO * 2, cut);
+    engraved(
+      p,
+      scheme,
+      control,
+      Units.point(at.x, at.y - of.arm * sunk),
+      of.arm * GLYPH_RATIO * 2,
+      cut,
+    );
   }
 
-  for (const control of ["pause", "flip"] as const) {
+  for (const control of ["pause", "menu"] as const) {
     const seat = Pad.armOf(of, control);
     const sunk = down(control);
     const lift = -of.button * (sunk ? SUNK_LIFT : CAP_LIFT);
@@ -172,19 +214,20 @@ export const draw = (p: p5, of: Pad.Pad, held: Option.Type<Pad.Control>): void =
     p.push();
     p.translate(seat.x, seat.y);
 
-    Paint.fillWith(p, Palette.SHADOW, Paint.alpha(SOCKET_ALPHA));
+    Paint.fillWith(p, scheme.shadow, Paint.alpha(SOCKET_ALPHA));
     p.circle(0, 0, of.button * 2);
 
-    Paint.fillWith(p, Palette.SHADOW, Paint.alpha(sunk ? 40 : 58));
+    Paint.fillWith(p, scheme.shadow, Paint.alpha(sunk ? 40 : 58));
     p.circle(0, of.button * DROP, of.button * 2 * CAP_RATIO);
 
-    Paint.fill(p, Palette.WALL);
+    Paint.fill(p, scheme.wall);
     p.circle(0, lift, of.button * 2 * CAP_RATIO);
 
     p.pop();
 
     engraved(
       p,
+      scheme,
       control,
       Units.point(seat.x, seat.y + lift),
       of.button * GLYPH_RATIO * ROUND_GLYPH,

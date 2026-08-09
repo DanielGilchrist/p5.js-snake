@@ -84,8 +84,13 @@ const CRUMBS: Grit = {
   fade: 1.1,
 };
 
-export const shards = (p: p5, at: Units.Point, t: number, block: Units.Px): void =>
-  grit(p, at, t, block, SHARDS, Palette.FOOD_DEEP);
+export const shards = (
+  p: p5,
+  scheme: Palette.Scheme,
+  at: Units.Point,
+  t: number,
+  block: Units.Px,
+): void => grit(p, at, t, block, SHARDS, scheme.foodDeep);
 
 export const crumbs = (
   p: p5,

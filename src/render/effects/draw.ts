@@ -1,4 +1,5 @@
 import type p5 from "p5";
+import type * as Palette from "../palette";
 
 import * as Assert from "../../core/assert";
 import type * as Layout from "../layout";
@@ -11,6 +12,7 @@ import * as Veil from "./veil";
 
 export const draw = (
   p: p5,
+  scheme: Palette.Scheme,
   effects: readonly Effect.Effect[],
   layout: Layout.Metrics,
   now: Units.Millis,
@@ -22,22 +24,22 @@ export const draw = (
 
     switch (effect.kind) {
       case "puff":
-        Puff.puff(p, effect.at, t, block, effect.born);
+        Puff.puff(p, scheme, effect.at, t, block, effect.born);
         break;
       case "dust":
-        Puff.dust(p, effect.at, t, block);
+        Puff.dust(p, scheme, effect.at, t, block);
         break;
       case "wisps":
-        Puff.wisps(p, effect.at, t, block, effect.born);
+        Puff.wisps(p, scheme, effect.at, t, block, effect.born);
         break;
       case "swallow":
-        Swallow.draw(p, effect.at, t, block);
+        Swallow.draw(p, scheme, effect.at, t, block);
         break;
       case "crumbs":
         Debris.crumbs(p, effect.at, t, block, effect.colour);
         break;
       case "shards":
-        Debris.shards(p, effect.at, t, block);
+        Debris.shards(p, scheme, effect.at, t, block);
         break;
       case "ring":
         Veil.ring(p, effect.at, effect.colour, t, block);

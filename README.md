@@ -5,9 +5,14 @@ Made using [p5.js](https://p5js.org/)
 <img width="1004" height="604" alt="image" src="https://github.com/user-attachments/assets/34080829-6fbf-45ad-8b11-191b2873749d" />
 
 # Controls
-- Arrow keys or `hjkl` for movement
-- `p` to pause
-- Any key to restart once you're dead
+
+## Keyboard
+| Key | |
+| --- | --- |
+| Arrow keys or `hjkl` | Move |
+| `p` | Pause |
+| `s` | Settings |
+| `?` | Controls |
 
 # Development
 

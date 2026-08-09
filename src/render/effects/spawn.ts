@@ -7,6 +7,7 @@ import type * as Units from "../units";
 import * as Effect from "./effect";
 
 export const spawn = <B>(
+  scheme: Palette.Scheme,
   event: Event.Type<B>,
   layout: Layout.Metrics,
   now: Units.Millis,
@@ -17,7 +18,7 @@ export const spawn = <B>(
 
       return [
         Effect.dust(at, now),
-        Effect.crumbs(at, Morsel.skinAt(event.at), now),
+        Effect.crumbs(at, Morsel.skinAt(scheme, event.at), now),
         Effect.wisps(at, now),
         Effect.swallow(at, now),
         Effect.puff(at, now),
@@ -32,8 +33,8 @@ export const spawn = <B>(
 
       return [
         Effect.quake(now),
-        Effect.dim(Palette.SHADOW, now),
-        Effect.ring(at, Palette.FOOD_DEEP, now),
+        Effect.dim(scheme.shadow, now),
+        Effect.ring(at, scheme.foodDeep, now),
         Effect.shards(at, now),
       ];
     }

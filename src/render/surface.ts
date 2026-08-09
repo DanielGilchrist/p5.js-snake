@@ -31,7 +31,13 @@ const shade = (buffer: p5.Graphics, colour: Palette.Rgb, alpha: number): void =>
   buffer.fill(colour.red, colour.green, colour.blue, alpha);
 };
 
-const speckle = (buffer: p5.Graphics, cols: number, rows: number, block: number): void => {
+const speckle = (
+  buffer: p5.Graphics,
+  scheme: Palette.Scheme,
+  cols: number,
+  rows: number,
+  block: number,
+): void => {
   const total = cols * rows * SPECKS_PER_CELL;
 
   buffer.noStroke();
@@ -42,12 +48,18 @@ const speckle = (buffer: p5.Graphics, cols: number, rows: number, block: number)
     const size = block * SPECK_SIZE * (0.4 + Sculpt.hash(i + 1, 11));
     const darker = Sculpt.hash(i + 1, 13) > 0.5;
 
-    shade(buffer, darker ? Palette.SHADOW : Palette.PAPER, SPECK_ALPHA);
+    shade(buffer, darker ? scheme.shadow : scheme.paper, SPECK_ALPHA);
     buffer.ellipse(x, y, size, size * 0.8);
   }
 };
 
-const dimples = (buffer: p5.Graphics, cols: number, rows: number, block: number): void => {
+const dimples = (
+  buffer: p5.Graphics,
+  scheme: Palette.Scheme,
+  cols: number,
+  rows: number,
+  block: number,
+): void => {
   const size = block * DIMPLE_SIZE;
 
   buffer.noStroke();
@@ -57,15 +69,21 @@ const dimples = (buffer: p5.Graphics, cols: number, rows: number, block: number)
       const x = col * block;
       const y = row * block;
 
-      shade(buffer, Palette.SHADOW, DIMPLE_ALPHA);
+      shade(buffer, scheme.shadow, DIMPLE_ALPHA);
       buffer.circle(x, y, size);
-      shade(buffer, Palette.PAPER, DIMPLE_LIP);
+      shade(buffer, scheme.paper, DIMPLE_LIP);
       buffer.circle(x, y + size * 0.55, size);
     }
   }
 };
 
-const recess = (buffer: p5.Graphics, width: number, height: number, block: number): void => {
+const recess = (
+  buffer: p5.Graphics,
+  scheme: Palette.Scheme,
+  width: number,
+  height: number,
+  block: number,
+): void => {
   buffer.noFill();
   buffer.strokeWeight(2);
 
@@ -73,9 +91,9 @@ const recess = (buffer: p5.Graphics, width: number, height: number, block: numbe
     const inset = ring * 2;
 
     buffer.stroke(
-      Palette.SHADOW.red,
-      Palette.SHADOW.green,
-      Palette.SHADOW.blue,
+      scheme.shadow.red,
+      scheme.shadow.green,
+      scheme.shadow.blue,
       EDGE_ALPHA * (1 - ring / EDGE_RINGS),
     );
     buffer.rect(inset, inset, width - inset * 2, height - inset * 2, block * FLOOR_RADIUS);
@@ -111,7 +129,7 @@ const beyond = (of: Patch, x: number, y: number, room: number): boolean =>
 const awayFrom = (of: Patch, x: number, y: number): number =>
   Math.max(of.left - x, x - (of.left + of.width), of.top - y, y - (of.top + of.height));
 
-const presses = (art: p5.Graphics, taken: Patch, block: number): void => {
+const presses = (art: p5.Graphics, scheme: Palette.Scheme, taken: Patch, block: number): void => {
   const step = block * PRESS_STEP;
   const reach = block * PRESS_FADE;
   const cols = Math.ceil(art.width / step) + 1;
@@ -137,10 +155,10 @@ const presses = (art: p5.Graphics, taken: Patch, block: number): void => {
       art.translate(x, y);
       art.rotate(tilt);
 
-      shade(art, Palette.SHADOW, PRESS_SHADE * strength);
+      shade(art, scheme.shadow, PRESS_SHADE * strength);
       art.ellipse(-relief, -relief, size, size * 0.86);
 
-      shade(art, Palette.PAPER, PRESS_LIGHT * strength);
+      shade(art, scheme.paper, PRESS_LIGHT * strength);
       art.ellipse(relief, relief, size, size * 0.86);
 
       art.pop();
@@ -148,7 +166,12 @@ const presses = (art: p5.Graphics, taken: Patch, block: number): void => {
   }
 };
 
-const bake = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphics => {
+const bake = <B>(
+  p: p5,
+  scheme: Palette.Scheme,
+  board: Board.Grid<B>,
+  layout: Layout.Metrics,
+): p5.Graphics => {
   const block = layout.blockWidth;
   const art = p.createGraphics(p.width, p.height);
   const taken = patch({
@@ -162,7 +185,7 @@ const bake = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphi
   art.clear();
   art.noStroke();
 
-  presses(art, taken, block);
+  presses(art, scheme, taken, block);
 
   return art;
 };
@@ -170,7 +193,12 @@ const bake = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphi
 const FRAME_RADIUS = 0.55;
 const FRAME_BLEED = 46;
 
-const casing = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Graphics => {
+const casing = <B>(
+  p: p5,
+  scheme: Palette.Scheme,
+  board: Board.Grid<B>,
+  layout: Layout.Metrics,
+): p5.Graphics => {
   const block = layout.blockWidth;
   const width = board.cols * block;
   const height = board.rows * block;
@@ -183,15 +211,20 @@ const casing = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): p5.Grap
   frame.clear();
   frame.noStroke();
 
-  Clay.cast(frame, Clay.RAISED, Palette.SHADOW, () => {
-    frame.fill(Palette.WALL.red, Palette.WALL.green, Palette.WALL.blue);
+  Clay.cast(frame, Clay.RAISED, scheme.shadow, () => {
+    frame.fill(scheme.wall.red, scheme.wall.green, scheme.wall.blue);
     frame.rect(FRAME_BLEED, FRAME_BLEED, width, height, block * FRAME_RADIUS);
   });
 
   return frame;
 };
 
-export const of = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): Surface => {
+export const of = <B>(
+  p: p5,
+  scheme: Palette.Scheme,
+  board: Board.Grid<B>,
+  layout: Layout.Metrics,
+): Surface => {
   const block = layout.blockWidth;
   const cols = board.cols - 2;
   const rows = board.rows - 2;
@@ -200,15 +233,15 @@ export const of = <B>(p: p5, board: Board.Grid<B>, layout: Layout.Metrics): Surf
   const grain = p.createGraphics(width, height);
 
   grain.clear();
-  speckle(grain, cols, rows, block);
-  dimples(grain, cols, rows, block);
-  recess(grain, width, height, block);
+  speckle(grain, scheme, cols, rows, block);
+  dimples(grain, scheme, cols, rows, block);
+  recess(grain, scheme, width, height, block);
 
   return {
     grain,
     at: Units.point(layout.origin.x + block, layout.origin.y + block),
-    art: bake(p, board, layout),
-    frame: casing(p, board, layout),
+    art: bake(p, scheme, board, layout),
+    frame: casing(p, scheme, board, layout),
     frameAt: Units.point(layout.origin.x - FRAME_BLEED, layout.origin.y - FRAME_BLEED),
   };
 };

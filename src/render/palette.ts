@@ -13,27 +13,88 @@ const tint = (n: number): Tint => n as Tint;
 
 export const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
-export const BACKGROUND: Rgb = rgb(168, 157, 143);
-export const WALL: Rgb = rgb(190, 174, 154);
-export const BODY: Rgb = rgb(205, 192, 174);
-export const FLOOR: Rgb = rgb(233, 225, 210);
-export const SNAKE: Rgb = rgb(122, 150, 116);
-export const SNAKE_DEEP: Rgb = rgb(96, 122, 92);
-export const FOOD: Rgb = rgb(203, 104, 82);
-export const FOOD_DEEP: Rgb = rgb(170, 80, 62);
-export const TEXT: Rgb = rgb(84, 68, 55);
-export const INK: Rgb = rgb(72, 58, 46);
-export const SHADOW: Rgb = rgb(104, 84, 66);
-export const PAPER: Rgb = rgb(251, 246, 238);
-export const DUST: Rgb = rgb(224, 210, 190);
-export const PLUM: Rgb = rgb(141, 95, 116);
-export const PLUM_DEEP: Rgb = rgb(112, 72, 92);
-export const BERRY: Rgb = rgb(172, 84, 78);
-export const BERRY_DEEP: Rgb = rgb(140, 63, 59);
-export const OCHRE: Rgb = rgb(198, 154, 84);
-export const OCHRE_DEEP: Rgb = rgb(166, 124, 62);
-export const LEAF: Rgb = rgb(143, 160, 106);
-export const STEM: Rgb = rgb(112, 89, 66);
+export type Scheme = {
+  readonly background: Rgb;
+  readonly body: Rgb;
+  readonly wall: Rgb;
+  readonly floor: Rgb;
+  readonly shadow: Rgb;
+  readonly paper: Rgb;
+  readonly dust: Rgb;
+  readonly text: Rgb;
+  readonly mark: Rgb;
+  readonly markEdge: Rgb;
+  readonly relief: number;
+  readonly eye: Rgb;
+  readonly snake: Rgb;
+  readonly snakeDeep: Rgb;
+  readonly food: Rgb;
+  readonly foodDeep: Rgb;
+  readonly plum: Rgb;
+  readonly plumDeep: Rgb;
+  readonly berry: Rgb;
+  readonly berryDeep: Rgb;
+  readonly ochre: Rgb;
+  readonly ochreDeep: Rgb;
+  readonly leaf: Rgb;
+  readonly stem: Rgb;
+};
+
+const scheme = (fields: Scheme): Scheme => ({ ...fields });
+
+export const EARTHENWARE: Scheme = scheme({
+  background: rgb(168, 157, 143),
+  body: rgb(205, 192, 174),
+  wall: rgb(190, 174, 154),
+  floor: rgb(233, 225, 210),
+  shadow: rgb(104, 84, 66),
+  paper: rgb(251, 246, 238),
+  dust: rgb(224, 210, 190),
+  text: rgb(84, 68, 55),
+  mark: rgb(72, 58, 46),
+  markEdge: rgb(251, 246, 238),
+  relief: 165,
+  eye: rgb(72, 58, 46),
+  snake: rgb(122, 150, 116),
+  snakeDeep: rgb(96, 122, 92),
+  food: rgb(203, 104, 82),
+  foodDeep: rgb(170, 80, 62),
+  plum: rgb(141, 95, 116),
+  plumDeep: rgb(112, 72, 92),
+  berry: rgb(172, 84, 78),
+  berryDeep: rgb(140, 63, 59),
+  ochre: rgb(198, 154, 84),
+  ochreDeep: rgb(166, 124, 62),
+  leaf: rgb(143, 160, 106),
+  stem: rgb(112, 89, 66),
+});
+
+export const STONEWARE: Scheme = scheme({
+  background: rgb(42, 38, 34),
+  body: rgb(86, 78, 68),
+  wall: rgb(74, 66, 58),
+  floor: rgb(100, 90, 79),
+  shadow: rgb(16, 13, 11),
+  paper: rgb(236, 228, 214),
+  dust: rgb(150, 138, 122),
+  text: rgb(232, 223, 208),
+  mark: rgb(232, 223, 208),
+  markEdge: rgb(18, 15, 12),
+  relief: 42,
+  eye: rgb(24, 20, 17),
+  snake: rgb(148, 178, 136),
+  snakeDeep: rgb(112, 140, 102),
+  food: rgb(232, 138, 108),
+  foodDeep: rgb(196, 108, 82),
+  plum: rgb(190, 132, 162),
+  plumDeep: rgb(156, 100, 130),
+  berry: rgb(224, 124, 114),
+  berryDeep: rgb(186, 92, 84),
+  ochre: rgb(224, 180, 110),
+  ochreDeep: rgb(190, 146, 82),
+  leaf: rgb(168, 190, 126),
+  stem: rgb(146, 120, 92),
+});
 
 const TINT_RANGE = 6;
 

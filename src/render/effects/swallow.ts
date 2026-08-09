@@ -10,7 +10,13 @@ const CORNER_RATIO = 0.2;
 const SPIN = Math.PI * 1.2;
 const VANISH_AT = 0.5;
 
-export const draw = (p: p5, at: Units.Point, t: number, block: Units.Px): void => {
+export const draw = (
+  p: p5,
+  scheme: Palette.Scheme,
+  at: Units.Point,
+  t: number,
+  block: Units.Px,
+): void => {
   const consumed = Ease.inQuad(t);
   const size = block * SIZE_RATIO * (1 - consumed);
 
@@ -20,7 +26,7 @@ export const draw = (p: p5, at: Units.Point, t: number, block: Units.Px): void =
   p.translate(at.x, at.y);
   p.rotate(consumed * SPIN);
   p.noStroke();
-  Paint.fillWith(p, Palette.FOOD, Paint.alpha(255 * (1 - consumed)));
+  Paint.fillWith(p, scheme.food, Paint.alpha(255 * (1 - consumed)));
   p.rect(-size / 2, -size / 2, size, size, size * CORNER_RATIO);
   p.pop();
 };

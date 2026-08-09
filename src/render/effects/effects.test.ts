@@ -4,6 +4,7 @@ import * as Assert from "../../core/assert";
 import * as Board from "../../core/board";
 import * as Event from "../../core/event";
 import * as Layout from "../layout";
+import * as Palette from "../palette";
 import * as Units from "../units";
 import * as Effects from "./index";
 
@@ -13,7 +14,7 @@ const onEvent = (make: <B>(at: Board.Cell<B>) => Event.Type<B>): readonly Effect
   const result = Board.parse(Board.size(12, 12), <B>(board: Board.Grid<B>) => {
     const layout = Layout.fit(board, Layout.desk(Units.viewport(400, 400)));
 
-    return Effects.spawn(make(board.start), layout, BORN);
+    return Effects.spawn(Palette.EARTHENWARE, make(board.start), layout, BORN);
   });
 
   if (!result.ok) Assert.unreachable("fixture board must parse");

@@ -41,6 +41,7 @@ const framed = (now: Units.Millis): number =>
 
 export const draw = <B>(
   p: p5,
+  scheme: Palette.Scheme,
   world: World.Type<B>,
   layout: Layout.Metrics,
   now: Units.Millis,
@@ -66,7 +67,7 @@ export const draw = <B>(
   const height = block * crop.height * swell * (2 - breath);
 
   p.noStroke();
-  Paint.fillWith(p, Palette.SHADOW, Paint.alpha(CONTACT_ALPHA * arrival));
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(CONTACT_ALPHA * arrival));
   p.ellipse(
     centre.x,
     centre.y + block * CONTACT_DROP,
@@ -78,7 +79,7 @@ export const draw = <B>(
   p.translate(centre.x, centre.y);
   p.rotate(lean);
 
-  Morsel.draw(p, crop, seed, width, height);
+  Morsel.draw(p, scheme, crop, seed, width, height);
 
   p.pop();
 };

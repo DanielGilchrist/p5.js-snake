@@ -14,9 +14,9 @@ const explain = (error: Board.Error): string => {
   }
 };
 
-export const draw = (p: p5, error: Board.Error): void => {
-  p.background(Palette.BACKGROUND.red, Palette.BACKGROUND.green, Palette.BACKGROUND.blue);
-  Paint.fill(p, Palette.TEXT);
+export const draw = (p: p5, scheme: Palette.Scheme, error: Board.Error): void => {
+  p.background(scheme.background.red, scheme.background.green, scheme.background.blue);
+  Paint.fill(p, scheme.text);
   p.textAlign(p.CENTER, p.CENTER);
   p.textSize(20);
   p.text(explain(error), p.width / 2, p.height / 2);

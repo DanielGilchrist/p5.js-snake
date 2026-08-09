@@ -12,6 +12,7 @@ const RECESS_ALPHA = 34;
 
 export const draw = <B>(
   p: p5,
+  scheme: Palette.Scheme,
   world: World.Type<B>,
   layout: Layout.Metrics,
   surface: Surface.Surface,
@@ -25,7 +26,7 @@ export const draw = <B>(
 
   Surface.casement(p, surface);
 
-  Paint.fill(p, Palette.shift(Palette.FLOOR, Palette.floorTint(world.variant)));
+  Paint.fill(p, Palette.shift(scheme.floor, Palette.floorTint(world.variant)));
   p.rect(
     origin.x + block,
     origin.y + block,
@@ -37,7 +38,7 @@ export const draw = <B>(
   Surface.floor(p, surface);
 
   p.noFill();
-  Paint.strokeWith(p, Palette.SHADOW, Paint.alpha(RECESS_ALPHA));
+  Paint.strokeWith(p, scheme.shadow, Paint.alpha(RECESS_ALPHA));
   p.strokeWeight(RECESS_WEIGHT);
   p.rect(
     origin.x + block,

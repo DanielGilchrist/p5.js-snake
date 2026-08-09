@@ -4,7 +4,7 @@ import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Units from "./units";
 
-export type Control = "up" | "down" | "left" | "right" | "pause" | "flip";
+export type Control = "up" | "down" | "left" | "right" | "pause" | "menu";
 
 export type Hand = "right" | "left";
 
@@ -13,7 +13,7 @@ export type Pad = {
   readonly span: Units.Px;
   readonly arm: Units.Px;
   readonly pause: Units.Point;
-  readonly flip: Units.Point;
+  readonly menu: Units.Point;
   readonly button: Units.Px;
 };
 
@@ -37,12 +37,12 @@ const KEYS_SIDE = 0.23;
 const KEYS_HIGH = 0.36;
 const KEYS_LOW = 0.7;
 
-const pad = (seat: Units.Point, pause: Units.Point, flip: Units.Point, scale: number): Pad => ({
+const pad = (seat: Units.Point, pause: Units.Point, menu: Units.Point, scale: number): Pad => ({
   seat,
   span: Units.px(scale * CROSS_SPAN),
   arm: Units.px(scale * CROSS_ARM),
   pause,
-  flip,
+  menu,
   button: Units.px(scale * BUTTON_RADIUS),
 });
 
@@ -114,7 +114,7 @@ export const arrange = (viewport: Units.Viewport, hand: Hand): Handheld => {
 
 export const hit = (of: Pad, at: Units.Point): Option.Type<Control> => {
   if (Math.hypot(at.x - of.pause.x, at.y - of.pause.y) <= of.button) return Option.some("pause");
-  if (Math.hypot(at.x - of.flip.x, at.y - of.flip.y) <= of.button) return Option.some("flip");
+  if (Math.hypot(at.x - of.menu.x, at.y - of.menu.y) <= of.button) return Option.some("menu");
 
   const dx = at.x - of.seat.x;
   const dy = at.y - of.seat.y;
@@ -141,8 +141,8 @@ export const armOf = (of: Pad, control: Control): Units.Point => {
       return Units.point(of.seat.x + out, of.seat.y);
     case "pause":
       return of.pause;
-    case "flip":
-      return of.flip;
+    case "menu":
+      return of.menu;
     default:
       return Assert.never(control);
   }
@@ -159,7 +159,7 @@ const facing = (control: Control): Option.Type<Geometry.Direction> => {
     case "right":
       return Option.some("right");
     case "pause":
-    case "flip":
+    case "menu":
       return Option.none;
     default:
       return Assert.never(control);
@@ -173,5 +173,3 @@ export const keyOf = (control: Control): Option.Type<Input.Key> => {
 
   return control === "pause" ? Option.some(Input.pause) : Option.none;
 };
-
-export const other = (hand: Hand): Hand => (hand === "right" ? "left" : "right");

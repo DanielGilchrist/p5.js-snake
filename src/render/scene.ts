@@ -3,6 +3,7 @@ import type p5 from "p5";
 import * as Assert from "../core/assert";
 import type * as Option from "../core/option";
 import * as Clay from "./clay";
+import * as Palette from "./palette";
 import * as Keys from "./keys";
 import type * as Game from "../core/game";
 import type * as Snake from "../core/snake";
@@ -14,22 +15,23 @@ import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Surface from "./surface";
 import * as SnakeView from "./snake";
-import * as Palette from "./palette";
 import * as Units from "./units";
 
 export type Prompt = "keys" | "touch";
 
 export type Chrome = {
+  readonly scheme: Palette.Scheme;
   readonly stage: Units.Region;
   readonly device: Option.Type<Units.Region>;
   readonly prompt: Prompt;
 };
 
 export const chrome = (
+  scheme: Palette.Scheme,
   stage: Units.Region,
   device: Option.Type<Units.Region>,
   prompt: Prompt,
-): Chrome => ({ stage, device, prompt });
+): Chrome => ({ scheme, stage, device, prompt });
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
@@ -81,16 +83,26 @@ const describe = (ending: World.Ending): Outcome => {
 
 const world = <B>(
   p: p5,
+  scheme: Palette.Scheme,
   current: World.Type<B>,
   layout: Layout.Metrics,
   vitality: SnakeView.Vitality,
   scene: Scene<B>,
   surface: Surface.Surface,
 ): void => {
-  GridView.draw(p, current, layout, surface);
-  FoodView.draw(p, current, layout, Units.millis(p.millis()), scene.bite);
-  SnakeView.draw(p, current.snake, scene.previous, scene.alpha, layout, vitality, scene.bite);
-  Hud.score(p, current, layout, current.score);
+  GridView.draw(p, scheme, current, layout, surface);
+  FoodView.draw(p, scheme, current, layout, Units.millis(p.millis()), scene.bite);
+  SnakeView.draw(
+    p,
+    scheme,
+    current.snake,
+    scene.previous,
+    scene.alpha,
+    layout,
+    vitality,
+    scene.bite,
+  );
+  Hud.score(p, scheme, current, layout, current.score);
 };
 
 export const draw = <B>(
@@ -102,28 +114,31 @@ export const draw = <B>(
 ): void => {
   const state = scene.current;
 
-  p.background(Palette.BACKGROUND.red, Palette.BACKGROUND.green, Palette.BACKGROUND.blue);
-  Surface.table(p, surface);
-  Clay.surround(p, Palette.SHADOW, SURROUND_WASH);
+  const scheme = frame.scheme;
 
-  if (frame.device.some) Keys.shell(p, frame.device.value, frame.stage);
+  p.background(scheme.background.red, scheme.background.green, scheme.background.blue);
+  Surface.table(p, surface);
+  Clay.surround(p, scheme.shadow, SURROUND_WASH);
+
+  if (frame.device.some) Keys.shell(p, scheme, frame.device.value, frame.stage);
 
   switch (state.kind) {
     case "playing":
-      world(p, state.world, layout, "alive", scene, surface);
+      world(p, scheme, state.world, layout, "alive", scene, surface);
       return;
 
     case "paused":
-      world(p, state.world, layout, "alive", scene, surface);
-      Hud.tablet(p, [Hud.line("PAUSED", 0.8)], layout, frame.stage, PAUSE_SCRIM);
+      world(p, scheme, state.world, layout, "alive", scene, surface);
+      Hud.tablet(p, scheme, [Hud.line("PAUSED", 0.8)], layout, frame.stage, PAUSE_SCRIM);
       return;
 
     case "over": {
       const ending = describe(state.ending);
 
-      world(p, state.world, layout, ending.vitality, scene, surface);
+      world(p, scheme, state.world, layout, ending.vitality, scene, surface);
       Hud.tablet(
         p,
+        scheme,
         [
           Hud.line(ending.title, 0.9),
           Hud.line(`Score: ${state.world.score}`, 0.45),
