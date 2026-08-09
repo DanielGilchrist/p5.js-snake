@@ -19,10 +19,18 @@ export type Scene<B> = {
   readonly alpha: number;
 };
 
+export const of = <B>(
+  current: Game.State<B>,
+  previous: Snake.State<B>,
+  alpha: number,
+): Scene<B> => ({ current, previous, alpha });
+
 type Outcome = {
   readonly title: string;
   readonly vitality: SnakeView.Vitality;
 };
+
+const outcome = (title: string, vitality: SnakeView.Vitality): Outcome => ({ title, vitality });
 
 const PAUSE_SCRIM = Paint.alpha(80);
 const OVER_SCRIM = Paint.alpha(150);
@@ -30,9 +38,9 @@ const OVER_SCRIM = Paint.alpha(150);
 const describe = (ending: World.Ending): Outcome => {
   switch (ending) {
     case "collision":
-      return { title: "GAME OVER", vitality: "dead" };
+      return outcome("GAME OVER", "dead");
     case "filled":
-      return { title: "YOU WIN", vitality: "alive" };
+      return outcome("YOU WIN", "alive");
     default:
       return Assert.never(ending);
   }
@@ -63,19 +71,19 @@ export const draw = <B>(p: p5, scene: Scene<B>, layout: Layout.Metrics): void =>
 
     case "paused":
       world(p, state.world, layout, "alive", scene);
-      Hud.banner(p, [{ text: "PAUSED", size: Units.px(50) }], PAUSE_SCRIM);
+      Hud.banner(p, [Hud.line("PAUSED", 50)], PAUSE_SCRIM);
       return;
 
     case "over": {
-      const outcome = describe(state.ending);
+      const ending = describe(state.ending);
 
-      world(p, state.world, layout, outcome.vitality, scene);
+      world(p, state.world, layout, ending.vitality, scene);
       Hud.banner(
         p,
         [
-          { text: outcome.title, size: Units.px(60) },
-          { text: `Score: ${state.world.score}`, size: Units.px(30) },
-          { text: "Press any key to restart", size: Units.px(20) },
+          Hud.line(ending.title, 60),
+          Hud.line(`Score: ${state.world.score}`, 30),
+          Hud.line("Press any key to restart", 20),
         ],
         OVER_SCRIM,
       );

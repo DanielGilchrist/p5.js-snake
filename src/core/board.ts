@@ -29,7 +29,17 @@ export type Api<B> = {
 
 export type GridSize = { readonly cols: number; readonly rows: number };
 
+export const size = (cols: number, rows: number): GridSize => ({ cols, rows });
+
 export type Error = { readonly kind: "too-small"; readonly given: GridSize };
+
+const tooSmall = (given: GridSize): Error => ({ kind: "too-small", given });
+
+const grid = <B>(fields: Grid<B>): Grid<B> => ({ ...fields });
+
+const inside = <B>(cell: Cell<B>): Move<B> => ({ kind: "inside", cell });
+
+const hitWall = { kind: "hitWall" } as const;
 
 export const equals = <B>(a: Cell<B>, b: Cell<B>): boolean => a.col === b.col && a.row === b.row;
 
@@ -45,14 +55,14 @@ const DELTA = {
 const MIN_SIDE = 3;
 
 export const parse = <R>(
-  size: GridSize,
+  requested: GridSize,
   run: <B>(board: Grid<B>, api: Api<B>) => R,
 ): Result.Type<R, Error> => {
-  const cols = Math.floor(size.cols);
-  const rows = Math.floor(size.rows);
+  const cols = Math.floor(requested.cols);
+  const rows = Math.floor(requested.rows);
 
   if (cols < MIN_SIDE || rows < MIN_SIDE) {
-    return Result.err({ kind: "too-small", given: { cols, rows } });
+    return Result.err(tooSmall(size(cols, rows)));
   }
 
   type B = never;
@@ -78,7 +88,7 @@ export const parse = <R>(
     }
   }
 
-  const board: Grid<B> = { cols, rows, playable: [start, ...rest], walls, start };
+  const board = grid<B>({ cols, rows, playable: [start, ...rest], walls, start });
 
   const api: Api<B> = {
     move: (from, direction) => {
@@ -86,7 +96,7 @@ export const parse = <R>(
       const col = from.col + dc;
       const row = from.row + dr;
 
-      return isWall(col, row) ? { kind: "hitWall" } : { kind: "inside", cell: cell(col, row) };
+      return isWall(col, row) ? hitWall : inside(cell(col, row));
     },
   };
 

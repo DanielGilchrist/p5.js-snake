@@ -1,6 +1,6 @@
 import type * as Game from "../core/game";
 import * as Timeline from "../core/timeline";
-import type * as Scene from "./scene";
+import * as Scene from "./scene";
 import * as Units from "./units";
 
 const START_SPEED = 5;
@@ -66,9 +66,23 @@ export type Playback<B> = {
   readonly ahead: Timeline.Cursor<B>;
 };
 
+const withCursors = <B>(
+  playback: Playback<B>,
+  cursor: Timeline.Cursor<B>,
+  ahead: Timeline.Cursor<B>,
+): Playback<B> => ({ ...playback, cursor, ahead });
+
 export type Frame<B> =
   | { readonly kind: "drawing"; readonly playback: Playback<B>; readonly scene: Scene.Scene<B> }
   | { readonly kind: "finished" };
+
+const finished = { kind: "finished" } as const;
+
+const drawing = <B>(playback: Playback<B>, scene: Scene.Scene<B>): Frame<B> => ({
+  kind: "drawing",
+  playback,
+  scene,
+});
 
 export const worthWatching = <B>(playback: Playback<B>): boolean => playback.total > 1;
 
@@ -95,7 +109,7 @@ export const frame = <B>(
 ): Frame<B> => {
   const elapsed = (now - playback.since) / (playback.profile.seconds * 1000);
 
-  if (elapsed >= 1) return { kind: "finished" };
+  if (elapsed >= 1) return finished;
 
   const clamped = Math.max(0, elapsed);
   const position = Math.max(
@@ -111,13 +125,8 @@ export const frame = <B>(
     cursor = Timeline.back(timeline, cursor);
   }
 
-  return {
-    kind: "drawing",
-    playback: { ...playback, cursor, ahead },
-    scene: {
-      current: cursor.state,
-      previous: ahead.state.world.snake,
-      alpha: 1 - (position - target),
-    },
-  };
+  return drawing(
+    withCursors(playback, cursor, ahead),
+    Scene.of(cursor.state, ahead.state.world.snake, 1 - (position - target)),
+  );
 };

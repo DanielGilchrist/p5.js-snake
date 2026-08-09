@@ -18,30 +18,31 @@ const FASTEST_FRACTION = 0.55;
 const HITSTOP_MS = 90;
 const ENDING_GRACE_MS = 600;
 
+type Phase<B> =
+  | { readonly kind: "live" }
+  | { readonly kind: "rewinding"; readonly playback: Rewind.Playback<B> };
+
+const live = { kind: "live" } as const;
+
+const rewinding = <B>(playback: Rewind.Playback<B>): Phase<B> => ({ kind: "rewinding", playback });
+
 export const sketch = new p5((p: p5) => {
   p.setup = () => {
     p.createCanvas(p.windowWidth, p.windowHeight).parent(document.body);
     p.frameRate(60);
 
-    const viewport: Units.Viewport = {
-      width: Units.px(p.windowWidth),
-      height: Units.px(p.windowHeight),
-    };
+    const viewport = Units.viewport(p.windowWidth, p.windowHeight);
 
     const started = Board.parse(
-      { cols: viewport.width / BLOCK_WIDTH, rows: viewport.height / BLOCK_WIDTH },
+      Board.size(viewport.width / BLOCK_WIDTH, viewport.height / BLOCK_WIDTH),
       <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
-        type Phase =
-          | { readonly kind: "live" }
-          | { readonly kind: "rewinding"; readonly playback: Rewind.Playback<B> };
-
         const layout = Layout.fit(board, viewport, BLOCK_WIDTH);
 
         let state = Game.start(board, Rng.fromSeed(Date.now()));
         let timeline = Timeline.start(state);
         let previous = state.world.snake;
         let effects: readonly Effects.Effect[] = [];
-        let phase: Phase = { kind: "live" };
+        let phase: Phase<B> = live;
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
@@ -80,9 +81,9 @@ export const sketch = new p5((p: p5) => {
         };
 
         const restart = (now: Units.Millis): void => {
-          phase = { kind: "live" };
+          phase = live;
           lastTick = now;
-          apply({ kind: "restart" });
+          apply(Game.restart);
           previous = state.world.snake;
         };
 
@@ -95,7 +96,7 @@ export const sketch = new p5((p: p5) => {
             return;
           }
 
-          phase = { kind: "rewinding", playback: frame.playback };
+          phase = rewinding(frame.playback);
 
           Render.draw(p, frame.scene, layout);
           Render.drawSkipHint(p);
@@ -106,7 +107,7 @@ export const sketch = new p5((p: p5) => {
             previous = state.world.snake;
             lastTick = now;
             hitstop = 0;
-            apply({ kind: "tick" });
+            apply(Game.tick);
           }
 
           effects = Effects.alive(effects, now);
@@ -117,7 +118,7 @@ export const sketch = new p5((p: p5) => {
           p.push();
           p.translate(shake.dx, shake.dy);
 
-          Render.draw(p, { current: state, previous, alpha }, layout);
+          Render.draw(p, Render.scene(state, previous, alpha), layout);
 
           p.pop();
 
@@ -157,7 +158,7 @@ export const sketch = new p5((p: p5) => {
 
             if (Rewind.worthWatching(playback)) {
               effects = [];
-              phase = { kind: "rewinding", playback };
+              phase = rewinding(playback);
 
               return;
             }

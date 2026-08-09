@@ -7,6 +7,8 @@ import * as Units from "./units";
 
 export type Line = { readonly text: string; readonly size: Units.Px };
 
+export const line = (text: string, size: number): Line => ({ text, size: Units.px(size) });
+
 const SCORE_GAP = 8;
 const LINE_GAP = 20;
 const FIRST_LINE_OFFSET = -50;
@@ -37,10 +39,10 @@ export const banner = (p: p5, lines: readonly Line[], scrim: Paint.Alpha): void 
 
   let offset = FIRST_LINE_OFFSET;
 
-  for (const line of lines) {
-    p.textSize(line.size);
-    p.text(line.text, p.width / 2, p.height / 2 + offset);
-    offset += line.size + LINE_GAP;
+  for (const entry of lines) {
+    p.textSize(entry.size);
+    p.text(entry.text, p.width / 2, p.height / 2 + offset);
+    offset += entry.size + LINE_GAP;
   }
 
   p.pop();

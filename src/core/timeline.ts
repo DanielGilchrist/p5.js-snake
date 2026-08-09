@@ -12,6 +12,12 @@ export type Cursor<B> = {
   readonly tick: number;
 };
 
+const cursorAt = <B>(state: Game.State<B>, index: number, tick: number): Cursor<B> => ({
+  state,
+  index,
+  tick,
+});
+
 export const start = <B>(initial: Game.State<B>): Timeline<B> => ({ initial, log: [] });
 
 export const record = <B>(timeline: Timeline<B>, events: readonly Event.Type<B>[]): void => {
@@ -21,11 +27,8 @@ export const record = <B>(timeline: Timeline<B>, events: readonly Event.Type<B>[
 const ticks = <B>(timeline: Timeline<B>): number =>
   timeline.log.reduce((count, event) => (event.kind === "moved" ? count + 1 : count), 0);
 
-export const cursor = <B>(timeline: Timeline<B>, state: Game.State<B>): Cursor<B> => ({
-  state,
-  index: timeline.log.length,
-  tick: ticks(timeline),
-});
+export const cursor = <B>(timeline: Timeline<B>, state: Game.State<B>): Cursor<B> =>
+  cursorAt(state, timeline.log.length, ticks(timeline));
 
 export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Cursor<B> => {
   let { state, index, tick } = from;
@@ -44,5 +47,5 @@ export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Cursor<B> => {
     }
   }
 
-  return { state, index, tick };
+  return cursorAt(state, index, tick);
 };

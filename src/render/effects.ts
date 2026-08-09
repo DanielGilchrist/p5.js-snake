@@ -27,6 +27,25 @@ const FLASH_MS = 560;
 const SHARD_COUNT = 14;
 const SHAKE_PIXELS = 12;
 
+const ring = (at: Units.Point, colour: Palette.Rgb, born: Units.Millis): Effect => ({
+  kind: "ring",
+  at,
+  colour,
+  born,
+});
+
+const shards = (at: Units.Point, born: Units.Millis): Effect => ({ kind: "shards", at, born });
+
+const bloom = (at: Units.Point, born: Units.Millis): Effect => ({ kind: "bloom", at, born });
+
+const shake = (born: Units.Millis): Effect => ({ kind: "shake", born });
+
+const flash = (colour: Palette.Rgb, born: Units.Millis): Effect => ({
+  kind: "flash",
+  colour,
+  born,
+});
+
 const lifespan = (effect: Effect): number => {
   switch (effect.kind) {
     case "ring":
@@ -58,10 +77,7 @@ export const spawn = <B>(
     case "scored": {
       const at = Layout.centreOf(layout, event.at);
 
-      return [
-        { kind: "bloom", at, born: now },
-        { kind: "ring", at, colour: Palette.PAPER, born: now },
-      ];
+      return [bloom(at, now), ring(at, Palette.PAPER, now)];
     }
 
     case "ended": {
@@ -69,12 +85,7 @@ export const spawn = <B>(
 
       const at = Layout.centreOf(layout, event.at);
 
-      return [
-        { kind: "shake", born: now },
-        { kind: "flash", colour: Palette.FOOD, born: now },
-        { kind: "ring", at, colour: Palette.FOOD, born: now },
-        { kind: "shards", at, born: now },
-      ];
+      return [shake(now), flash(Palette.FOOD, now), ring(at, Palette.FOOD, now), shards(at, now)];
     }
 
     case "faced":
@@ -97,16 +108,16 @@ export const alive = (effects: readonly Effect[], now: Units.Millis): readonly E
   effects.filter((effect) => progress(effect, now) < 1);
 
 export const shakeOffset = (effects: readonly Effect[], now: Units.Millis): Units.Offset => {
-  const shake = effects.find((effect) => effect.kind === "shake");
+  const active = effects.find((effect) => effect.kind === "shake");
 
-  if (shake === undefined) return { dx: Units.px(0), dy: Units.px(0) };
+  if (active === undefined) return Units.NO_OFFSET;
 
-  const remaining = (1 - progress(shake, now)) ** 2;
+  const remaining = (1 - progress(active, now)) ** 2;
 
-  return {
-    dx: Units.px(Math.sin(now * 0.06) * SHAKE_PIXELS * remaining),
-    dy: Units.px(Math.cos(now * 0.09) * SHAKE_PIXELS * remaining),
-  };
+  return Units.offset(
+    Math.sin(now * 0.06) * SHAKE_PIXELS * remaining,
+    Math.cos(now * 0.09) * SHAKE_PIXELS * remaining,
+  );
 };
 
 const drawRing = (

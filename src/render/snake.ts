@@ -25,32 +25,20 @@ const eyeOffsets = (
   facing: Geometry.Direction,
   size: Units.Px,
 ): readonly [Units.Offset, Units.Offset] => {
-  const forward = Units.px(size / 2 + size * 0.15);
-  const backward = Units.px(size / 2 - size * 0.15);
-  const nearSide = Units.px(size / 4);
-  const farSide = Units.px(size / 1.25);
+  const forward = size / 2 + size * 0.15;
+  const backward = size / 2 - size * 0.15;
+  const nearSide = size / 4;
+  const farSide = size / 1.25;
 
   switch (facing) {
     case "up":
-      return [
-        { dx: nearSide, dy: backward },
-        { dx: farSide, dy: backward },
-      ];
+      return [Units.offset(nearSide, backward), Units.offset(farSide, backward)];
     case "down":
-      return [
-        { dx: nearSide, dy: forward },
-        { dx: farSide, dy: forward },
-      ];
+      return [Units.offset(nearSide, forward), Units.offset(farSide, forward)];
     case "left":
-      return [
-        { dx: backward, dy: nearSide },
-        { dx: backward, dy: farSide },
-      ];
+      return [Units.offset(backward, nearSide), Units.offset(backward, farSide)];
     case "right":
-      return [
-        { dx: forward, dy: nearSide },
-        { dx: forward, dy: farSide },
-      ];
+      return [Units.offset(forward, nearSide), Units.offset(forward, farSide)];
     default:
       return Assert.never(facing);
   }
