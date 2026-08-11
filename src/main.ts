@@ -24,12 +24,15 @@ import * as Panel from "./render/panel";
 import * as Settings from "./render/settings";
 import * as InvitePanel from "./shell/invite";
 import * as Slots from "./shell/slots";
+import * as Offline from "./shell/offline";
 import * as Storage from "./shell/storage";
 import * as Pad from "./render/pad";
 import * as Render from "./render";
 import * as Rewind from "./render/rewind";
 import * as Surface from "./render/surface";
 import * as Units from "./render/units";
+
+Offline.keep();
 
 const TARGET_BLOCK = 34;
 const MIN_TICKS_PER_SECOND = 10;
@@ -47,6 +50,7 @@ const nightly = (): boolean => window.matchMedia("(prefers-color-scheme: dark)")
 
 const schemeFor = (settings: Settings.Type): Palette.Scheme =>
   Settings.schemeFor(settings, nightly());
+
 const vault = Storage.browser();
 
 const here = window.location.href;

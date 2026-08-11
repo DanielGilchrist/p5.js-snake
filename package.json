@@ -12,7 +12,7 @@
     "lint": "oxlint src scripts",
     "format": "oxfmt src scripts",
     "format:check": "oxfmt --check src scripts",
-    "bundle": "bun build src/index.html --outdir dist --minify --sourcemap=linked",
+    "bundle": "bun build src/index.html --outdir dist --minify --sourcemap=linked && bun run scripts/offline.ts",
     "serve": "bun run scripts/serve.ts",
     "test": "bun test"
   },
