@@ -151,6 +151,7 @@ export const sketch = new p5((p: p5) => {
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
+        let reshaping = false;
 
         const myPlayer = (): Players.Id => (net.some ? net.value.seat : Players.FIRST);
 
@@ -236,6 +237,10 @@ export const sketch = new p5((p: p5) => {
             timeline = Timeline.start(state);
             bite = now;
             effects = [];
+          } else if (reshaping) {
+            window.location.reload();
+
+            return;
           } else {
             apply(Game.restart);
           }
@@ -535,12 +540,20 @@ export const sketch = new p5((p: p5) => {
           effects = [];
         });
 
+        const wantsReshaping = (): boolean => {
+          if (online) return false;
+
+          const ideal = Layout.cellsFor(shell.stage, TARGET_BLOCK);
+          return ideal.cols !== board.cols || ideal.rows !== board.rows;
+        };
+
         p.windowResized = () => {
           p.resizeCanvas(p.windowWidth, p.windowHeight);
           shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
           layout = Layout.fit(board, shell.stage);
           surface = Surface.of(p, scheme, board, layout);
           effects = [];
+          reshaping = wantsReshaping();
         };
 
         const press = (key: Input.Key, now: Units.Millis): void => {
@@ -565,6 +578,12 @@ export const sketch = new p5((p: p5) => {
           }
 
           if (command.value.kind === "restart" && net.some) return;
+
+          if (command.value.kind === "restart" && reshaping) {
+            window.location.reload();
+
+            return;
+          }
 
           if (command.value.kind === "restart") {
             const playback = Rewind.begin(timeline, state, now);
