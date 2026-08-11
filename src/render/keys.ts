@@ -165,6 +165,7 @@ export const draw = (
   scheme: Palette.Scheme,
   of: Pad.Pad,
   held: Option.Type<Pad.Control>,
+  extras = true,
 ): void => {
   const down = (control: Pad.Control): boolean => held.some && held.value === control;
   const cut = Math.max(1, of.arm * CUT * 2);
@@ -205,6 +206,8 @@ export const draw = (
       cut,
     );
   }
+
+  if (!extras) return;
 
   for (const control of ["pause", "menu"] as const) {
     const seat = Pad.armOf(of, control);

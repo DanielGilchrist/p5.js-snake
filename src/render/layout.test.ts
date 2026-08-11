@@ -124,6 +124,51 @@ describe("layout", () => {
   });
 });
 
+const held = (width: number, height: number): Units.Region =>
+  Units.region({ left: 0, top: 0, width, height });
+
+describe("a board the screen did not choose", () => {
+  const PHONE = held(346, 519);
+  const WIDE = held(900, 400);
+  const SQUAT = held(320, 480);
+
+  test("a board wider than the stage shrinks to fit rather than spilling over", () => {
+    onLayout(28, 16, (board) => {
+      const layout = Layout.fit(board, PHONE);
+
+      expect(board.cols * layout.blockWidth).toBeLessThanOrEqual(PHONE.width);
+      expect(board.rows * layout.blockWidth).toBeLessThanOrEqual(PHONE.height);
+    });
+  });
+
+  test("it stays inside the stage for every shape a host might send", () => {
+    for (const [cols, rows] of [
+      [28, 12],
+      [28, 18],
+      [12, 24],
+      [20, 20],
+    ] as const) {
+      for (const stage of [PHONE, WIDE, SQUAT]) {
+        onLayout(cols, rows, (board) => {
+          const layout = Layout.fit(board, stage);
+
+          expect(board.cols * layout.blockWidth).toBeLessThanOrEqual(stage.width + 0.001);
+          expect(board.rows * layout.blockWidth).toBeLessThanOrEqual(stage.height + 0.001);
+        });
+      }
+    }
+  });
+
+  test("a shrunken board is still centred", () => {
+    onLayout(28, 16, (board) => {
+      const layout = Layout.fit(board, PHONE);
+      const spare = PHONE.width - (layout.origin.x + board.cols * layout.blockWidth);
+
+      expect(layout.origin.x).toBeCloseTo(spare, 6);
+    });
+  });
+});
+
 describe("palette", () => {
   test("every variant produces a tint within the documented range", () => {
     for (let n = 0; n < 100; n++) {

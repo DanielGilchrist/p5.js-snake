@@ -32,6 +32,11 @@ const CROSS_ARM = 0.083;
 const BUTTON_RADIUS = 0.085;
 const DEAD_ZONE = 0.2;
 
+const SIDE_FLANK = 0.26;
+const SIDE_CROSS = 0.74;
+const SIDE_PAUSE = 0.14;
+const SIDE_MENU = 0.36;
+
 const CROSS_SIDE = 0.72;
 const KEYS_SIDE = 0.23;
 const KEYS_HIGH = 0.36;
@@ -84,29 +89,21 @@ export const arrange = (viewport: Units.Viewport, hand: Hand): Handheld => {
     };
   }
 
-  const flank = device.width * 0.22;
+  const flank = device.width * SIDE_FLANK;
+  const middle = across(device, 1 - SIDE_FLANK / 2, hand);
 
   return {
     device,
     stage: Units.region({
-      left: device.left + flank,
+      left: device.left + (hand === "left" ? flank : 0) + inset,
       top: device.top + inset,
-      width: device.width - flank * 2,
+      width: device.width - flank - inset * 2,
       height: device.height - inset * 2,
     }),
     pad: pad(
-      Units.point(
-        across(device, 1 - flank / device.width / 2, hand),
-        device.top + device.height * 0.55,
-      ),
-      Units.point(
-        across(device, flank / device.width / 2, hand),
-        device.top + device.height * 0.42,
-      ),
-      Units.point(
-        across(device, flank / device.width / 2, hand),
-        device.top + device.height * 0.74,
-      ),
+      Units.point(middle, device.top + device.height * SIDE_CROSS),
+      Units.point(middle, device.top + device.height * SIDE_PAUSE),
+      Units.point(middle, device.top + device.height * SIDE_MENU),
       shortest,
     ),
   };
@@ -171,7 +168,7 @@ export const steers = (control: Control): boolean => facing(control).some;
 export const keyOf = (control: Control): Option.Type<Input.Key> => {
   const direction = facing(control);
 
-  if (direction.some) return Option.some(Input.turn(direction.value));
+  if (direction.some) return Option.some(Input.turn(0, direction.value));
 
   return control === "pause" ? Option.some(Input.pause) : Option.none;
 };

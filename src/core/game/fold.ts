@@ -1,4 +1,5 @@
 import * as Event from "../event";
+import * as World from "../world";
 import * as State from "./state";
 
 export const apply = <B>(state: State.Type<B>, event: Event.Type<B>): State.Type<B> => {
@@ -8,7 +9,10 @@ export const apply = <B>(state: State.Type<B>, event: Event.Type<B>): State.Type
     case "resumed":
       return State.playing({ world: state.world });
     case "ended":
-      return State.over({ world: state.world, ending: event.ending });
+      return State.over({
+        world: state.world,
+        outcome: World.outcome(event.ending),
+      });
     default:
       return State.withWorld(state, Event.forward(state.world, event));
   }

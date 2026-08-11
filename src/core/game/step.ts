@@ -21,7 +21,10 @@ export const step = <B>(
   command: Command.Type,
 ): Step<B> => {
   if (command.kind === "restart") {
-    return stepped(Rules.start(state.world.board, state.world.rng), []);
+    return stepped(
+      Rules.start(state.world.board, state.world.rng, Rules.forPlayers(state.world.players.length)),
+      [],
+    );
   }
 
   const events = Rules.decide(api, state, command);

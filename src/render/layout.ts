@@ -69,8 +69,11 @@ export const cellsFor = (stage: Units.Region, target: number): Board.GridSize =>
   return best;
 };
 
+const shrunkTo = (available: Units.Viewport, cols: number, rows: number): number =>
+  Math.min(available.width / cols, available.height / rows, MAX_BLOCK);
+
 export const fit = <B>(board: Board.Grid<B>, stage: Units.Region): Metrics => {
-  const block = blockFor(Units.sizeOf(stage), board.cols, board.rows);
+  const block = shrunkTo(Units.sizeOf(stage), board.cols, board.rows);
 
   return metrics(
     Units.px(block),

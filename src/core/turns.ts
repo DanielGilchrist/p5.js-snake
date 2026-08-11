@@ -7,17 +7,17 @@ export type Queue = readonly Geometry.Direction[];
 
 export const EMPTY: Queue = [];
 
-export const heading = (queue: Queue, facing: Geometry.Direction): Geometry.Direction =>
+export const facingAfter = (queue: Queue, facing: Geometry.Direction): Geometry.Direction =>
   queue[queue.length - 1] ?? facing;
 
-export const steer = (
+export const accept = (
   queue: Queue,
   facing: Geometry.Direction,
   direction: Geometry.Direction,
 ): Option.Type<Queue> => {
   if (queue.length >= DEPTH) return Option.none;
 
-  const from = heading(queue, facing);
+  const from = facingAfter(queue, facing);
 
   if (from === direction || Geometry.isReverse(from, direction)) return Option.none;
 
@@ -30,4 +30,4 @@ export const next = (queue: Queue): Option.Type<Geometry.Direction> => {
   return first === undefined ? Option.none : Option.some(first);
 };
 
-export const rest = (queue: Queue): Queue => queue.slice(1);
+export const afterFirst = (queue: Queue): Queue => queue.slice(1);

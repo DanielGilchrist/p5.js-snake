@@ -1,5 +1,6 @@
 import type p5 from "p5";
 
+import * as NonEmpty from "../core/non-empty";
 import * as Assert from "../core/assert";
 import type * as Board from "../core/board";
 import type * as World from "../core/world";
@@ -295,8 +296,8 @@ const framed = (now: Units.Millis): number =>
 
 export const stir = <B>(world: World.Type<B>, now: Units.Millis): Stir => {
   const distance = Math.hypot(
-    world.food.col - world.snake.head.col,
-    world.food.row - world.snake.head.row,
+    world.food.col - NonEmpty.head(world.players).snake.head.col,
+    world.food.row - NonEmpty.head(world.players).snake.head.row,
   );
   const tension = Math.min(1, Math.max(0, 1 - distance / TENSION_RANGE));
   const beat = Math.sin(framed(now) * mix(CALM_BREATH_RATE, EAGER_BREATH_RATE, tension));

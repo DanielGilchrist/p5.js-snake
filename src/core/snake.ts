@@ -40,12 +40,12 @@ export const length = <B>(snake: State<B>): number => 1 + snake.tail.length;
 
 const last = <B>(snake: State<B>): Board.Cell<B> => snake.tail[snake.tail.length - 1] ?? snake.head;
 
-export const face = <B>(snake: State<B>, facing: Geometry.Direction): State<B> => ({
+export const turnTo = <B>(snake: State<B>, facing: Geometry.Direction): State<B> => ({
   ...snake,
   facing,
 });
 
-export const advance = <B>(api: Board.Api<B>, snake: State<B>): Advance<B> => {
+export const tryMove = <B>(api: Board.Api<B>, snake: State<B>): Advance<B> => {
   const moved = api.move(snake.head, snake.facing);
 
   if (moved.kind === "hitWall") return hitWall;
@@ -53,7 +53,7 @@ export const advance = <B>(api: Board.Api<B>, snake: State<B>): Advance<B> => {
   return advanced(moved.cell, snake.growth > 0 ? Option.none : Option.some(last(snake)));
 };
 
-export const march = <B>(
+export const moveTo = <B>(
   snake: State<B>,
   to: Board.Cell<B>,
   dropped: Option.Type<Board.Cell<B>>,
@@ -68,7 +68,7 @@ export const march = <B>(
   };
 };
 
-export const retreat = <B>(snake: State<B>, dropped: Option.Type<Board.Cell<B>>): State<B> => {
+export const moveBack = <B>(snake: State<B>, dropped: Option.Type<Board.Cell<B>>): State<B> => {
   const trailing = dropped.some ? [...snake.tail, dropped.value] : snake.tail;
 
   return {
@@ -86,5 +86,5 @@ export const shrink = <B>(snake: State<B>): State<B> => ({ ...snake, growth: sna
 export const occupies = <B>(snake: State<B>, target: Board.Cell<B>): boolean =>
   Board.equals(snake.head, target) || snake.tail.some((s) => Board.equals(s, target));
 
-export const biteSelf = <B>(snake: State<B>): boolean =>
+export const hitsItself = <B>(snake: State<B>): boolean =>
   snake.tail.some((s) => Board.equals(s, snake.head));
