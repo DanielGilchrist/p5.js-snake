@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
@@ -8,7 +9,7 @@ import * as Rng from "./rng";
 
 const onBoard = <R>(run: <B>(api: Board.Api<B>, state: Game.State<B>) => R): R => {
   const result = Board.parse({ cols: 10, rows: 10 }, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
-    run(api, Game.start(board, Rng.fromSeed(1))),
+    run(api, Game.start(board, Rng.fromSeed(1), Game.SOLO)),
   );
 
   if (!result.ok) Assert.unreachable("fixture board must parse");
@@ -71,7 +72,11 @@ describe("commandFor", () => {
   test("bound keys become turn commands", () => {
     onBoard((_api, state) => {
       const command = Input.commandFor(state, Input.parseKey("j"));
-      expect(command.some && command.value).toEqual({ kind: "turn", direction: "down" });
+      expect(command.some && command.value).toEqual({
+        kind: "turn",
+        player: Players.FIRST,
+        direction: "down",
+      });
     });
   });
 });

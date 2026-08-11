@@ -4,8 +4,17 @@ import * as Board from "./core/board";
 import * as Game from "./core/game";
 import * as Input from "./core/input";
 import * as Option from "./core/option";
+import * as Autopilot from "./core/autopilot";
 import * as Rng from "./core/rng";
+import * as Invite from "./net/invite";
+import * as Session from "./net/session";
+import * as Players from "./core/players";
+import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
+import * as Mode from "./shell/mode";
+import * as Phase from "./shell/phase";
+import * as Verdict from "./core/verdict";
+import * as World from "./core/world";
 import * as Effects from "./render/effects";
 import * as Keys from "./render/keys";
 import * as Layout from "./render/layout";
@@ -13,6 +22,7 @@ import * as Menu from "./render/menu";
 import * as Palette from "./render/palette";
 import * as Panel from "./render/panel";
 import * as Settings from "./render/settings";
+import * as InvitePanel from "./shell/invite";
 import * as Slots from "./shell/slots";
 import * as Storage from "./shell/storage";
 import * as Pad from "./render/pad";
@@ -29,12 +39,35 @@ const HITSTOP_MS = 130;
 const ENDING_GRACE_MS = 600;
 const PRESS_FEEDBACK_MS = 130;
 const MAX_DENSITY = 2;
+const RESEND_MS = 100;
+const COAX_MS = 250;
+const STALL_MS = 600;
 
 const nightly = (): boolean => window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 const schemeFor = (settings: Settings.Type): Palette.Scheme =>
   Settings.schemeFor(settings, nightly());
 const vault = Storage.browser();
+
+const here = window.location.href;
+
+const mode = Mode.read(here);
+
+const online = Mode.networked(mode);
+
+const cpu = Mode.runItself(mode);
+
+const probing = mode.showing;
+
+const piloted = mode.automatic;
+
+const roomCode = mode.room;
+
+window.addEventListener("hashchange", () => {
+  const asked = Invite.read(window.location.href);
+
+  if (!asked.some || asked.value !== roomCode) window.location.reload();
+});
 
 type Shell =
   | { readonly kind: "desk"; readonly stage: Units.Region }
@@ -46,6 +79,14 @@ type Shell =
     };
 
 const touchFirst = (): boolean => window.matchMedia("(pointer: coarse)").matches;
+
+const fillScreen = (): void => {
+  if (!touchFirst() || document.fullscreenElement !== null) return;
+
+  void document.documentElement
+    .requestFullscreen?.({ navigationUI: "hide" })
+    .catch(() => undefined);
+};
 
 const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
   if (!touchFirst()) return { kind: "desk", stage: Layout.desk(viewport) };
@@ -59,23 +100,6 @@ const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
     pad: handheld.pad,
   };
 };
-
-type Phase<B> =
-  | { readonly kind: "live" }
-  | { readonly kind: "rewinding"; readonly playback: Rewind.Playback<B> }
-  | { readonly kind: "settings"; readonly cursor: number }
-  | { readonly kind: "help" }
-  | { readonly kind: "frozen" };
-
-const live = { kind: "live" } as const;
-
-const rewinding = <B>(playback: Rewind.Playback<B>): Phase<B> => ({ kind: "rewinding", playback });
-
-const adjusting = <B>(cursor: number): Phase<B> => ({ kind: "settings", cursor });
-
-const helping = { kind: "help" } as const;
-
-const frozen = { kind: "frozen" } as const;
 
 const HELP_LINES: readonly (readonly [string, string])[] = [
   ["Move", "Arrows, H J K L or W S A D"],
@@ -95,21 +119,42 @@ export const sketch = new p5((p: p5) => {
     let scheme = schemeFor(settings);
     let shell = shellFor(viewport, settings.hand);
 
-    const started = Board.parse(
-      Layout.cellsFor(shell.stage, TARGET_BLOCK),
-      <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
+    const mine = Layout.cellsFor(shell.stage, TARGET_BLOCK);
+
+    const net: Option.Type<Session.Session> = online
+      ? Option.some(
+          Session.join(roomCode, mode.joining ? "guest" : "host", () => ({
+            cols: mine.cols,
+            rows: mine.rows,
+            seed: Math.floor(Math.random() * 1_000_000_000),
+          })),
+        )
+      : Option.none;
+
+    const boot = (size: Board.GridSize, seed: number): void => {
+      const started = Board.parse(size, <B>(board: Board.Grid<B>, api: Board.Api<B>): void => {
         let layout = Layout.fit(board, shell.stage);
         let surface = Surface.of(p, scheme, board, layout);
 
-        let state = Game.start(board, Rng.fromSeed(Date.now()));
+        let round = seed;
+        let pending = seed;
+        let state = Game.start(board, Rng.fromSeed(round), mode.rules);
         let timeline = Timeline.start(state);
-        let previous = state.world.snake;
+        let previous = state.world.players;
         let effects: readonly Effects.Effect[] = [];
-        let phase: Phase<B> = live;
+        let phase: Phase.Phase<B> = net.some ? Phase.READY : Phase.LIVE;
         let bite = Units.millis(0);
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
+
+        const myPlayer = (): Players.Id => (net.some ? net.value.seat : Players.FIRST);
+
+        const rulesNow = (): Input.Rules => {
+          if (!net.some) return Mode.localRules(mode);
+
+          return phase.kind === "ready" ? Input.waiting(myPlayer()) : Input.away(myPlayer());
+        };
 
         const chrome = (): Render.Chrome =>
           Render.chrome(
@@ -118,6 +163,12 @@ export const sketch = new p5((p: p5) => {
             shell.kind === "handheld" ? Option.some(shell.device) : Option.none,
             shell.kind === "handheld" ? "touch" : "keys",
           );
+        let gate = Lockstep.waiting(0);
+        let resent = 0;
+        let coaxed = 0;
+        let stalling = 0;
+        let split = false;
+        let verdict: Option.Type<string> = Option.none;
         let held: Option.Type<Pad.Control> = Option.none;
         let heldUntil = 0;
         let thumb: Option.Type<number> = Option.none;
@@ -128,7 +179,10 @@ export const sketch = new p5((p: p5) => {
         const fastestInterval = baseInterval * FASTEST_FRACTION;
 
         const tickInterval = (): number =>
-          Math.max(fastestInterval, baseInterval - state.world.score * SPEED_UP_MS);
+          Math.max(
+            fastestInterval,
+            baseInterval - Players.scored(state.world.players) * SPEED_UP_MS,
+          );
 
         const apply = (command: Game.Command): void => {
           const now = Units.millis(p.millis());
@@ -149,6 +203,11 @@ export const sketch = new p5((p: p5) => {
 
           if (stepped.events.some((event) => event.kind === "ended")) {
             inputLockedUntil = now + ENDING_GRACE_MS;
+
+            if (net.some && state.kind === "over") {
+              verdict = Option.some(Verdict.of(state.outcome, net.value.seat, state.world.players));
+              askAgain(now);
+            }
           }
 
           effects = [
@@ -157,23 +216,61 @@ export const sketch = new p5((p: p5) => {
           ];
         };
 
-        const restart = (now: Units.Millis): void => {
-          phase = live;
+        const startRound = (now: Units.Millis): void => {
+          phase = Phase.LIVE;
           lastTick = now;
-          apply(Game.restart);
-          previous = state.world.snake;
+
+          if (net.some) {
+            round = pending;
+            gate = Lockstep.waiting(0);
+            resent = 0;
+            split = false;
+            verdict = Option.none;
+            net.value.clearRematch();
+            net.value.beginRound(round);
+            state = Game.start(board, Rng.fromSeed(round), mode.rules);
+            timeline = Timeline.start(state);
+            bite = now;
+            effects = [];
+          } else {
+            apply(Game.restart);
+          }
+
+          previous = state.world.players;
+        };
+
+        const askAgain = (now: Units.Millis): void => {
+          pending = round + 1;
+          coaxed = 0;
+          phase = Phase.READY;
+          lastTick = now;
         };
 
         const drawRewind = (playback: Rewind.Playback<B>, now: Units.Millis): void => {
-          const frame = Rewind.frame(playback, timeline, now);
+          if (net.some && p.millis() - coaxed > COAX_MS) {
+            net.value.nudgeReady();
+            coaxed = p.millis();
+          }
 
-          if (frame.kind === "finished") {
-            restart(now);
+          if (piloted && net.some && net.value.heardRematch() && !net.value.askedRematch()) {
+            net.value.askRematch();
+          }
+
+          if (net.some && net.value.bothWantRematch()) {
+            startRound(now);
 
             return;
           }
 
-          phase = rewinding(frame.playback);
+          const frame = Rewind.frame(playback, timeline, now);
+
+          if (frame.kind === "finished") {
+            startRound(now);
+
+            return;
+          }
+
+          phase = Phase.rewinding(frame.playback);
 
           effects = [
             ...Effects.alive(effects, now),
@@ -190,21 +287,99 @@ export const sketch = new p5((p: p5) => {
           p.pop();
 
           Effects.draw(p, scheme, effects, layout, now);
-          Render.drawSkipHint(p, scheme, shell.kind === "handheld" ? "touch" : "keys");
+          Render.drawSkipHint(
+            p,
+            scheme,
+            shell.kind === "handheld" ? "touch" : "keys",
+            net.some && net.value.askedRematch(),
+          );
 
-          if (shell.kind === "handheld") Keys.draw(p, scheme, shell.pad, Option.none);
+          if (shell.kind === "handheld")
+            Keys.draw(p, scheme, shell.pad, Option.none, rulesNow().suspendable);
+        };
+
+        const lockstep = (): boolean => {
+          if (!net.some) return true;
+
+          const session = net.value;
+
+          const opening = Lockstep.step(gate, session.turnsAt(gate.beat));
+
+          if (opening.kind === "commit") {
+            session.record(opening.beat, opening.committed, World.fingerprint(state.world));
+            gate = opening.next;
+            resent = 0;
+          }
+
+          const turn = Lockstep.step(gate, session.turnsAt(gate.beat));
+
+          if (turn.kind !== "advance") {
+            if (stalling === 0) stalling = p.millis();
+
+            return false;
+          }
+
+          stalling = 0;
+
+          const mark = session.markAt(gate.beat);
+
+          if (mark.some && mark.value !== World.fingerprint(state.world)) split = true;
+
+          for (const direction of session.seat === Players.FIRST ? turn.mine : turn.theirs) {
+            apply(Game.turn(Players.FIRST, direction));
+          }
+
+          for (const direction of session.seat === Players.id(1) ? turn.mine : turn.theirs) {
+            apply(Game.turn(Players.id(1), direction));
+          }
+
+          gate = turn.next;
+          session.flush(gate.beat - 1);
+
+          return true;
+        };
+
+        const keepTalking = (): void => {
+          if (!net.some || gate.posted < 0) return;
+          if (p.millis() - resent <= RESEND_MS) return;
+
+          net.value.flush(gate.posted);
+          resent = p.millis();
+        };
+
+        const nudgePilot = (): void => {
+          if (!piloted || !net.some) return;
+          if (state.kind !== "playing") return;
+          if (gate.posted === gate.beat || gate.queued.length > 0) return;
+
+          const picked = Autopilot.choose(api, state.world, net.value.seat);
+
+          if (picked.some) gate = Lockstep.pressed(gate, picked.value);
+        };
+
+        const driveCpu = (): void => {
+          if (!cpu || state.kind !== "playing") return;
+
+          const picked = Autopilot.choose(api, state.world, Players.id(1));
+
+          if (picked.some) apply(Game.turn(Players.id(1), picked.value));
         };
 
         const stepWorld = (now: Units.Millis): void => {
           if (now - lastTick < Math.max(tickInterval(), hitstop)) return;
 
-          previous = state.world.snake;
+          nudgePilot();
+          if (!lockstep()) return;
+
+          driveCpu();
+
+          previous = state.world.players;
           lastTick = now;
           hitstop = 0;
           apply(Game.tick);
         };
 
-        const paintWorld = (now: Units.Millis): void => {
+        const painting = (now: Units.Millis, paint: (scene: Render.Scene<B>) => void): void => {
           effects = Effects.alive(effects, now);
 
           const alpha = Math.min(1, (now - lastTick) / tickInterval());
@@ -212,9 +387,7 @@ export const sketch = new p5((p: p5) => {
 
           p.push();
           p.translate(shake.dx, shake.dy);
-
-          Render.draw(p, Render.scene(state, previous, alpha, bite), layout, surface, chrome());
-
+          paint(Render.scene(state, previous, alpha, bite));
           p.pop();
 
           Effects.draw(p, scheme, effects, layout, now);
@@ -222,22 +395,97 @@ export const sketch = new p5((p: p5) => {
           if (shell.kind === "handheld") {
             if (!thumb.some && now > heldUntil) held = Option.none;
 
-            Keys.draw(p, scheme, shell.pad, held);
+            Keys.draw(p, scheme, shell.pad, held, rulesNow().suspendable);
           }
+        };
+
+        const paintWorld = (now: Units.Millis): void => {
+          painting(now, (scene) => {
+            Render.draw(p, scene, layout, surface, chrome());
+          });
+        };
+
+        const paintBoard = (now: Units.Millis): void => {
+          painting(now, (scene) => {
+            Render.drawBoard(p, scene, layout, surface, chrome());
+          });
         };
 
         const drawLive = (now: Units.Millis): void => {
           stepWorld(now);
           paintWorld(now);
+
+          if (split) Render.drawSplit(p, scheme, layout, shell.stage);
+          else if (stalling > 0 && p.millis() - stalling > STALL_MS) {
+            Render.drawStall(p, scheme, layout, shell.stage);
+          }
+
+          if (net.some && probing) {
+            const session = net.value;
+            const theirs = session.turnsAt(gate.beat);
+
+            p.push();
+            p.noStroke();
+            p.fill(255, 0, 0);
+            p.textSize(16);
+            p.textAlign(p.LEFT, p.TOP);
+            p.text(
+              `beat=${gate.beat} posted=${gate.posted} theirs=${theirs.some} held=[${session.held().join(",")}] dt=${Math.round(now - lastTick)} iv=${Math.round(tickInterval())} hs=${hitstop} rs=${Math.round(p.millis() - resent)}`,
+              12,
+              12,
+            );
+
+            p.pop();
+          }
         };
 
         const resume = (now: Units.Millis): void => {
-          phase = live;
+          phase = net.some && !net.value.readiness().sealed ? Phase.READY : Phase.LIVE;
           lastTick = now;
+        };
+
+        const drawReady = (now: Units.Millis): void => {
+          if (!net.some) return;
+
+          const session = net.value;
+          const standing = session.readiness();
+
+          if (standing.sealed) {
+            if (verdict.some) phase = Phase.rewinding(Rewind.begin(timeline, state, now));
+            else startRound(now);
+
+            return;
+          }
+
+          if (piloted && !standing.here) session.declareReady();
+
+          if (p.millis() - coaxed > COAX_MS) {
+            session.nudgeReady();
+            coaxed = p.millis();
+          }
+
+          lastTick = now;
+          paintBoard(now);
+          Render.drawReady(
+            p,
+            scheme,
+            { here: standing.here, there: standing.there, verdict },
+            layout,
+            shell.stage,
+            shell.kind === "handheld" ? "touch" : "keys",
+          );
         };
 
         p.draw = () => {
           const now = Units.millis(p.millis());
+
+          keepTalking();
+
+          if (phase.kind === "ready") {
+            drawReady(now);
+
+            return;
+          }
 
           if (phase.kind === "rewinding") {
             drawRewind(phase.playback, now);
@@ -295,20 +543,31 @@ export const sketch = new p5((p: p5) => {
           if (now < inputLockedUntil) return;
 
           if (phase.kind === "rewinding") {
-            restart(now);
+            const asking = key.kind === "skip" || key.kind === "other";
+
+            if (asking && net.some) net.value.askRematch();
+            else if (asking) startRound(now);
 
             return;
           }
 
-          const command = Input.commandFor(state, key);
+          const command = Input.commandFor(state, key, rulesNow());
           if (!command.some) return;
+
+          if (net.some && command.value.kind === "turn") {
+            gate = Lockstep.pressed(gate, command.value.direction);
+
+            return;
+          }
+
+          if (command.value.kind === "restart" && net.some) return;
 
           if (command.value.kind === "restart") {
             const playback = Rewind.begin(timeline, state, now);
 
             if (Rewind.worthWatching(playback)) {
               effects = [];
-              phase = rewinding(playback);
+              phase = Phase.rewinding(playback);
 
               return;
             }
@@ -354,6 +613,24 @@ export const sketch = new p5((p: p5) => {
             return;
           }
 
+          if (phase.kind === "ready") {
+            fillScreen();
+
+            if (shell.kind === "handheld") {
+              const picked = Pad.hit(shell.pad, at);
+
+              if (picked.some && picked.value === "menu") {
+                phase = Phase.settings(0);
+
+                return;
+              }
+            }
+
+            if (net.some) net.value.declareReady();
+
+            return;
+          }
+
           if (shell.kind !== "handheld") return;
 
           const control = Pad.hit(shell.pad, at);
@@ -364,7 +641,7 @@ export const sketch = new p5((p: p5) => {
           }
 
           if (control.some && control.value === "menu") {
-            phase = adjusting(0);
+            if (rulesNow().suspendable) phase = Phase.settings(0);
 
             return;
           }
@@ -433,13 +710,43 @@ export const sketch = new p5((p: p5) => {
           });
         }
 
+        if (probing) {
+          Object.assign(window, {
+            snakeProbe: () => ({
+              phase: phase.kind,
+              beat: gate.beat,
+              posted: gate.posted,
+              held: net.some ? net.value.held() : [],
+              split,
+              mark: World.fingerprint(state.world),
+              ready: net.some ? net.value.readiness() : undefined,
+              score: Players.scored(state.world.players),
+            }),
+          });
+        }
+
         p.keyPressed = () => {
           const now = Units.millis(p.millis());
           const key = Input.parseKey(p.key);
 
+          if (phase.kind === "ready") {
+            if (key.kind === "menu") phase = Phase.settings(0);
+            else if (key.kind === "help") phase = Phase.HELP;
+            else if (key.kind === "skip" && net.some) net.value.declareReady();
+
+            return;
+          }
+
+          if (
+            !rulesNow().suspendable &&
+            (key.kind === "freeze" || key.kind === "menu" || key.kind === "help")
+          ) {
+            return;
+          }
+
           if (key.kind === "freeze") {
             if (phase.kind === "frozen") resume(now);
-            else phase = frozen;
+            else phase = Phase.FROZEN;
 
             return;
           }
@@ -447,7 +754,7 @@ export const sketch = new p5((p: p5) => {
           if (phase.kind === "frozen") return;
 
           if (phase.kind === "help") {
-            if (key.kind === "menu") phase = adjusting(0);
+            if (key.kind === "menu") phase = Phase.settings(0);
             else resume(now);
 
             return;
@@ -457,7 +764,7 @@ export const sketch = new p5((p: p5) => {
             const { cursor } = phase;
 
             if (key.kind === "help") {
-              phase = helping;
+              phase = Phase.HELP;
 
               return;
             }
@@ -472,8 +779,8 @@ export const sketch = new p5((p: p5) => {
 
             const menu = menuNow();
 
-            if (key.direction === "up") phase = adjusting(cursor - 1 + menu.lines.length);
-            else if (key.direction === "down") phase = adjusting(cursor + 1);
+            if (key.direction === "up") phase = Phase.settings(cursor - 1 + menu.lines.length);
+            else if (key.direction === "down") phase = Phase.settings(cursor + 1);
             else {
               const row = Menu.rowAt(menu, cursor);
 
@@ -484,31 +791,54 @@ export const sketch = new p5((p: p5) => {
           }
 
           if (key.kind === "menu") {
-            phase = adjusting(0);
+            phase = Phase.settings(0);
 
             return;
           }
 
           if (key.kind === "help") {
-            phase = helping;
-
-            return;
-          }
-
-          if (phase.kind === "rewinding") {
-            if (key.kind === "skip" && now >= inputLockedUntil) restart(now);
+            phase = Phase.HELP;
 
             return;
           }
 
           press(key, now);
         };
-      },
-    );
+      });
 
-    if (!started.ok) {
-      const { error } = started;
-      p.draw = () => Render.drawError(p, schemeFor(Settings.DEFAULT), error);
+      if (!started.ok) {
+        const { error } = started;
+        p.draw = () => Render.drawError(p, schemeFor(Settings.DEFAULT), error);
+      }
+    };
+
+    if (!net.some) {
+      boot(mine, Date.now());
+
+      return;
     }
+
+    const lobby = net.value;
+    const invite = Invite.link(window.location.href, roomCode);
+    const panel = InvitePanel.mount();
+
+    if (mode.hosting) panel.show(invite);
+
+    p.draw = () => {
+      const stage = lobby.stage();
+
+      if (stage.kind === "ready") {
+        panel.hide();
+        boot(Board.size(stage.config.cols, stage.config.rows), stage.config.seed);
+
+        return;
+      }
+
+      Render.drawLobby(p, schemeFor(vault.read(Slots.SETTINGS)), {
+        code: roomCode,
+        role: lobby.role,
+        waiting: stage.kind === "waiting",
+      });
+    };
   };
 });

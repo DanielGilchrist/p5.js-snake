@@ -19,11 +19,11 @@ const onBoard = <R>(run: <B>(api: Board.Api<B>, board: Board.Grid<B>) => R): R =
 };
 
 const step = <B>(api: Board.Api<B>, snake: Snake.State<B>): Snake.State<B> => {
-  const moved = Snake.advance(api, snake);
+  const moved = Snake.tryMove(api, snake);
 
   if (moved.kind === "hitWall") Assert.unreachable("fixture must stay inside the board");
 
-  return Snake.march(snake, moved.to, moved.dropped);
+  return Snake.moveTo(snake, moved.to, moved.dropped);
 };
 
 const bodyOf = <B>(api: Board.Api<B>, board: Board.Grid<B>): Snake.State<B> => {
@@ -73,7 +73,7 @@ const turning = <B>(
   direction: Geometry.Direction,
 ): { readonly before: Snake.State<B>; readonly after: Snake.State<B> } => {
   const before = bodyOf(api, board);
-  const after = step(api, Snake.face(before, direction));
+  const after = step(api, Snake.turnTo(before, direction));
 
   return { before, after };
 };

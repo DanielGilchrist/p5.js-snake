@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
@@ -14,7 +15,7 @@ const onBoard = <R>(
   run: <B>(api: Board.Api<B>, state: Game.State<B>) => R,
 ): R => {
   const result = Board.parse(size, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
-    run(api, Game.start(board, Rng.fromSeed(seed))),
+    run(api, Game.start(board, Rng.fromSeed(seed), Game.SOLO)),
   );
 
   if (!result.ok) Assert.unreachable("fixture board must parse");
@@ -33,13 +34,14 @@ const ticks = (n: number): readonly Game.Command[] =>
   Array.from({ length: n }, () => ({ kind: "tick" }));
 
 const chase = <B>(state: Game.State<B>): Game.Command => {
-  const { snake, food } = state.world;
+  const { food } = state.world;
+  const { snake } = NonEmpty.head(state.world.players);
   const dc = food.col - snake.head.col;
   const dr = food.row - snake.head.row;
   const direction: Geometry.Direction =
     dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up";
 
-  return { kind: "turn", direction };
+  return { kind: "turn", player: Players.FIRST, direction };
 };
 
 const autoplay = <B>(
@@ -86,9 +88,12 @@ describe("parse", () => {
 describe("step", () => {
   test("turning into your own neck is ignored", () => {
     onBoard(MEDIUM, 1, (api, state) => {
-      const reversed = play(api, state, [{ kind: "turn", direction: "left" }, { kind: "tick" }]);
+      const reversed = play(api, state, [
+        { kind: "turn", player: Players.FIRST, direction: "left" },
+        { kind: "tick" },
+      ]);
 
-      expect(reversed.world.snake.facing).toBe("right");
+      expect(NonEmpty.head(reversed.world.players).snake.facing).toBe("right");
     });
   });
 
@@ -100,16 +105,19 @@ describe("step", () => {
 
   test("a turn is buffered on press and taken by the next tick", () => {
     onBoard(MEDIUM, 1, (api, state) => {
-      const turned = play(api, state, [{ kind: "turn", direction: "down" }]);
+      const turned = play(api, state, [{ kind: "turn", player: Players.FIRST, direction: "down" }]);
 
-      expect(turned.world.turns).toEqual(["down"]);
-      expect(turned.world.snake.facing).toBe("right");
+      expect(NonEmpty.head(turned.world.players).turns).toEqual(["down"]);
+      expect(NonEmpty.head(turned.world.players).snake.facing).toBe("right");
 
       const ticked = play(api, turned, ticks(1));
 
-      expect(ticked.world.snake.facing).toBe("down");
-      expect(ticked.world.turns).toEqual([]);
-      expect(ticked.world.snake.head.row - state.world.snake.head.row).toBe(1);
+      expect(NonEmpty.head(ticked.world.players).snake.facing).toBe("down");
+      expect(NonEmpty.head(ticked.world.players).turns).toEqual([]);
+      expect(
+        NonEmpty.head(ticked.world.players).snake.head.row -
+          NonEmpty.head(state.world.players).snake.head.row,
+      ).toBe(1);
     });
   });
 
@@ -119,7 +127,9 @@ describe("step", () => {
       const paused = play(api, running, [{ kind: "togglePause" }, ...ticks(10)]);
 
       expect(paused.kind).toBe("paused");
-      expect(paused.world.snake.head).toEqual(running.world.snake.head);
+      expect(NonEmpty.head(paused.world.players).snake.head).toEqual(
+        NonEmpty.head(running.world.players).snake.head,
+      );
     });
   });
 
@@ -133,11 +143,11 @@ describe("step", () => {
 
   test("eating grows the snake and scores a point", () => {
     onBoard(LARGE, 11, (api, state) => {
-      const before = Snake.length(state.world.snake);
+      const before = Snake.length(NonEmpty.head(state.world.players).snake);
       const fed = autoplay(api, state, 60);
 
-      expect(fed.world.score).toBeGreaterThan(0);
-      expect(Snake.length(fed.world.snake)).toBeGreaterThan(before);
+      expect(NonEmpty.head(fed.world.players).score).toBeGreaterThan(0);
+      expect(Snake.length(NonEmpty.head(fed.world.players).snake)).toBeGreaterThan(before);
     });
   });
 
@@ -145,7 +155,9 @@ describe("step", () => {
     onBoard({ cols: 12, rows: 12 }, 5, (api, state) => {
       autoplay(api, state, 200, (current) => {
         expect(
-          Snake.segments(current.world.snake).some((s) => Board.equals(s, current.world.food)),
+          Snake.segments(NonEmpty.head(current.world.players).snake).some((s) =>
+            Board.equals(s, current.world.food),
+          ),
         ).toBe(false);
       });
     });
@@ -154,7 +166,7 @@ describe("step", () => {
   test("the snake never overlaps itself while alive", () => {
     onBoard({ cols: 12, rows: 12 }, 9, (api, state) => {
       autoplay(api, state, 200, (current) => {
-        const cells = Snake.segments(current.world.snake).map(Board.key);
+        const cells = Snake.segments(NonEmpty.head(current.world.players).snake).map(Board.key);
 
         expect(new Set(cells).size).toBe(cells.length);
       });
@@ -164,7 +176,7 @@ describe("step", () => {
   test("the snake never leaves the board while alive", () => {
     onBoard({ cols: 12, rows: 12 }, 4, (api, state) => {
       autoplay(api, state, 200, (current) => {
-        for (const segment of Snake.segments(current.world.snake)) {
+        for (const segment of Snake.segments(NonEmpty.head(current.world.players).snake)) {
           expect(segment.col).toBeGreaterThan(0);
           expect(segment.row).toBeGreaterThan(0);
           expect(segment.col).toBeLessThan(current.world.board.cols - 1);
@@ -178,9 +190,9 @@ describe("step", () => {
 describe("determinism", () => {
   test("same seed and same commands produce the same state", () => {
     const commands: readonly Game.Command[] = [
-      { kind: "turn", direction: "down" },
+      { kind: "turn", player: Players.FIRST, direction: "down" },
       ...ticks(5),
-      { kind: "turn", direction: "right" },
+      { kind: "turn", player: Players.FIRST, direction: "right" },
       ...ticks(5),
     ];
 
@@ -202,21 +214,21 @@ describe("input buffering", () => {
   test("a second turn in the same tick waits for the next one", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const queued = play(api, state, [
-        { kind: "turn", direction: "down" },
-        { kind: "turn", direction: "left" },
+        { kind: "turn", player: Players.FIRST, direction: "down" },
+        { kind: "turn", player: Players.FIRST, direction: "left" },
       ]);
 
-      expect(queued.world.turns).toEqual(["down", "left"]);
+      expect(NonEmpty.head(queued.world.players).turns).toEqual(["down", "left"]);
 
       const first = play(api, queued, ticks(1));
 
-      expect(first.world.snake.facing).toBe("down");
-      expect(first.world.turns).toEqual(["left"]);
+      expect(NonEmpty.head(first.world.players).snake.facing).toBe("down");
+      expect(NonEmpty.head(first.world.players).turns).toEqual(["left"]);
 
       const second = play(api, first, ticks(1));
 
-      expect(second.world.snake.facing).toBe("left");
-      expect(second.world.turns).toEqual([]);
+      expect(NonEmpty.head(second.world.players).snake.facing).toBe("left");
+      expect(NonEmpty.head(second.world.players).turns).toEqual([]);
     });
   });
 
@@ -226,14 +238,14 @@ describe("input buffering", () => {
       const spammed = play(
         api,
         state,
-        directions.map((direction) => ({ kind: "turn", direction })),
+        directions.map((direction) => ({ kind: "turn", player: Players.FIRST, direction })),
       );
 
-      expect(spammed.world.snake.facing).toBe("right");
+      expect(NonEmpty.head(spammed.world.players).snake.facing).toBe("right");
 
       const ticked = play(api, spammed, ticks(1));
 
-      expect(ticked.world.snake.facing).toBe("down");
+      expect(NonEmpty.head(ticked.world.players).snake.facing).toBe("down");
     });
   });
 
@@ -243,10 +255,10 @@ describe("input buffering", () => {
       const spammed = play(
         api,
         state,
-        directions.map((direction) => ({ kind: "turn", direction })),
+        directions.map((direction) => ({ kind: "turn", player: Players.FIRST, direction })),
       );
 
-      expect(spammed.world.turns).toEqual(["down", "left"]);
+      expect(NonEmpty.head(spammed.world.players).turns).toEqual(["down", "left"]);
     });
   });
 });
@@ -263,9 +275,13 @@ describe("winning", () => {
           const direction = cycle[i % cycle.length];
           if (direction === undefined) break;
 
-          current = Game.step(api, current, { kind: "turn", direction }).state;
+          current = Game.step(api, current, {
+            kind: "turn",
+            player: Players.FIRST,
+            direction,
+          }).state;
           current = Game.step(api, current, { kind: "tick" }).state;
-          if (current.kind === "over") return current.ending;
+          if (current.kind === "over") return current.outcome.ending;
         }
 
         return "still playing";
@@ -280,14 +296,14 @@ describe("restart", () => {
   test("resets the score and the snake but keeps the board", () => {
     onBoard(LARGE, 11, (api, state) => {
       const played = autoplay(api, state, 60);
-      expect(played.world.score).toBeGreaterThan(0);
+      expect(NonEmpty.head(played.world.players).score).toBeGreaterThan(0);
 
       const restarted = play(api, played, [{ kind: "restart" }]);
 
       expect(restarted.kind).toBe("playing");
-      expect(restarted.world.score).toBe(0);
-      expect(Snake.length(restarted.world.snake)).toBe(1);
-      expect(restarted.world.turns).toEqual([]);
+      expect(NonEmpty.head(restarted.world.players).score).toBe(0);
+      expect(Snake.length(NonEmpty.head(restarted.world.players).snake)).toBe(1);
+      expect(NonEmpty.head(restarted.world.players).turns).toEqual([]);
       expect(restarted.world.board).toBe(played.world.board);
     });
   });
@@ -298,54 +314,61 @@ describe("turning", () => {
     onBoard(MEDIUM, 2, (api, state) => {
       const grown = play(api, state, ticks(1));
       const queued = play(api, grown, [
-        { kind: "turn", direction: "down" },
-        { kind: "turn", direction: "up" },
+        { kind: "turn", player: Players.FIRST, direction: "down" },
+        { kind: "turn", player: Players.FIRST, direction: "up" },
       ]);
 
       const after = play(api, queued, ticks(2));
 
       expect(after.kind).toBe("playing");
-      expect(after.world.snake.tail.some((s) => Board.equals(s, after.world.snake.head))).toBe(
-        false,
-      );
+      expect(
+        NonEmpty.head(after.world.players).snake.tail.some((s) =>
+          Board.equals(s, NonEmpty.head(after.world.players).snake.head),
+        ),
+      ).toBe(false);
     });
   });
 
   test("a reversal you cannot make does not cost you the turn you actually wanted", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const asked = play(api, state, [
-        { kind: "turn", direction: "left" },
-        { kind: "turn", direction: "down" },
+        { kind: "turn", player: Players.FIRST, direction: "left" },
+        { kind: "turn", player: Players.FIRST, direction: "down" },
       ]);
 
-      expect(asked.world.turns).toEqual(["down"]);
+      expect(NonEmpty.head(asked.world.players).turns).toEqual(["down"]);
 
       const ticked = play(api, asked, ticks(1));
 
-      expect(ticked.world.snake.facing).toBe("down");
-      expect(ticked.world.snake.head.row - state.world.snake.head.row).toBe(1);
+      expect(NonEmpty.head(ticked.world.players).snake.facing).toBe("down");
+      expect(
+        NonEmpty.head(ticked.world.players).snake.head.row -
+          NonEmpty.head(state.world.players).snake.head.row,
+      ).toBe(1);
     });
   });
 
   test("pressing the way you are already going does not spend the buffer", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const asked = play(api, state, [
-        { kind: "turn", direction: "right" },
-        { kind: "turn", direction: "down" },
-        { kind: "turn", direction: "left" },
+        { kind: "turn", player: Players.FIRST, direction: "right" },
+        { kind: "turn", player: Players.FIRST, direction: "down" },
+        { kind: "turn", player: Players.FIRST, direction: "left" },
       ]);
 
-      expect(asked.world.turns).toEqual(["down", "left"]);
+      expect(NonEmpty.head(asked.world.players).turns).toEqual(["down", "left"]);
     });
   });
 
   test("turns are ignored while paused", () => {
     onBoard(MEDIUM, 1, (api, state) => {
       const paused = play(api, state, [{ kind: "togglePause" }]);
-      const attempted = play(api, paused, [{ kind: "turn", direction: "down" }]);
+      const attempted = play(api, paused, [
+        { kind: "turn", player: Players.FIRST, direction: "down" },
+      ]);
 
       expect(attempted.kind).toBe("paused");
-      expect(attempted.world.turns).toEqual([]);
+      expect(NonEmpty.head(attempted.world.players).turns).toEqual([]);
     });
   });
 
@@ -353,24 +376,24 @@ describe("turning", () => {
     onBoard(LARGE, 11, (api, state) => {
       let current = state;
       let previousScore = 0;
-      let previousLength = Snake.length(current.world.snake);
+      let previousLength = Snake.length(NonEmpty.head(current.world.players).snake);
 
       for (let i = 0; i < 200; i++) {
         current = Game.step(api, current, chase(current)).state;
         current = Game.step(api, current, { kind: "tick" }).state;
         if (current.kind === "over") break;
 
-        const grew = Snake.length(current.world.snake) - previousLength;
-        const scored = current.world.score - previousScore;
+        const grew = Snake.length(NonEmpty.head(current.world.players).snake) - previousLength;
+        const scored = NonEmpty.head(current.world.players).score - previousScore;
 
         expect(grew).toBeLessThanOrEqual(1);
         expect(scored).toBeLessThanOrEqual(1);
 
-        previousLength = Snake.length(current.world.snake);
-        previousScore = current.world.score;
+        previousLength = Snake.length(NonEmpty.head(current.world.players).snake);
+        previousScore = NonEmpty.head(current.world.players).score;
       }
 
-      expect(current.world.score).toBeGreaterThan(0);
+      expect(NonEmpty.head(current.world.players).score).toBeGreaterThan(0);
     });
   });
 });
@@ -380,7 +403,7 @@ describe("invariants across many seeds", () => {
     for (let seed = 0; seed < 25; seed++) {
       onBoard({ cols: 11, rows: 9 }, seed, (api, state) => {
         autoplay(api, state, 150, (current) => {
-          const { snake, score } = current.world;
+          const { snake, score } = NonEmpty.head(current.world.players);
           const cells = Snake.segments(snake).map(Board.key);
 
           expect(Snake.length(snake)).toBeLessThanOrEqual(1 + score);
@@ -388,10 +411,12 @@ describe("invariants across many seeds", () => {
 
           expect(new Set(cells).size).toBe(cells.length);
           expect(
-            Snake.segments(current.world.snake).some((s) => Board.equals(s, current.world.food)),
+            Snake.segments(NonEmpty.head(current.world.players).snake).some((s) =>
+              Board.equals(s, current.world.food),
+            ),
           ).toBe(false);
 
-          for (const segment of Snake.segments(current.world.snake)) {
+          for (const segment of Snake.segments(NonEmpty.head(current.world.players).snake)) {
             expect(segment.col).toBeGreaterThan(0);
             expect(segment.row).toBeGreaterThan(0);
             expect(segment.col).toBeLessThan(current.world.board.cols - 1);
@@ -409,9 +434,9 @@ describe("end to end", () => {
       onBoard({ cols: 15, rows: 13 }, seed, (api, state) => {
         const grown = play(api, autoplay(api, state, 120, undefined), ticks(2));
         if (grown.kind !== "playing") return;
-        if (Snake.length(grown.world.snake) < 3) return;
+        if (Snake.length(NonEmpty.head(grown.world.players).snake) < 3) return;
 
-        const { head, tail } = grown.world.snake;
+        const { head, tail } = NonEmpty.head(grown.world.players).snake;
         const [neck] = tail;
         if (neck === undefined) return;
 
@@ -423,12 +448,12 @@ describe("end to end", () => {
         const side: Geometry.Direction = dc === 0 ? "left" : "up";
 
         const folded = play(api, grown, [
-          { kind: "turn", direction: side },
-          { kind: "turn", direction: back },
+          { kind: "turn", player: Players.FIRST, direction: side },
+          { kind: "turn", player: Players.FIRST, direction: back },
           { kind: "tick" },
         ]);
 
-        const cells = Snake.segments(folded.world.snake).map(Board.key);
+        const cells = Snake.segments(NonEmpty.head(folded.world.players).snake).map(Board.key);
         expect(new Set(cells).size).toBe(cells.length);
         expect(folded.kind).toBe("playing");
       });
@@ -443,7 +468,7 @@ describe("end to end", () => {
         let current = autoplay(api, state, 120, undefined);
         if (current.kind === "over") return;
 
-        expect(Snake.length(current.world.snake)).toBeGreaterThan(2);
+        expect(Snake.length(NonEmpty.head(current.world.players).snake)).toBeGreaterThan(2);
 
         let picker = Rng.fromSeed(seed * 977 + 5);
 
@@ -456,13 +481,17 @@ describe("end to end", () => {
               turns as NonEmpty.List<Geometry.Direction>,
             );
             picker = next;
-            current = Game.step(api, current, { kind: "turn", direction }).state;
+            current = Game.step(api, current, {
+              kind: "turn",
+              player: Players.FIRST,
+              direction,
+            }).state;
           }
 
           current = Game.step(api, current, { kind: "tick" }).state;
           if (current.kind === "over") break;
 
-          const cells = Snake.segments(current.world.snake).map(Board.key);
+          const cells = Snake.segments(NonEmpty.head(current.world.players).snake).map(Board.key);
           expect(new Set(cells).size).toBe(cells.length);
         }
       });
@@ -471,11 +500,11 @@ describe("end to end", () => {
 
   test("pausing and resuming does not change how a game plays out", () => {
     const script: readonly Game.Command[] = [
-      { kind: "turn", direction: "down" },
+      { kind: "turn", player: Players.FIRST, direction: "down" },
       ...ticks(4),
-      { kind: "turn", direction: "right" },
+      { kind: "turn", player: Players.FIRST, direction: "right" },
       ...ticks(4),
-      { kind: "turn", direction: "up" },
+      { kind: "turn", player: Players.FIRST, direction: "up" },
       ...ticks(3),
     ];
 
@@ -491,8 +520,12 @@ describe("end to end", () => {
       const straight = play(api, state, script);
       const withBreak = play(api, state, interrupted);
 
-      expect(withBreak.world.snake).toEqual(straight.world.snake);
-      expect(withBreak.world.score).toBe(straight.world.score);
+      expect(NonEmpty.head(withBreak.world.players).snake).toEqual(
+        NonEmpty.head(straight.world.players).snake,
+      );
+      expect(NonEmpty.head(withBreak.world.players).score).toBe(
+        NonEmpty.head(straight.world.players).score,
+      );
       expect(withBreak.world.food).toEqual(straight.world.food);
     });
   });
@@ -502,8 +535,8 @@ describe("end to end", () => {
       let highest = 0;
 
       autoplay(api, state, 200, (current) => {
-        expect(current.world.score).toBeGreaterThanOrEqual(highest);
-        highest = current.world.score;
+        expect(NonEmpty.head(current.world.players).score).toBeGreaterThanOrEqual(highest);
+        highest = NonEmpty.head(current.world.players).score;
       });
     });
   });
@@ -513,10 +546,10 @@ describe("end to end", () => {
       { kind: "tick" },
       { kind: "togglePause" },
       { kind: "restart" },
-      { kind: "turn", direction: "up" },
-      { kind: "turn", direction: "down" },
-      { kind: "turn", direction: "left" },
-      { kind: "turn", direction: "right" },
+      { kind: "turn", player: Players.FIRST, direction: "up" },
+      { kind: "turn", player: Players.FIRST, direction: "down" },
+      { kind: "turn", player: Players.FIRST, direction: "left" },
+      { kind: "turn", player: Players.FIRST, direction: "right" },
     ];
 
     for (let seed = 0; seed < 15; seed++) {
@@ -529,7 +562,8 @@ describe("end to end", () => {
           picker = next;
           current = Game.step(api, current, choice).state;
 
-          const { snake, score, board } = current.world;
+          const { board } = current.world;
+          const { snake, score } = NonEmpty.head(current.world.players);
           const cells = Snake.segments(snake).map(Board.key);
 
           expect(new Set(cells).size).toBe(cells.length);
@@ -553,8 +587,8 @@ describe("end to end", () => {
         const restarted = play(api, before, [{ kind: "restart" }]);
 
         expect(restarted.kind).toBe("playing");
-        expect(restarted.world.score).toBe(0);
-        expect(Snake.length(restarted.world.snake)).toBe(1);
+        expect(NonEmpty.head(restarted.world.players).score).toBe(0);
+        expect(Snake.length(NonEmpty.head(restarted.world.players).snake)).toBe(1);
       }
     });
   });

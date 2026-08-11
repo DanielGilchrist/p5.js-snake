@@ -7,6 +7,8 @@ import type * as Scene from "./scene";
 
 const TRAILING = "to skip";
 
+const WAITING = "waiting for the other player";
+
 const labelFor = (prompt: Scene.Prompt): string => {
   switch (prompt) {
     case "keys":
@@ -28,7 +30,19 @@ const CAP_FILL = Paint.alpha(210);
 const LABEL_ALPHA = Paint.alpha(245);
 const TRAILING_ALPHA = Paint.alpha(210);
 
-export const draw = (p: p5, scheme: Palette.Scheme, prompt: Scene.Prompt): void => {
+export const draw = (p: p5, scheme: Palette.Scheme, prompt: Scene.Prompt, asked = false): void => {
+  if (asked) {
+    p.push();
+    p.textSize(TEXT_SIZE);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.noStroke();
+    Paint.fillWith(p, scheme.text, TRAILING_ALPHA);
+    p.text(WAITING, p.width / 2, p.height / 2);
+    p.pop();
+
+    return;
+  }
+
   const LABEL = labelFor(prompt);
 
   p.push();

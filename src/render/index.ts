@@ -1,5 +1,9 @@
 export type { Chrome, Prompt, Scene } from "./scene";
 export { chrome, draw, of as scene } from "./scene";
 export { draw as drawError } from "./error";
+export { draw as drawLobby } from "./lobby";
+export { draw as drawStall, drawSplit } from "./stall";
+export { board as drawBoard } from "./scene";
+export { draw as drawReady } from "./ready";
 export { draw as drawSkipHint } from "./hint";
 export { line, tablet as drawTablet } from "./hud";

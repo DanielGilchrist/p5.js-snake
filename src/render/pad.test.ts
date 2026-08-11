@@ -185,8 +185,8 @@ describe("pad", () => {
     }
   });
 
-  test("flipping hands mirrors the controls but keeps the screen put", () => {
-    for (const viewport of SHAPES) {
+  test("upright, flipping hands mirrors the controls but keeps the screen put", () => {
+    for (const viewport of [PHONE, TALL, SMALL]) {
       const right = Pad.arrange(viewport, "right");
       const left = Pad.arrange(viewport, "left");
 
@@ -198,6 +198,42 @@ describe("pad", () => {
       expect(left.pad.seat.x).toBeLessThan(middle);
       expect(right.pad.pause.x).toBeLessThan(middle);
       expect(left.pad.pause.x).toBeGreaterThan(middle);
+    }
+  });
+
+  test("sideways, every control sits on the held side and the screen takes the rest", () => {
+    const right = Pad.arrange(LANDSCAPE, "right");
+    const left = Pad.arrange(LANDSCAPE, "left");
+    const middle = right.device.left + right.device.width / 2;
+
+    for (const control of CONTROLS) {
+      expect(Pad.armOf(right.pad, control).x).toBeGreaterThan(middle);
+      expect(Pad.armOf(left.pad, control).x).toBeLessThan(middle);
+    }
+
+    expect(right.pad.menu.y).toBeLessThan(right.pad.seat.y);
+    expect(right.pad.pause.y).toBeLessThan(right.pad.menu.y);
+
+    expect(left.stage.width).toBeCloseTo(right.stage.width, 6);
+    expect(left.stage.height).toBeCloseTo(right.stage.height, 6);
+    expect(right.stage.left).toBeLessThan(left.stage.left);
+  });
+
+  test("sideways, the screen never sits under the controls", () => {
+    for (const hand of HANDS) {
+      const { pad, stage } = Pad.arrange(LANDSCAPE, hand);
+      const edge = hand === "right" ? stage.left + stage.width : stage.left;
+
+      const spans: readonly (readonly [number, number])[] = [
+        [pad.seat.x, pad.span],
+        [pad.pause.x, pad.button],
+        [pad.menu.x, pad.button],
+      ];
+
+      for (const [centre, reach] of spans) {
+        if (hand === "right") expect(centre - reach).toBeGreaterThan(edge);
+        else expect(centre + reach).toBeLessThan(edge);
+      }
     }
   });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import * as NonEmpty from "./non-empty";
+import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
@@ -16,12 +18,14 @@ type Played<B> = {
 };
 
 const chase = <B>(world: World.Type<B>): Game.Command => {
-  const { snake, food } = world;
+  const { food } = world;
+  const { snake } = NonEmpty.head(world.players);
   const dc = food.col - snake.head.col;
   const dr = food.row - snake.head.row;
 
   return {
     kind: "turn",
+    player: Players.FIRST,
     direction: dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up",
   };
 };
@@ -30,7 +34,7 @@ const played = <R>(seed: number, run: <B>(played: Played<B>) => R): R => {
   const result = Board.parse(
     { cols: 14, rows: 12 },
     <B>(board: Board.Grid<B>, api: Board.Api<B>) => {
-      let state = Game.start(board, Rng.fromSeed(seed));
+      let state = Game.start(board, Rng.fromSeed(seed), Game.SOLO);
       const timeline = Timeline.start(state);
       let noise = Rng.fromSeed(seed * 31 + 7);
 
@@ -69,7 +73,7 @@ describe("timeline", () => {
       expect(state.kind).toBe("over");
       expect(kinds).toContain("moved");
       expect(kinds).toContain("scored");
-      expect(kinds).toContain("steered");
+      expect(kinds).toContain("queued");
       expect(kinds).toContain("paused");
       expect(kinds).toContain("ended");
     });
@@ -123,9 +127,9 @@ describe("timeline", () => {
       let steps = 0;
 
       while (position.tick > 0) {
-        const before = Snake.segments(position.state.world.snake);
+        const before = Snake.segments(NonEmpty.head(position.state.world.players).snake);
         position = Timeline.back(timeline, position).cursor;
-        const after = Snake.segments(position.state.world.snake);
+        const after = Snake.segments(NonEmpty.head(position.state.world.players).snake);
 
         expect(Board.equals(before[0], after[0])).toBe(false);
         steps += 1;
@@ -144,7 +148,9 @@ describe("timeline", () => {
 
       const resumed = Game.step(api, position.state, { kind: "tick" }).state;
 
-      expect(resumed.world.snake).not.toEqual(position.state.world.snake);
+      expect(NonEmpty.head(resumed.world.players).snake).not.toEqual(
+        NonEmpty.head(position.state.world.players).snake,
+      );
     });
   });
 });

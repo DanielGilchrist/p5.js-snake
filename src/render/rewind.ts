@@ -139,7 +139,7 @@ export const frame = <B>(
 
   return drawing(
     withCursors(playback, cursor, ahead),
-    Scene.of(ahead.state, cursor.state.world.snake, position - target, SETTLED),
+    Scene.of(ahead.state, cursor.state.world.players, position - target, SETTLED),
     undone,
   );
 };

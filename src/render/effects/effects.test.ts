@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import * as NonEmpty from "../../core/non-empty";
+import * as Players from "../../core/players";
 import * as Assert from "../../core/assert";
 import * as Board from "../../core/board";
 import * as Event from "../../core/event";
@@ -37,9 +39,9 @@ const undoing = (make: <B>(at: Board.Cell<B>) => Event.Type<B>): readonly Effect
   return result.value;
 };
 
-const onEat = (): readonly Effects.Effect[] => onEvent((at) => Event.scored(at));
+const onEat = (): readonly Effects.Effect[] => onEvent((at) => Event.scored(Players.FIRST, at));
 
-const onDeath = (): readonly Effects.Effect[] => onEvent((at) => Event.ended("collision", at));
+const onDeath = (): readonly Effects.Effect[] => onEvent((at) => Event.died(Players.FIRST, at));
 
 const kindsOf = (effects: readonly Effects.Effect[]): Set<string> =>
   new Set(effects.map((effect) => effect.kind));
@@ -138,7 +140,7 @@ describe("effects", () => {
   });
 
   test("undoing a bite puts the fruit back together", () => {
-    const reversed = undoing((at) => Event.scored(at));
+    const reversed = undoing((at) => Event.scored(Players.FIRST, at));
 
     expect(kindsOf(reversed)).toContain("swallow");
     expect(kindsOf(reversed)).toContain("crumbs");
@@ -178,15 +180,17 @@ describe("effects", () => {
         return stepped.state;
       };
 
-      let state: Game.State<B> = Game.start(board, Rng.fromSeed(9));
+      let state: Game.State<B> = Game.start(board, Rng.fromSeed(9), Game.SOLO);
 
       for (let i = 0; i < 300 && state.kind === "playing"; i++) {
-        const { snake, food } = state.world;
+        const { food } = state.world;
+        const { snake } = NonEmpty.head(state.world.players);
         const dc = food.col - snake.head.col;
         const dr = food.row - snake.head.row;
 
         state = play(state, {
           kind: "turn",
+          player: Players.FIRST,
           direction: dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up",
         });
         state = play(state, Game.tick);
@@ -201,12 +205,12 @@ describe("effects", () => {
   });
 
   test("only a bite has anything to give back", () => {
-    expect(undoing((at) => Event.ended("collision", at))).toEqual([]);
-    expect(undoing(() => Event.grew)).toEqual([]);
-    expect(undoing((at) => Event.moved(at, Option.none))).toEqual([]);
+    expect(undoing((at) => Event.died(Players.FIRST, at))).toEqual([]);
+    expect(undoing(() => Event.grew(Players.FIRST))).toEqual([]);
+    expect(undoing((at) => Event.moved(Players.FIRST, at, Option.none))).toEqual([]);
   });
 
   test("winning is celebrated by the score, not by a death explosion", () => {
-    expect(onEvent((at) => Event.ended("filled", at))).toEqual([]);
+    expect(onEvent(() => Event.ended("filled"))).toEqual([]);
   });
 });

@@ -13,6 +13,11 @@ const tint = (n: number): Tint => n as Tint;
 
 const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
+export type Body = {
+  readonly skin: Rgb;
+  readonly deep: Rgb;
+};
+
 export type Scheme = {
   readonly background: Rgb;
   readonly body: Rgb;
@@ -28,6 +33,8 @@ export type Scheme = {
   readonly eye: Rgb;
   readonly snake: Rgb;
   readonly snakeDeep: Rgb;
+  readonly rival: Rgb;
+  readonly rivalDeep: Rgb;
   readonly blood: Rgb;
   readonly bloodDeep: Rgb;
   readonly food: Rgb;
@@ -59,6 +66,8 @@ export const EARTHENWARE: Scheme = scheme({
   eye: rgb(72, 58, 46),
   snake: rgb(122, 150, 116),
   snakeDeep: rgb(96, 122, 92),
+  rival: rgb(150, 126, 154),
+  rivalDeep: rgb(120, 98, 126),
   blood: rgb(146, 40, 34),
   bloodDeep: rgb(104, 24, 20),
   food: rgb(203, 104, 82),
@@ -88,6 +97,8 @@ export const STONEWARE: Scheme = scheme({
   eye: rgb(24, 20, 17),
   snake: rgb(148, 178, 136),
   snakeDeep: rgb(112, 140, 102),
+  rival: rgb(176, 148, 182),
+  rivalDeep: rgb(132, 108, 138),
   blood: rgb(158, 36, 30),
   bloodDeep: rgb(112, 22, 18),
   food: rgb(232, 138, 108),
@@ -109,3 +120,14 @@ export const shift = (colour: Rgb, by: Tint): Rgb =>
 
 export const floorTint = (variant: World.Variant): Tint =>
   tint((variant % (TINT_RANGE * 2)) - TINT_RANGE);
+
+const BODIES = (clay: Scheme): readonly Body[] => [
+  { skin: clay.snake, deep: clay.snakeDeep },
+  { skin: clay.rival, deep: clay.rivalDeep },
+];
+
+export const bodyFor = (clay: Scheme, seat: number): Body => {
+  const bodies = BODIES(clay);
+
+  return bodies[seat % bodies.length] ?? { skin: clay.snake, deep: clay.snakeDeep };
+};

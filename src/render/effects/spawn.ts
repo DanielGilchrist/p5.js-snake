@@ -26,8 +26,9 @@ export const unspawn = <B>(
     }
 
     case "ended":
-    case "faced":
-    case "steered":
+    case "died":
+    case "turned":
+    case "queued":
     case "moved":
     case "grew":
     case "fed":
@@ -60,21 +61,20 @@ export const spawn = <B>(
       ];
     }
 
-    case "ended": {
-      if (event.ending === "filled") return [];
-
+    case "died": {
       const at = Layout.centreOf(layout, event.at);
 
       return [
         Effect.scuff(at, scheme.bloodDeep, now),
+        Effect.shards(at, scheme.blood, now),
         Effect.quake(now),
         Effect.dim(scheme.shadow, now),
-        Effect.shards(at, scheme.blood, now),
       ];
     }
 
-    case "faced":
-    case "steered":
+    case "ended":
+    case "turned":
+    case "queued":
     case "moved":
     case "grew":
     case "fed":

@@ -1,5 +1,5 @@
 import type * as Geometry from "./geometry";
-import type * as NonEmpty from "./non-empty";
+import * as NonEmpty from "./non-empty";
 import * as Result from "./result";
 
 declare const region: unique symbol;
@@ -44,6 +44,35 @@ const hitWall = { kind: "hitWall" } as const;
 export const equals = <B>(a: Cell<B>, b: Cell<B>): boolean => a.col === b.col && a.row === b.row;
 
 export const key = <B>(target: Cell<B>): string => `${target.col},${target.row}`;
+
+const apart = <B>(a: Cell<B>, b: Cell<B>): number =>
+  Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
+
+export const farthest = <B>(board: Grid<B>, from: Cell<B>): Cell<B> =>
+  board.playable.reduce(
+    (best, cell) => (apart(cell, from) > apart(best, from) ? cell : best),
+    NonEmpty.head(board.playable),
+  );
+
+const roomFor = <B>(cell: Cell<B>, taken: readonly Cell<B>[]): number =>
+  taken.reduce((least, held) => Math.min(least, apart(cell, held)), Number.POSITIVE_INFINITY);
+
+export const spawns = <B>(board: Grid<B>, wanted: number): NonEmpty.List<Cell<B>> => {
+  const chosen: Cell<B>[] = [board.start];
+
+  while (chosen.length < wanted) {
+    const next = board.playable.reduce(
+      (best, cell) => (roomFor(cell, chosen) > roomFor(best, chosen) ? cell : best),
+      NonEmpty.head(board.playable),
+    );
+
+    if (roomFor(next, chosen) === 0) break;
+
+    chosen.push(next);
+  }
+
+  return NonEmpty.prepend(board.start, chosen.slice(1));
+};
 
 const DELTA = {
   up: [0, -1],

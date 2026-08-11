@@ -161,6 +161,7 @@ export const draw = <B>(
   vitality: Vitality,
   bite: Units.Millis,
   turning: Option.Type<Geometry.Direction>,
+  body: Palette.Body,
 ): void => {
   const block = layout.blockWidth;
   const now = Units.millis(p.millis());
@@ -181,16 +182,16 @@ export const draw = <B>(
   Paint.fillWith(p, scheme.shadow, SHADOW_ALPHA);
   p.circle(head.x, head.y + block * SHADOW_DROP, crown);
 
-  tube(p, spine, block, scheme.snakeDeep, Paint.OPAQUE, 1, 0);
+  tube(p, spine, block, body.deep, Paint.OPAQUE, 1, 0);
 
   p.noStroke();
-  Paint.fill(p, scheme.snakeDeep);
+  Paint.fill(p, body.deep);
   p.circle(head.x, head.y, crown);
 
-  tube(p, spine, block, scheme.snake, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
+  tube(p, spine, block, body.skin, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
 
   p.noStroke();
-  Paint.fill(p, scheme.snake);
+  Paint.fill(p, body.skin);
   p.circle(crest.x, crest.y, crown * CREST_RATIO);
 
   eyes(p, scheme, crest, snake.facing, crown * CREST_RATIO, vitality);
