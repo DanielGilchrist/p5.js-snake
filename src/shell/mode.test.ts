@@ -31,7 +31,7 @@ describe("naming players", () => {
   });
 
   test("nobody left standing is a draw", () => {
-    expect(Mode.cheerFor(cpu, Option.none, Players.FIRST)).toBe("A DRAW");
+    expect(Mode.cheerFor(cpu, Option.none, Players.FIRST)).toBe("DRAW");
   });
 
   test("more than one machine drops the ambiguous CPU label for colours", () => {

@@ -174,7 +174,17 @@ export const sketch = new p5((p: p5) => {
           if (state.kind !== "over" || Players.count(state.world.players) < 2) return Option.none;
 
           const won = Verdict.winner(state.outcome, state.world.players);
-          return Option.some(Render.ending(Mode.cheerFor(mode, won, myPlayer())));
+          const title = Mode.cheerFor(mode, won, myPlayer());
+
+          if (!Verdict.onScore(state.outcome, state.world.players)) {
+            return Option.some(Render.ending(title));
+          }
+
+          const counted = Players.everyone(state.world.players).map(([who, player]) =>
+            Render.tally(Mode.nameFor(mode, who, myPlayer()), player.score),
+          );
+
+          return Option.some(Render.ending(title, counted));
         };
 
         const namingNow = (): Option.Type<Render.Naming> => {

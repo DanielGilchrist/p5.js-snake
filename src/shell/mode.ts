@@ -84,7 +84,7 @@ export const tagFor = (mode: Mode, who: Players.Id, mine: Players.Id): Option.Ty
 };
 
 export const cheerFor = (mode: Mode, won: Option.Type<Players.Id>, mine: Players.Id): string => {
-  if (!won.some) return "A DRAW";
+  if (!won.some) return "DRAW";
 
   const name = nameFor(mode, won.value, mine);
 

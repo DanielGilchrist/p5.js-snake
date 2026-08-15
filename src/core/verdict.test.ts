@@ -51,7 +51,7 @@ describe("verdict", () => {
   });
 
   test("a same-tick double death falls back to score, and level scores draw", () => {
-    expect(said("collision", DEAD, DEAD)).toBe("A DRAW");
+    expect(said("collision", DEAD, DEAD)).toBe("DRAW");
     expect(said("collision", { score: 4, alive: false }, DEAD)).toBe("YOU WIN");
     expect(said("collision", DEAD, { score: 4, alive: false })).toBe("THEY WIN");
   });
@@ -59,7 +59,7 @@ describe("verdict", () => {
   test("filling the board is settled on score", () => {
     expect(said("filled", { score: 5, alive: true }, { score: 2, alive: true })).toBe("YOU WIN");
     expect(said("filled", { score: 2, alive: true }, { score: 5, alive: true })).toBe("THEY WIN");
-    expect(said("filled", { score: 3, alive: true }, { score: 3, alive: true })).toBe("A DRAW");
+    expect(said("filled", { score: 3, alive: true }, { score: 3, alive: true })).toBe("DRAW");
   });
 });
 
@@ -84,5 +84,23 @@ describe("naming the winner", () => {
   test("level scores with nobody standing is a draw", () => {
     expect(wonBy("collision", DEAD, DEAD)).toBe("draw");
     expect(wonBy("filled", { score: 3, alive: true }, { score: 3, alive: true })).toBe("draw");
+  });
+});
+
+describe("showing the working", () => {
+  const settledOn = (ending: World.Ending, mine: Standing, theirs: Standing): boolean =>
+    onBoard((board) => Verdict.onScore(World.outcome(ending), paired(board, mine, theirs)));
+
+  test("outliving them needs no scores to explain it", () => {
+    expect(settledOn("collision", ALIVE, DEAD)).toBe(false);
+  });
+
+  test("a same-tick double death is settled on score", () => {
+    expect(settledOn("collision", DEAD, DEAD)).toBe(true);
+    expect(settledOn("collision", { score: 4, alive: false }, DEAD)).toBe(true);
+  });
+
+  test("filling the board is settled on score even with both alive", () => {
+    expect(settledOn("filled", ALIVE, ALIVE)).toBe(true);
   });
 });

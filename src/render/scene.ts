@@ -21,9 +21,22 @@ import * as Units from "./units";
 
 export type Prompt = "keys" | "touch";
 
-export type Ending = { readonly title: string };
+export type Tally = {
+  readonly name: string;
+  readonly score: number;
+};
 
-export const ending = (title: string): Ending => ({ title });
+export const tally = (name: string, score: number): Tally => ({ name, score });
+
+export type Ending = {
+  readonly title: string;
+  readonly tally: readonly Tally[];
+};
+
+export const ending = (title: string, counted: readonly Tally[] = []): Ending => ({
+  title,
+  tally: counted,
+});
 
 export type Naming = {
   readonly tags: readonly Option.Type<string>[];
@@ -148,6 +161,11 @@ const taggedAs = (frame: Chrome, who: number, alive: boolean): Option.Type<Tag.T
   return Option.some({ name, mine: ours, above: true });
 };
 
+const tallied = (told: Ending): readonly Hud.Line[] =>
+  told.tally
+    .toSorted((one, other) => other.score - one.score)
+    .map((counted) => Hud.line(`${counted.name}  ${counted.score}`, 0.38));
+
 const lifeIn = <B>(state: Game.State<B>): SnakeView.Vitality =>
   state.kind === "over" ? describe(state.outcome.ending).vitality : "alive";
 
@@ -191,7 +209,7 @@ export const draw = <B>(
 
     case "over": {
       const closing = frame.ending.some
-        ? [Hud.line(frame.ending.value.title, 0.9)]
+        ? [Hud.line(frame.ending.value.title, 0.9), ...tallied(frame.ending.value)]
         : [
             Hud.line(describe(state.outcome.ending).title, 0.9),
             Hud.line(`Score: ${Players.scored(state.world.players)}`, 0.45),
