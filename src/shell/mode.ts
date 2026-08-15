@@ -1,4 +1,5 @@
 import * as Game from "../core/game";
+import * as Controls from "../core/controls";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Players from "../core/players";
@@ -54,6 +55,11 @@ export const runItself = (mode: Mode): boolean => mode.kind === "against-the-com
 export const localRules = (mode: Mode): Input.Rules =>
   mode.kind === "with-a-friend" ? Input.sharing(PLAYERS_TOGETHER) : Input.ALONE;
 
+export const controlsFor = (mode: Mode): Controls.Assignment =>
+  mode.kind === "with-a-friend"
+    ? Controls.between([Controls.ARROWS, Controls.WASD])
+    : Controls.shared;
+
 const machinesIn = (mode: Mode): readonly Players.Id[] =>
   mode.kind === "against-the-computer"
     ? Array.from({ length: mode.rules.players - 1 }, (_, seat) => Players.id(seat + 1))
@@ -65,6 +71,16 @@ export const nameFor = (mode: Mode, who: Players.Id, mine: Players.Id): string =
   const machines = machinesIn(mode);
 
   return machines.length === 1 && machines[0] === who ? "CPU" : Palette.nameOf(who);
+};
+
+export const ringed = (mode: Mode): boolean => mode.kind !== "with-a-friend";
+
+export const tagFor = (mode: Mode, who: Players.Id, mine: Players.Id): Option.Type<string> => {
+  if (mode.rules.players < 2) return Option.none;
+
+  if (mode.kind === "with-a-friend") return Option.some(Controls.nameOf(controlsFor(mode), who));
+
+  return who === mine ? Option.some(nameFor(mode, who, mine)) : Option.none;
 };
 
 export const cheerFor = (mode: Mode, won: Option.Type<Players.Id>, mine: Players.Id): string => {

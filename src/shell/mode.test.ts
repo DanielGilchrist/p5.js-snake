@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import * as Game from "../core/game";
+import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Players from "../core/players";
 import * as Palette from "../render/palette";
@@ -51,5 +52,49 @@ describe("naming players", () => {
 
     expect(Palette.nameOf(extra)).toBe(Palette.nameOf(0));
     expect(Mode.nameFor(friend, Players.id(extra), Players.FIRST)).toBe(Palette.nameOf(0));
+  });
+});
+
+describe("labelling snakes", () => {
+  const solo = Mode.read(SITE);
+
+  test("playing alone nobody needs a label", () => {
+    expect(Mode.tagFor(solo, Players.FIRST, Players.FIRST).some).toBe(false);
+  });
+
+  test("against the computer only your own snake is called out", () => {
+    expect(Mode.tagFor(cpu, Players.FIRST, Players.FIRST)).toEqual(Option.some("YOU"));
+    expect(Mode.tagFor(cpu, SECOND, Players.FIRST).some).toBe(false);
+  });
+
+  test("with a friend each snake is labelled by the keys that drive it", () => {
+    expect(Mode.tagFor(friend, Players.FIRST, Players.FIRST)).toEqual(Option.some("ARROWS"));
+    expect(Mode.tagFor(friend, SECOND, Players.FIRST)).toEqual(Option.some("W A S D"));
+  });
+
+  test("the ring marks your snake except with a friend, where neither is yours", () => {
+    expect(Mode.ringed(cpu)).toBe(true);
+    expect(Mode.ringed(friend)).toBe(false);
+  });
+});
+
+describe("who the keyboard drives", () => {
+  const solo = Mode.read(SITE);
+
+  test("playing alone every scheme drives you", () => {
+    for (const code of ["ArrowUp", "w", "k"]) {
+      expect(Input.parseKey(code, Mode.controlsFor(solo))).toEqual(Input.turn(0, "up"));
+    }
+  });
+
+  test("against the computer you still hold the whole keyboard", () => {
+    expect(Input.parseKey("w", Mode.controlsFor(cpu))).toEqual(Input.turn(0, "up"));
+  });
+
+  test("with a friend the keyboard splits between you", () => {
+    const shared = Mode.controlsFor(friend);
+
+    expect(Input.parseKey("ArrowUp", shared)).toEqual(Input.turn(0, "up"));
+    expect(Input.parseKey("w", shared)).toEqual(Input.turn(1, "up"));
   });
 });

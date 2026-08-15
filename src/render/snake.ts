@@ -8,12 +8,15 @@ import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
 import * as Spine from "./spine";
+import * as Tag from "./tag";
 import * as Units from "./units";
 
 export type Vitality = "alive" | "dead";
 
 const HEAD_WIDTH = 0.94;
 const TAIL_WIDTH = 0.52;
+const RING_PACE = 420;
+
 const CREST_RATIO = 0.78;
 const CREST_LIFT = 0.07;
 
@@ -151,6 +154,15 @@ const tube = (
   }
 };
 
+const TAG_CLEAR = 1.9;
+
+const roomy = (
+  tag: Tag.Tag,
+  crest: Units.Point,
+  block: Units.Px,
+  layout: Layout.Metrics,
+): Tag.Tag => (crest.y - block * TAG_CLEAR >= layout.origin.y ? tag : { ...tag, above: false });
+
 export const draw = <B>(
   p: p5,
   scheme: Palette.Scheme,
@@ -162,6 +174,7 @@ export const draw = <B>(
   bite: Units.Millis,
   turning: Option.Type<Geometry.Direction>,
   body: Palette.Body,
+  tag: Option.Type<Tag.Tag> = Option.none,
 ): void => {
   const block = layout.blockWidth;
   const now = Units.millis(p.millis());
@@ -195,4 +208,10 @@ export const draw = <B>(
   p.circle(crest.x, crest.y, crown * CREST_RATIO);
 
   eyes(p, scheme, crest, snake.facing, crown * CREST_RATIO, vitality);
+
+  if (!tag.some) return;
+
+  if (tag.value.mine) Tag.ring(p, scheme, head, block, body, now / RING_PACE);
+
+  Tag.draw(p, scheme, crest, block, body, roomy(tag.value, crest, block, layout));
 };

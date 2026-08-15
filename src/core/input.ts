@@ -1,30 +1,9 @@
 import * as Assert from "./assert";
+import * as Controls from "./controls";
 import * as Game from "./game";
 import type * as Geometry from "./geometry";
 import * as Option from "./option";
 import * as Players from "./players";
-
-type Binding = {
-  readonly seat: number;
-  readonly direction: Geometry.Direction;
-};
-
-const bind = (seat: number, direction: Geometry.Direction): Binding => ({ seat, direction });
-
-const BINDINGS = new Map<string, Binding>([
-  ["ArrowUp", bind(0, "up")],
-  ["ArrowDown", bind(0, "down")],
-  ["ArrowLeft", bind(0, "left")],
-  ["ArrowRight", bind(0, "right")],
-  ["k", bind(0, "up")],
-  ["j", bind(0, "down")],
-  ["h", bind(0, "left")],
-  ["l", bind(0, "right")],
-  ["w", bind(1, "up")],
-  ["s", bind(1, "down")],
-  ["a", bind(1, "left")],
-  ["d", bind(1, "right")],
-]);
 
 const PAUSE = "p";
 const SKIP = "Enter";
@@ -59,10 +38,10 @@ const freeze = { kind: "freeze" } as const;
 
 export const other = { kind: "other" } as const;
 
-export const parseKey = (raw: string): Key => {
-  const bound = BINDINGS.get(raw);
+export const parseKey = (raw: string, assignment: Controls.Assignment = Controls.shared): Key => {
+  const turning = Controls.turnFrom(assignment, Controls.key(raw));
 
-  if (bound !== undefined) return turn(bound.seat, bound.direction);
+  if (turning.some) return turn(turning.value.seat, turning.value.direction);
   if (raw === PAUSE) return pause;
   if (raw === SKIP) return skip;
   if (raw === MENU) return menu;

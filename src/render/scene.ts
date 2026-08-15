@@ -16,6 +16,7 @@ import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Surface from "./surface";
 import * as SnakeView from "./snake";
+import type * as Tag from "./tag";
 import * as Units from "./units";
 
 export type Prompt = "keys" | "touch";
@@ -24,12 +25,23 @@ export type Ending = { readonly title: string };
 
 export const ending = (title: string): Ending => ({ title });
 
+export type Naming = {
+  readonly tags: readonly Option.Type<string>[];
+  readonly mine: Option.Type<number>;
+};
+
+export const naming = (
+  tags: readonly Option.Type<string>[],
+  mine: Option.Type<number>,
+): Naming => ({ tags, mine });
+
 export type Chrome = {
   readonly scheme: Palette.Scheme;
   readonly stage: Units.Region;
   readonly device: Option.Type<Units.Region>;
   readonly prompt: Prompt;
   readonly ending: Option.Type<Ending>;
+  readonly naming: Option.Type<Naming>;
 };
 
 export const chrome = (
@@ -38,7 +50,8 @@ export const chrome = (
   device: Option.Type<Units.Region>,
   prompt: Prompt,
   told: Option.Type<Ending> = Option.none,
-): Chrome => ({ scheme, stage, device, prompt, ending: told });
+  named: Option.Type<Naming> = Option.none,
+): Chrome => ({ scheme, stage, device, prompt, ending: told, naming: named });
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
@@ -96,6 +109,7 @@ const world = <B>(
   vitality: SnakeView.Vitality,
   scene: Scene<B>,
   surface: Surface.Surface,
+  frame: Chrome,
 ): void => {
   GridView.draw(p, scheme, current, layout, surface);
   FoodView.draw(p, scheme, current, layout, Units.millis(p.millis()), scene.bite);
@@ -113,12 +127,25 @@ const world = <B>(
       scene.bite,
       Turns.next(player.turns),
       Palette.bodyFor(scheme, who),
+      taggedAs(frame, who, player.alive),
     );
   }
 
   if (Players.count(current.players) > 1) return;
 
   Hud.score(p, scheme, current, layout, Players.scored(current.players), Units.millis(p.millis()));
+};
+
+const taggedAs = (frame: Chrome, who: number, alive: boolean): Option.Type<Tag.Tag> => {
+  if (!frame.naming.some || !alive) return Option.none;
+
+  const { tags, mine } = frame.naming.value;
+  const name = tags[who] ?? Option.none;
+  const ours = mine.some && mine.value === who;
+
+  if (!name.some && !ours) return Option.none;
+
+  return Option.some({ name, mine: ours, above: true });
 };
 
 const lifeIn = <B>(state: Game.State<B>): SnakeView.Vitality =>
@@ -139,7 +166,7 @@ export const board = <B>(
 
   if (frame.device.some) Keys.shell(p, scheme, frame.device.value, frame.stage);
 
-  world(p, scheme, scene.current.world, layout, lifeIn(scene.current), scene, surface);
+  world(p, scheme, scene.current.world, layout, lifeIn(scene.current), scene, surface, frame);
 };
 
 export const draw = <B>(

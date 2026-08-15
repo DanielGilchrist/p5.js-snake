@@ -2,6 +2,7 @@ import p5 from "p5";
 
 import * as Board from "./core/board";
 import * as Game from "./core/game";
+import * as Controls from "./core/controls";
 import * as Input from "./core/input";
 import * as Option from "./core/option";
 import * as Autopilot from "./core/autopilot";
@@ -45,6 +46,10 @@ const MAX_DENSITY = 2;
 const RESEND_MS = 100;
 const COAX_MS = 250;
 const STALL_MS = 600;
+const OPENING_MS = 2000;
+
+const firstPhase = <B>(versus: boolean, now: Units.Millis): Phase.Phase<B> =>
+  versus ? Phase.counting(Units.millis(now + OPENING_MS)) : Phase.LIVE;
 
 const nightly = (): boolean => window.matchMedia("(prefers-color-scheme: dark)").matches;
 
@@ -106,7 +111,7 @@ const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
 };
 
 const HELP_LINES: readonly (readonly [string, string])[] = [
-  ["Move", "Arrows, H J K L or W S A D"],
+  ["Move", Controls.nameOf(Mode.controlsFor(mode), Players.FIRST)],
   ["Pause", "P"],
   ["Settings", "Shift+S"],
   ["Controls", "?"],
@@ -146,12 +151,16 @@ export const sketch = new p5((p: p5) => {
         let timeline = Timeline.start(state);
         let previous = state.world.players;
         let effects: readonly Effects.Effect[] = [];
-        let phase: Phase.Phase<B> = net.some ? Phase.READY : Phase.LIVE;
-        let bite = Units.millis(0);
+        let phase: Phase.Phase<B> = net.some
+          ? Phase.READY
+          : firstPhase(mode.rules.players > 1, Units.millis(p.millis()));
+        let bite = phase.kind === "counting" ? phase.until : Units.millis(0);
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
         let reshaping = false;
+
+        const versus = (): boolean => mode.rules.players > 1;
 
         const myPlayer = (): Players.Id => (net.some ? net.value.seat : Players.FIRST);
 
@@ -168,6 +177,17 @@ export const sketch = new p5((p: p5) => {
           return Option.some(Render.ending(Mode.cheerFor(mode, won, myPlayer())));
         };
 
+        const namingNow = (): Option.Type<Render.Naming> => {
+          if (!versus() || phase.kind !== "counting") return Option.none;
+
+          const tags = Players.everyone(state.world.players).map(([who]) =>
+            Mode.tagFor(mode, who, myPlayer()),
+          );
+          const ringed = Mode.ringed(mode) ? Option.some<number>(myPlayer()) : Option.none;
+
+          return Option.some(Render.naming(tags, ringed));
+        };
+
         const chrome = (): Render.Chrome =>
           Render.chrome(
             scheme,
@@ -175,6 +195,7 @@ export const sketch = new p5((p: p5) => {
             shell.kind === "handheld" ? Option.some(shell.device) : Option.none,
             shell.kind === "handheld" ? "touch" : "keys",
             endingNow(),
+            namingNow(),
           );
         let gate = Lockstep.waiting(0);
         let resent = 0;
@@ -232,7 +253,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const startRound = (now: Units.Millis): void => {
-          phase = Phase.LIVE;
+          phase = firstPhase(versus(), now);
           lastTick = now;
 
           if (net.some) {
@@ -254,6 +275,8 @@ export const sketch = new p5((p: p5) => {
           } else {
             apply(Game.restart);
           }
+
+          if (phase.kind === "counting") bite = phase.until;
 
           previous = state.world.players;
         };
@@ -430,6 +453,29 @@ export const sketch = new p5((p: p5) => {
           });
         };
 
+        const drawCounting = (until: Units.Millis, now: Units.Millis): void => {
+          const left = until - now;
+
+          if (left <= 0) {
+            phase = Phase.LIVE;
+            lastTick = now;
+
+            drawLive(now);
+
+            return;
+          }
+
+          lastTick = now;
+          paintWorld(now);
+          Render.drawCountdown(
+            p,
+            scheme,
+            layout,
+            shell.stage,
+            Render.countdown(Units.millis(left), Units.millis(OPENING_MS)),
+          );
+        };
+
         const drawLive = (now: Units.Millis): void => {
           stepWorld(now);
           paintWorld(now);
@@ -502,6 +548,12 @@ export const sketch = new p5((p: p5) => {
 
           if (phase.kind === "ready") {
             drawReady(now);
+
+            return;
+          }
+
+          if (phase.kind === "counting") {
+            drawCounting(phase.until, now);
 
             return;
           }
@@ -760,7 +812,7 @@ export const sketch = new p5((p: p5) => {
 
         p.keyPressed = () => {
           const now = Units.millis(p.millis());
-          const key = Input.parseKey(p.key);
+          const key = Input.parseKey(p.key, Mode.controlsFor(mode));
 
           if (phase.kind === "ready") {
             if (key.kind === "menu") phase = Phase.settings(0);
