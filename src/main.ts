@@ -161,12 +161,20 @@ export const sketch = new p5((p: p5) => {
           return phase.kind === "ready" ? Input.waiting(myPlayer()) : Input.away(myPlayer());
         };
 
+        const endingNow = (): Option.Type<Render.Ending> => {
+          if (state.kind !== "over" || Players.count(state.world.players) < 2) return Option.none;
+
+          const won = Verdict.winner(state.outcome, state.world.players);
+          return Option.some(Render.ending(Mode.cheerFor(mode, won, myPlayer())));
+        };
+
         const chrome = (): Render.Chrome =>
           Render.chrome(
             scheme,
             shell.stage,
             shell.kind === "handheld" ? Option.some(shell.device) : Option.none,
             shell.kind === "handheld" ? "touch" : "keys",
+            endingNow(),
           );
         let gate = Lockstep.waiting(0);
         let resent = 0;
@@ -210,7 +218,9 @@ export const sketch = new p5((p: p5) => {
             inputLockedUntil = now + ENDING_GRACE_MS;
 
             if (net.some && state.kind === "over") {
-              verdict = Option.some(Verdict.of(state.outcome, net.value.seat, state.world.players));
+              verdict = Option.some(
+                Verdict.mineToLose(state.outcome, net.value.seat, state.world.players),
+              );
               askAgain(now);
             }
           }

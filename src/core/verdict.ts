@@ -1,22 +1,28 @@
+import * as Option from "./option";
 import * as Players from "./players";
 import type * as World from "./world";
 
-const WON = "YOU WIN";
-const LOST = "THEY WIN";
-const DRAWN = "A DRAW";
+export const winner = <B>(
+  outcome: World.Outcome,
+  players: Players.Type<B>,
+): Option.Type<Players.Id> => {
+  const standing = Players.living(players);
 
-export const of = <B>(
+  if (outcome.ending === "collision" && standing.length === 1 && standing[0] !== undefined) {
+    return Option.some(standing[0]);
+  }
+
+  return Players.drawn(players) ? Option.none : Option.some(Players.leader(players));
+};
+
+export const mineToLose = <B>(
   outcome: World.Outcome,
   mine: Players.Id,
   players: Players.Type<B>,
 ): string => {
-  const standing = Players.living(players);
+  const won = winner(outcome, players);
 
-  if (outcome.ending === "collision" && standing.length === 1) {
-    return standing[0] === mine ? WON : LOST;
-  }
+  if (!won.some) return "A DRAW";
 
-  if (Players.drawn(players)) return DRAWN;
-
-  return Players.leader(players) === mine ? WON : LOST;
+  return won.value === mine ? "YOU WIN" : "THEY WIN";
 };

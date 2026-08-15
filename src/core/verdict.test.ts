@@ -31,7 +31,7 @@ const said = (
   theirs: Standing,
   who: Players.Id = Players.FIRST,
 ): string =>
-  onBoard((board) => Verdict.of(World.outcome(ending), who, paired(board, mine, theirs)));
+  onBoard((board) => Verdict.mineToLose(World.outcome(ending), who, paired(board, mine, theirs)));
 
 const ALIVE = { score: 0, alive: true };
 const DEAD = { score: 0, alive: false };
@@ -60,5 +60,29 @@ describe("verdict", () => {
     expect(said("filled", { score: 5, alive: true }, { score: 2, alive: true })).toBe("YOU WIN");
     expect(said("filled", { score: 2, alive: true }, { score: 5, alive: true })).toBe("THEY WIN");
     expect(said("filled", { score: 3, alive: true }, { score: 3, alive: true })).toBe("A DRAW");
+  });
+});
+
+describe("naming the winner", () => {
+  const wonBy = (ending: World.Ending, mine: Standing, theirs: Standing): number | "draw" =>
+    onBoard((board) => {
+      const won = Verdict.winner(World.outcome(ending), paired(board, mine, theirs));
+
+      return won.some ? Number(won.value) : "draw";
+    });
+
+  test("the last one standing is the winner, whatever the scores say", () => {
+    expect(wonBy("collision", { score: 0, alive: true }, { score: 9, alive: false })).toBe(0);
+    expect(wonBy("collision", { score: 9, alive: false }, { score: 0, alive: true })).toBe(1);
+  });
+
+  test("a double death falls back to score", () => {
+    expect(wonBy("collision", { score: 4, alive: false }, { score: 1, alive: false })).toBe(0);
+    expect(wonBy("collision", { score: 1, alive: false }, { score: 4, alive: false })).toBe(1);
+  });
+
+  test("level scores with nobody standing is a draw", () => {
+    expect(wonBy("collision", DEAD, DEAD)).toBe("draw");
+    expect(wonBy("filled", { score: 3, alive: true }, { score: 3, alive: true })).toBe("draw");
   });
 });

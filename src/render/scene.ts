@@ -1,7 +1,7 @@
 import type p5 from "p5";
 
 import * as Assert from "../core/assert";
-import type * as Option from "../core/option";
+import * as Option from "../core/option";
 import * as Clay from "./clay";
 import * as Palette from "./palette";
 import * as Keys from "./keys";
@@ -20,11 +20,16 @@ import * as Units from "./units";
 
 export type Prompt = "keys" | "touch";
 
+export type Ending = { readonly title: string };
+
+export const ending = (title: string): Ending => ({ title });
+
 export type Chrome = {
   readonly scheme: Palette.Scheme;
   readonly stage: Units.Region;
   readonly device: Option.Type<Units.Region>;
   readonly prompt: Prompt;
+  readonly ending: Option.Type<Ending>;
 };
 
 export const chrome = (
@@ -32,7 +37,8 @@ export const chrome = (
   stage: Units.Region,
   device: Option.Type<Units.Region>,
   prompt: Prompt,
-): Chrome => ({ scheme, stage, device, prompt });
+  told: Option.Type<Ending> = Option.none,
+): Chrome => ({ scheme, stage, device, prompt, ending: told });
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
@@ -71,14 +77,14 @@ const SURROUND_WASH = 0.24;
 const PAUSE_SCRIM = Paint.alpha(96);
 const OVER_SCRIM = Paint.alpha(140);
 
-const describe = (ending: World.Ending): Outcome => {
-  switch (ending) {
+const describe = (closing: World.Ending): Outcome => {
+  switch (closing) {
     case "collision":
       return outcome("GAME OVER", "dead");
     case "filled":
       return outcome("YOU WIN", "alive");
     default:
-      return Assert.never(ending);
+      return Assert.never(closing);
   }
 };
 
@@ -109,6 +115,8 @@ const world = <B>(
       Palette.bodyFor(scheme, who),
     );
   }
+
+  if (Players.count(current.players) > 1) return;
 
   Hud.score(p, scheme, current, layout, Players.scored(current.players), Units.millis(p.millis()));
 };
@@ -155,16 +163,17 @@ export const draw = <B>(
       return;
 
     case "over": {
-      const ending = describe(state.outcome.ending);
+      const closing = frame.ending.some
+        ? [Hud.line(frame.ending.value.title, 0.9)]
+        : [
+            Hud.line(describe(state.outcome.ending).title, 0.9),
+            Hud.line(`Score: ${Players.scored(state.world.players)}`, 0.45),
+          ];
 
       Hud.tablet(
         p,
         scheme,
-        [
-          Hud.line(ending.title, 0.9),
-          Hud.line(`Score: ${Players.scored(state.world.players)}`, 0.45),
-          Hud.line(restartWith(frame.prompt), 0.32),
-        ],
+        [...closing, Hud.line(restartWith(frame.prompt), 0.32)],
         layout,
         frame.stage,
         OVER_SCRIM,

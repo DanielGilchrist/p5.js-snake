@@ -2,6 +2,7 @@ import * as Game from "../core/game";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Players from "../core/players";
+import * as Palette from "../render/palette";
 import * as Code from "../net/code";
 import * as Invite from "../net/invite";
 
@@ -52,6 +53,27 @@ export const runItself = (mode: Mode): boolean => mode.kind === "against-the-com
 
 export const localRules = (mode: Mode): Input.Rules =>
   mode.kind === "with-a-friend" ? Input.sharing(PLAYERS_TOGETHER) : Input.ALONE;
+
+const machinesIn = (mode: Mode): readonly Players.Id[] =>
+  mode.kind === "against-the-computer"
+    ? Array.from({ length: mode.rules.players - 1 }, (_, seat) => Players.id(seat + 1))
+    : [];
+
+export const nameFor = (mode: Mode, who: Players.Id, mine: Players.Id): string => {
+  if (mode.kind !== "with-a-friend" && who === mine) return "YOU";
+
+  const machines = machinesIn(mode);
+
+  return machines.length === 1 && machines[0] === who ? "CPU" : Palette.nameOf(who);
+};
+
+export const cheerFor = (mode: Mode, won: Option.Type<Players.Id>, mine: Players.Id): string => {
+  if (!won.some) return "A DRAW";
+
+  const name = nameFor(mode, won.value, mine);
+
+  return name === "YOU" ? "YOU WIN" : `${name} WINS`;
+};
 
 export const rival = (mode: Mode): Option.Type<Players.Id> =>
   mode.kind === "against-the-computer" ? Option.some(Players.id(1)) : Option.none;

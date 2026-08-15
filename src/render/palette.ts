@@ -1,4 +1,5 @@
 import type * as Brand from "../core/brand";
+import * as NonEmpty from "../core/non-empty";
 import type * as World from "../core/world";
 
 export type Rgb = {
@@ -14,6 +15,7 @@ const tint = (n: number): Tint => n as Tint;
 const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
 export type Body = {
+  readonly name: string;
   readonly skin: Rgb;
   readonly deep: Rgb;
 };
@@ -121,13 +123,25 @@ export const shift = (colour: Rgb, by: Tint): Rgb =>
 export const floorTint = (variant: World.Variant): Tint =>
   tint((variant % (TINT_RANGE * 2)) - TINT_RANGE);
 
-const BODIES = (clay: Scheme): readonly Body[] => [
-  { skin: clay.snake, deep: clay.snakeDeep },
-  { skin: clay.rival, deep: clay.rivalDeep },
+type Clay = {
+  readonly name: string;
+  readonly skin: (of: Scheme) => Rgb;
+  readonly deep: (of: Scheme) => Rgb;
+};
+
+const CLAYS: NonEmpty.List<Clay> = [
+  { name: "GREEN", skin: (of) => of.snake, deep: (of) => of.snakeDeep },
+  { name: "PURPLE", skin: (of) => of.rival, deep: (of) => of.rivalDeep },
 ];
 
-export const bodyFor = (clay: Scheme, seat: number): Body => {
-  const bodies = BODIES(clay);
+const clayFor = (seat: number): Clay => NonEmpty.at(CLAYS, seat % CLAYS.length);
 
-  return bodies[seat % bodies.length] ?? { skin: clay.snake, deep: clay.snakeDeep };
+export const bodyFor = (clay: Scheme, seat: number): Body => {
+  const worn = clayFor(seat);
+
+  return { name: worn.name, skin: worn.skin(clay), deep: worn.deep(clay) };
 };
+
+export const nameOf = (seat: number): string => clayFor(seat).name;
+
+export const bodies = (): number => CLAYS.length;

@@ -1,5 +1,5 @@
-export type { Chrome, Prompt, Scene } from "./scene";
-export { chrome, draw, of as scene } from "./scene";
+export type { Chrome, Ending, Prompt, Scene } from "./scene";
+export { chrome, draw, ending, of as scene } from "./scene";
 export { draw as drawError } from "./error";
 export { draw as drawLobby } from "./lobby";
 export { draw as drawStall, drawSplit } from "./stall";
