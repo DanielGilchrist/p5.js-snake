@@ -152,6 +152,14 @@ export const cycle = (settings: Settings.Type, row: Row, step: number): Settings
 
 export const rowsFor = (handheld: boolean): readonly Row[] => (handheld ? ROWS : ["theme"]);
 
+export const nextCursor = (menu: Menu, cursor: number, by: number): number => {
+  const count = menu.lines.length;
+
+  if (count === 0) return 0;
+
+  return (((cursor + by) % count) + count) % count;
+};
+
 export const rowAt = (menu: Menu, cursor: number): Row => {
   const count = menu.lines.length;
   const line = menu.lines[((cursor % count) + count) % count];

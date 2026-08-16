@@ -1,5 +1,6 @@
 import p5 from "p5";
 
+import * as Assert from "./core/assert";
 import * as Board from "./core/board";
 import * as Game from "./core/game";
 import * as Controls from "./core/controls";
@@ -16,7 +17,9 @@ import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
 import * as Fault from "./shell/fault";
 import * as Build from "./shell/build";
+import * as Intent from "./shell/intent";
 import * as Mode from "./shell/mode";
+import * as Pace from "./shell/pace";
 import * as Phase from "./shell/phase";
 import * as Verdict from "./core/verdict";
 import * as World from "./core/world";
@@ -40,10 +43,6 @@ import * as Units from "./render/units";
 Offline.keep();
 
 const TARGET_BLOCK = 34;
-const MIN_TICKS_PER_SECOND = 10;
-const SPEED_UP_MS = 2;
-const FASTEST_FRACTION = 0.55;
-const HITSTOP_MS = 130;
 const ENDING_GRACE_MS = 600;
 const PRESS_FEEDBACK_MS = 130;
 const MAX_DENSITY = 2;
@@ -280,16 +279,9 @@ export const sketch = new p5((p: p5) => {
         let heldUntil = 0;
         let thumb: Option.Type<number> = Option.none;
 
-        const baseInterval =
-          1000 / Math.max(MIN_TICKS_PER_SECOND, Math.floor((board.cols + board.rows) / 4.3));
+        const pace = Pace.of(board);
 
-        const fastestInterval = baseInterval * FASTEST_FRACTION;
-
-        const tickInterval = (): number =>
-          Math.max(
-            fastestInterval,
-            baseInterval - Players.scored(state.world.players) * SPEED_UP_MS,
-          );
+        const scoreNow = (): number => Players.scored(state.world.players);
 
         const apply = (command: Game.Command): void => {
           const now = Units.millis(p.millis());
@@ -306,7 +298,7 @@ export const sketch = new p5((p: p5) => {
 
           if (stepped.events.some((event) => event.kind === Game.SCORED)) bite = now;
 
-          if (stepped.events.some((event) => event.kind === Game.SCORED)) hitstop = HITSTOP_MS;
+          if (stepped.events.some((event) => event.kind === Game.SCORED)) hitstop = Pace.savour();
 
           if (stepped.events.some((event) => event.kind === Game.ENDED)) {
             inputLockedUntil = now + ENDING_GRACE_MS;
@@ -499,7 +491,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const stepWorld = (now: Units.Millis): void => {
-          if (now - lastTick < Math.max(tickInterval(), hitstop)) return;
+          if (!Pace.due(pace, Units.millis(now - lastTick), scoreNow(), hitstop)) return;
 
           nudgePilot();
           if (!lockstep()) return;
@@ -515,7 +507,7 @@ export const sketch = new p5((p: p5) => {
         const painting = (now: Units.Millis, paint: (scene: Render.Scene<B>) => void): void => {
           effects = Effects.alive(effects, now);
 
-          const alpha = Math.min(1, (now - lastTick) / tickInterval());
+          const alpha = Pace.partway(pace, Units.millis(now - lastTick), scoreNow());
           const shake = Effects.shakeOffset(effects, now);
 
           p.push();
@@ -586,7 +578,7 @@ export const sketch = new p5((p: p5) => {
             p.textSize(16);
             p.textAlign(p.LEFT, p.TOP);
             p.text(
-              `beat=${gate.beat} posted=${gate.posted} theirs=${theirs.some} held=[${session.held().join(",")}] dt=${Math.round(now - lastTick)} iv=${Math.round(tickInterval())} hs=${hitstop} rs=${Math.round(p.millis() - resent)}`,
+              `beat=${gate.beat} posted=${gate.posted} theirs=${theirs.some} held=[${session.held().join(",")}] dt=${Math.round(now - lastTick)} iv=${Math.round(Pace.gapFor(pace, scoreNow()))} hs=${hitstop} rs=${Math.round(p.millis() - resent)}`,
               12,
               12,
             );
@@ -940,81 +932,59 @@ export const sketch = new p5((p: p5) => {
             return;
           }
 
-          if (phase === Phase.READY) {
-            if (key.kind === Input.MENU) phase = Phase.settings(0);
-            else if (key.kind === Input.HELP) phase = Phase.HELP;
-            else if (net.some) net.value.declareReady();
+          const wanted = Intent.forKey(phase, key, rulesNow().suspendable);
 
-            return;
-          }
+          switch (wanted.kind) {
+            case Intent.NOTHING:
+              return;
 
-          if (
-            !rulesNow().suspendable &&
-            (key.kind === Input.FREEZE || key.kind === Input.MENU || key.kind === Input.HELP)
-          ) {
-            return;
-          }
+            case Intent.READY_UP:
+              if (net.some) net.value.declareReady();
 
-          if (key.kind === Input.FREEZE) {
-            if (phase === Phase.FROZEN) resume(now);
-            else phase = Phase.FROZEN;
+              return;
 
-            return;
-          }
+            case Intent.OPEN_SETTINGS:
+              phase = Phase.settings(0);
 
-          if (phase === Phase.FROZEN) return;
+              return;
 
-          if (phase === Phase.HELP) {
-            if (key.kind === Input.MENU) phase = Phase.settings(0);
-            else resume(now);
-
-            return;
-          }
-
-          if (Phase.isSettings(phase)) {
-            const { cursor } = phase;
-
-            if (key.kind === Input.HELP) {
+            case Intent.OPEN_HELP:
               phase = Phase.HELP;
 
               return;
-            }
 
-            if (key.kind === Input.MENU || key.kind === Input.SKIP) {
+            case Intent.RESUME:
               resume(now);
 
               return;
-            }
 
-            if (key.kind !== Input.TURN) return;
+            case Intent.FREEZE:
+              phase = Phase.FROZEN;
 
-            const menu = menuNow();
+              return;
 
-            if (key.direction === Geometry.UP)
-              phase = Phase.settings(cursor - 1 + menu.lines.length);
-            else if (key.direction === Geometry.DOWN) phase = Phase.settings(cursor + 1);
-            else {
-              const row = Menu.rowAt(menu, cursor);
+            case Intent.MOVE_CURSOR:
+              if (Phase.isSettings(phase)) {
+                phase = Phase.settings(Menu.nextCursor(menuNow(), phase.cursor, wanted.by));
+              }
 
-              applySettings(Menu.cycle(settings, row, key.direction === Geometry.RIGHT ? 1 : -1));
-            }
+              return;
 
-            return;
+            case Intent.CYCLE_SETTING:
+              if (Phase.isSettings(phase)) {
+                applySettings(Menu.cycle(settings, Menu.rowAt(menuNow(), phase.cursor), wanted.by));
+              }
+
+              return;
+
+            case Intent.PRESS:
+              press(wanted.key, now);
+
+              return;
+
+            default:
+              return Assert.never(wanted);
           }
-
-          if (key.kind === Input.MENU) {
-            phase = Phase.settings(0);
-
-            return;
-          }
-
-          if (key.kind === Input.HELP) {
-            phase = Phase.HELP;
-
-            return;
-          }
-
-          press(key, now);
         };
       });
 

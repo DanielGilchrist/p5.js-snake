@@ -183,3 +183,28 @@ describe("layout still fits the menu", () => {
     expect(Layout.desk(Units.viewport(390, 844)).width).toBeGreaterThan(0);
   });
 });
+
+describe("walking the settings cursor", () => {
+  const menu = Menu.of(
+    Units.region({ left: 0, top: 0, width: 800, height: 600 }),
+    Units.px(30),
+    Settings.DEFAULT,
+    Menu.rowsFor(false),
+  );
+
+  test("it always lands on a real row", () => {
+    let cursor = 0;
+
+    for (let i = 0; i < menu.lines.length * 3; i++) {
+      cursor = Menu.nextCursor(menu, cursor, 1);
+
+      expect(cursor).toBeGreaterThanOrEqual(0);
+      expect(cursor).toBeLessThan(menu.lines.length);
+    }
+  });
+
+  test("it wraps around both ends", () => {
+    expect(Menu.nextCursor(menu, menu.lines.length - 1, 1)).toBe(0);
+    expect(Menu.nextCursor(menu, 0, -1)).toBe(menu.lines.length - 1);
+  });
+});
