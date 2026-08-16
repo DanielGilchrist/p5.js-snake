@@ -35,31 +35,34 @@ const bodyOf = <B>(api: Board.Api<B>, board: Board.Grid<B>): Snake.State<B> => {
   return snake;
 };
 
-const lengthOf = (spine: readonly Spine.Joint[]): number => {
+const pointsOf = (spine: Spine.Spine): readonly Units.Point[] =>
+  Array.from({ length: Spine.count(spine) }, (_, i) =>
+    Units.point(Spine.xAt(spine, i), Spine.yAt(spine, i)),
+  );
+
+const lengthOf = (spine: Spine.Spine): number => {
   let total = 0;
 
-  for (let i = 1; i < spine.length; i++) {
-    const from = spine[i - 1];
-    const to = spine[i];
-
-    if (from === undefined || to === undefined) continue;
-
-    total += Math.hypot(to.at.x - from.at.x, to.at.y - from.at.y);
+  for (let i = 1; i < Spine.count(spine); i++) {
+    total += Math.hypot(
+      Spine.xAt(spine, i) - Spine.xAt(spine, i - 1),
+      Spine.yAt(spine, i) - Spine.yAt(spine, i - 1),
+    );
   }
 
   return total;
 };
 
-const gapsOf = (spine: readonly Spine.Joint[]): readonly number[] => {
+const gapsOf = (spine: Spine.Spine): readonly number[] => {
   const gaps: number[] = [];
 
-  for (let i = 1; i < spine.length; i++) {
-    const from = spine[i - 1];
-    const to = spine[i];
-
-    if (from === undefined || to === undefined) continue;
-
-    gaps.push(Math.hypot(to.at.x - from.at.x, to.at.y - from.at.y));
+  for (let i = 1; i < Spine.count(spine); i++) {
+    gaps.push(
+      Math.hypot(
+        Spine.xAt(spine, i) - Spine.xAt(spine, i - 1),
+        Spine.yAt(spine, i) - Spine.yAt(spine, i - 1),
+      ),
+    );
   }
 
   return gaps;
@@ -124,11 +127,11 @@ describe("spine", () => {
       const { before, after } = turning(api, board, "down");
       const layout = Layout.fit(board, Layout.desk(Units.viewport(600, 600)));
 
-      const settled = Spine.of(after, before, 1, layout)[0];
-      const started = Spine.of(after, before, 0, layout)[0];
+      const settled = pointsOf(Spine.of(after, before, 1, layout))[0];
+      const started = pointsOf(Spine.of(after, before, 0, layout))[0];
 
-      expect(settled?.at).toEqual(Layout.centreOf(layout, after.head));
-      expect(started?.at).toEqual(Layout.centreOf(layout, before.head));
+      expect(settled).toEqual(Layout.centreOf(layout, after.head));
+      expect(started).toEqual(Layout.centreOf(layout, before.head));
     });
   });
 
@@ -142,7 +145,7 @@ describe("spine", () => {
       for (const blend of BLENDS) {
         const spine = Spine.of(snake, snake, blend, layout);
 
-        expect(spine.map((it) => it.at)).toEqual(settled);
+        expect(pointsOf(spine)).toEqual(settled);
       }
     });
   });
@@ -156,9 +159,9 @@ describe("spine", () => {
       expect(Snake.length(after)).toBe(Snake.length(before) + 1);
 
       const tailAt = (blend: number): Units.Point | undefined => {
-        const spine = Spine.of(after, before, blend, layout);
+        const points = pointsOf(Spine.of(after, before, blend, layout));
 
-        return spine[spine.length - 1]?.at;
+        return points[points.length - 1];
       };
 
       expect(tailAt(0)).toEqual(tailAt(1));

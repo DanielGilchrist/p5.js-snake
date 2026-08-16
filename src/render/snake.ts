@@ -136,13 +136,12 @@ const eyes = (
 };
 
 const WIDTH_STEP = 2;
-
 const bandOf = (along: number, block: Units.Px, scale: number): number =>
   Math.round((widthAt(along, block) * scale) / WIDTH_STEP);
 
 const tube = (
   p: p5,
-  spine: readonly Spine.Joint[],
+  spine: Spine.Spine,
   block: Units.Px,
   colour: Palette.Rgb,
   opacity: Paint.Alpha,
@@ -156,27 +155,22 @@ const tube = (
 
   let band = -1;
 
-  for (let i = spine.length - 1; i >= 1; i--) {
-    const from = spine[i];
-    const to = spine[i - 1];
-
-    if (from === undefined || to === undefined) continue;
-
-    const wanted = bandOf(to.along, block, scale);
+  for (let i = Spine.count(spine) - 1; i >= 1; i--) {
+    const wanted = bandOf(Spine.alongAt(spine, i - 1), block, scale);
 
     if (wanted !== band) {
       if (band >= 0) {
-        p.vertex(from.at.x, from.at.y + lift);
+        p.vertex(Spine.xAt(spine, i), Spine.yAt(spine, i) + lift);
         p.endShape();
       }
 
       band = wanted;
       p.strokeWeight(Math.max(WIDTH_STEP, wanted * WIDTH_STEP));
       p.beginShape();
-      p.vertex(from.at.x, from.at.y + lift);
+      p.vertex(Spine.xAt(spine, i), Spine.yAt(spine, i) + lift);
     }
 
-    p.vertex(to.at.x, to.at.y + lift);
+    p.vertex(Spine.xAt(spine, i - 1), Spine.yAt(spine, i - 1) + lift);
   }
 
   if (band >= 0) p.endShape();
@@ -229,11 +223,10 @@ export const draw = <B>(
   const block = layout.blockWidth;
   const now = Units.millis(p.millis());
   const spine = Spine.of(snake, previous, blend, layout);
-  const [nose] = spine;
 
-  if (nose === undefined) return;
+  if (Spine.count(spine) === 0) return;
 
-  const nib = nose.at;
+  const nib = Units.point(Spine.xAt(spine, 0), Spine.yAt(spine, 0));
   const lean = leanOf(turning, block);
   const bulge = bulgeAt(now, bite);
   const crown = block * HEAD_WIDTH * bulge;
