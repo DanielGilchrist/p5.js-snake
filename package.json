@@ -15,7 +15,8 @@
     "bundle": "bun run scripts/build.ts release",
     "serve": "bun run scripts/serve.ts",
     "test": "bun test",
-    "smoke": "bun run scripts/smoke.ts"
+    "smoke": "bun run scripts/smoke.ts",
+    "duel": "bun run scripts/duel.ts"
   },
   "dependencies": {
     "p5": "^2.3.2",

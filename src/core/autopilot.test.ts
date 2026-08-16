@@ -102,3 +102,95 @@ describe("pilot", () => {
     }
   });
 });
+
+const CROWD: readonly Players.Id[] = [Players.FIRST, Players.id(1), Players.id(2), Players.id(3)];
+
+type Watch = {
+  readonly steps: number;
+  readonly intoBodies: number;
+  readonly trades: number;
+  readonly avoidableTrades: number;
+};
+
+const watched = <B>(api: Board.Api<B>, from: Game.State<B>): Watch => {
+  let current: Game.State<B> = from;
+  let ticks = 0;
+  let steps = 0;
+  let intoBodies = 0;
+  let trades = 0;
+  let avoidableTrades = 0;
+
+  while (current.kind === Game.PLAYING && ticks < LIMIT) {
+    for (const who of CROWD) {
+      const seen = Autopilot.looksFor(api, current.world, who);
+      const picked: Option.Type<Geometry.Direction> = Autopilot.choose(api, current.world, who);
+
+      if (!picked.some) continue;
+
+      const heading: Geometry.Direction = picked.value;
+      const taken = seen.find((look) => look.heading === heading);
+
+      steps += 1;
+
+      if (taken === undefined) intoBodies += 1;
+      else if (taken.contested) {
+        trades += 1;
+        if (seen.some((look) => !look.contested)) avoidableTrades += 1;
+      }
+
+      current = Game.step(api, current, Game.turn(who, heading)).state;
+    }
+
+    current = Game.step(api, current, Game.tick).state;
+    ticks += 1;
+  }
+
+  return { steps, intoBodies, trades, avoidableTrades };
+};
+
+const watchFor = (seed: number): Watch => {
+  const done = Board.parse({ cols: 18, rows: 14 }, <B>(board: Board.Grid<B>, api: Board.Api<B>) =>
+    watched(api, Game.start(board, Rng.fromSeed(seed), Game.forPlayers(CROWD.length))),
+  );
+
+  if (!done.ok) Assert.unreachable("the crowded board must parse");
+
+  return done.value;
+};
+
+const turnRate = (seed: number): number => {
+  const flight = flightFor(seed, true);
+
+  return flight.picks.length / (flight.ticks * PLAYERS.length);
+};
+
+describe("how the pilot carries itself", () => {
+  const rates = Array.from({ length: 20 }, (_, seed) => turnRate(seed + 1));
+
+  test("it mostly holds its line instead of weaving down the diagonal", () => {
+    const average = rates.reduce((sum, rate) => sum + rate, 0) / rates.length;
+
+    expect(average).toBeLessThan(0.4);
+  });
+
+  test("but not every snake carries itself the same way", () => {
+    expect(Math.max(...rates) - Math.min(...rates)).toBeGreaterThan(0.15);
+  });
+});
+
+describe("what the pilot refuses to do", () => {
+  test("it never steers into a snake, living or dead", () => {
+    for (const seed of SEEDS) {
+      const watch = watchFor(seed);
+
+      expect(watch.steps).toBeGreaterThan(0);
+      expect(watch.intoBodies).toBe(0);
+    }
+  });
+
+  test("it only trades heads when it has no other way to go", () => {
+    for (const seed of SEEDS) {
+      expect(watchFor(seed).avoidableTrades).toBe(0);
+    }
+  });
+});

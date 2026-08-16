@@ -19,7 +19,6 @@ const swap = (): void => {
 
 let wanted = false;
 
-// a touch only counts as a gesture once the finger lifts, so the swap waits for it
 const lifted = (): void => {
   if (!wanted) return;
 
