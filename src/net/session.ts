@@ -1,4 +1,4 @@
-import type * as Geometry from "../core/geometry";
+import * as Geometry from "../core/geometry";
 import * as Option from "../core/option";
 import * as Players from "../core/players";
 import type * as Code from "./code";
@@ -11,21 +11,36 @@ export type Config = {
   readonly seed: number;
 };
 
-export type Role = "host" | "guest";
+export const HOST = "host";
+export const GUEST = "guest";
 
-export type Stage =
-  | { readonly kind: "waiting" }
-  | { readonly kind: "ready"; readonly config: Config }
-  | { readonly kind: "lost" };
+export type Role = typeof HOST | typeof GUEST;
+
+const WAITING = "waiting";
+const AGREED = "ready";
+const LOST = "lost";
+
+export type Ready = { readonly kind: typeof AGREED; readonly config: Config };
+
+export type Stage = { readonly kind: typeof WAITING } | Ready | { readonly kind: typeof LOST };
+
+export const isReady = (stage: Stage): stage is Ready => stage.kind === AGREED;
+
+export const isWaiting = (stage: Stage): boolean => stage.kind === WAITING;
 
 const WINDOW = 16;
 
+const CONFIG = "cfg";
+const REMATCH = "rmt";
+const READY = "rdy";
+const TURNS = "trn";
+
 type Note =
-  | { readonly kind: "cfg"; readonly config: Config }
-  | { readonly kind: "rmt" }
-  | { readonly kind: "rdy"; readonly ready: boolean }
+  | { readonly kind: typeof CONFIG; readonly config: Config }
+  | { readonly kind: typeof REMATCH }
+  | { readonly kind: typeof READY; readonly ready: boolean }
   | {
-      readonly kind: "trn";
+      readonly kind: typeof TURNS;
       readonly body: {
         readonly round: number;
         readonly base: number;
@@ -41,7 +56,7 @@ type Packet = {
   readonly marks: readonly number[];
 };
 
-const DIRECTIONS = new Set<string>(["up", "down", "left", "right"]);
+const DIRECTIONS = new Set<string>(Geometry.DIRECTIONS);
 
 const isDirection = (raw: unknown): raw is Geometry.Direction =>
   typeof raw === "string" && DIRECTIONS.has(raw);
@@ -107,9 +122,9 @@ export type Session = {
 
 export const join = (code: Code.Type, role: Role, offer: () => Config): Session => {
   const table = Lan.sit(code);
-  const seat = role === "host" ? Players.FIRST : Players.id(1);
+  const seat = role === HOST ? Players.FIRST : Players.id(1);
 
-  let agreed: Option.Type<Config> = role === "host" ? Option.some(offer()) : Option.none;
+  let agreed: Option.Type<Config> = role === HOST ? Option.some(offer()) : Option.none;
   let peers = 0;
   let lost = false;
   let asked = false;
@@ -135,27 +150,27 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
 
     const held = data as Record<string, unknown>;
 
-    if (held["kind"] === "cfg") {
+    if (held["kind"] === CONFIG) {
       const parsed = configOf(held["config"]);
 
-      if (parsed.some && role === "guest") agreed = parsed;
+      if (parsed.some && role === GUEST) agreed = parsed;
 
       return;
     }
 
-    if (held["kind"] === "rdy") {
+    if (held["kind"] === READY) {
       readyThere = held["ready"] === true;
 
       return;
     }
 
-    if (held["kind"] === "rmt") {
+    if (held["kind"] === REMATCH) {
       heard = true;
 
       return;
     }
 
-    if (held["kind"] !== "trn") return;
+    if (held["kind"] !== TURNS) return;
 
     onTurns(held["body"]);
   };
@@ -184,7 +199,7 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
     peers += 1;
     lost = false;
 
-    if (role === "host" && agreed.some) void post({ kind: "cfg", config: { ...agreed.value } });
+    if (role === HOST && agreed.some) void post({ kind: CONFIG, config: { ...agreed.value } });
   };
 
   table.room.onPeerLeave = () => {
@@ -197,10 +212,10 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
     seat,
     rival: seat === Players.FIRST ? Players.id(1) : Players.FIRST,
     stage: () => {
-      if (lost) return { kind: "lost" };
-      if (peers === 0 || !agreed.some) return { kind: "waiting" };
+      if (lost) return { kind: LOST };
+      if (peers === 0 || !agreed.some) return { kind: WAITING };
 
-      return { kind: "ready", config: agreed.value };
+      return { kind: AGREED, config: agreed.value };
     },
     record: (tick, moves, mark) => {
       outbox.set(tick, moves);
@@ -233,7 +248,7 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
 
       sending = true;
 
-      void post({ kind: "trn", body: { round, base, runs, marks } }).finally(() => {
+      void post({ kind: TURNS, body: { round, base, runs, marks } }).finally(() => {
         sending = false;
       });
     },
@@ -254,12 +269,12 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
     },
     askRematch: () => {
       asked = true;
-      void post({ kind: "rmt" });
+      void post({ kind: REMATCH });
     },
     held: () => [...inbox.keys()],
     declareReady: () => {
       readyHere = true;
-      void post({ kind: "rdy", ready: true });
+      void post({ kind: READY, ready: true });
     },
     readiness: () => ({
       here: readyHere,
@@ -267,7 +282,7 @@ export const join = (code: Code.Type, role: Role, offer: () => Config): Session 
       sealed: Handshake.settled(Handshake.signals(readyHere, readyThere, playingThere)),
     }),
     nudgeReady: () => {
-      void post({ kind: "rdy", ready: readyHere });
+      void post({ kind: READY, ready: readyHere });
     },
     askedRematch: () => asked,
     heardRematch: () => heard,

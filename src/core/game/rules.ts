@@ -1,9 +1,9 @@
 import * as Board from "../board";
 import * as Assert from "../assert";
-import type * as Command from "./command";
+import * as Command from "./command";
 import * as Event from "../event";
 import * as Food from "../food";
-import type * as Geometry from "../geometry";
+import * as Geometry from "../geometry";
 import * as Option from "../option";
 import * as Player from "../player";
 import * as Players from "../players";
@@ -24,13 +24,13 @@ export const PAIR: Mode = { players: 2 };
 export const forPlayers = (players: number): Mode => ({ players: Math.max(1, players) });
 
 const facingFrom = <B>(board: Board.Grid<B>, at: Board.Cell<B>): Geometry.Direction =>
-  at.col * 2 < board.cols ? "right" : "left";
+  at.col * 2 < board.cols ? Geometry.RIGHT : Geometry.LEFT;
 
 const seatedFor = <B>(board: Board.Grid<B>, mode: Mode): Players.Type<B> => {
   const places = Board.spawns(board, mode.players);
   const [first, ...rest] = places.map((at) => Player.spawn(at, facingFrom(board, at)));
 
-  return Players.of(first ?? Player.spawn(board.start, "right"), rest);
+  return Players.of(first ?? Player.spawn(board.start, Geometry.RIGHT), rest);
 };
 
 export const start = <B>(board: Board.Grid<B>, rng: Rng.State, mode: Mode): State.Type<B> => {
@@ -90,7 +90,7 @@ const attempt = <B>(api: Board.Api<B>, seated: Players.Seated<B>): Attempt<B> =>
     before,
     moved,
     after:
-      moved.kind === "hitWall"
+      moved.kind === Snake.HIT_WALL
         ? Option.none
         : Option.some(Snake.moveTo(before, moved.to, moved.dropped)),
   };
@@ -132,11 +132,23 @@ const feed = <B>(
     return [Event.grew(who), Event.scored(who, at), Event.fed(world, next.value), rolled];
   }
 
-  return [Event.grew(who), Event.scored(who, at), rolled, Event.ended("filled")];
+  return [Event.grew(who), Event.scored(who, at), rolled, Event.ended(World.FILLED)];
 };
 
+const killedBy = <B>(each: Attempt<B>, other: Attempt<B>): boolean =>
+  each.after.some && other.after.some && Snake.occupies(other.after.value, each.after.value.head);
+
+const traded = <B>(attempts: readonly Attempt<B>[]): boolean =>
+  attempts.some((each) =>
+    attempts.some(
+      (other) => other.who !== each.who && killedBy(each, other) && killedBy(other, each),
+    ),
+  );
+
 const lastAlone = <B>(world: World.Type<B>, deaths: readonly Event.Type<B>[]): boolean => {
-  const dying = new Set(deaths.flatMap((event) => (event.kind === "died" ? [event.player] : [])));
+  const dying = new Set(
+    deaths.flatMap((event) => (event.kind === Event.DIED ? [event.player] : [])),
+  );
   const left = Players.living(world.players).filter((who) => !dying.has(who));
 
   return left.length <= 1;
@@ -147,12 +159,16 @@ const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B
   const attempts = playing.map((seated) => attempt(api, seated));
   const turning = attempts.flatMap((each) => each.turning);
   const motion = attempts.flatMap((each) =>
-    each.moved.kind === "moved" ? [Event.moved(each.who, each.moved.to, each.moved.dropped)] : [],
+    each.moved.kind === Snake.MOVED
+      ? [Event.moved(each.who, each.moved.to, each.moved.dropped)]
+      : [],
   );
   const deaths = deathsAmong(attempts);
 
   if (deaths.length > 0) {
-    const closing = lastAlone(world, deaths) ? [Event.ended("collision")] : [];
+    const closing = lastAlone(world, deaths)
+      ? [Event.ended(traded(attempts) ? World.TRADED : World.COLLISION)]
+      : [];
 
     return [...turning, ...motion, ...deaths, ...closing];
   }
@@ -176,25 +192,27 @@ export const decide = <B>(
   command: Command.Type,
 ): readonly Event.Type<B>[] => {
   switch (command.kind) {
-    case "tick":
-      return state.kind === "playing" ? tick(api, state.world) : [];
+    case Command.TICK:
+      return state.kind === State.PLAYING ? tick(api, state.world) : [];
 
-    case "turn":
-      return state.kind === "playing" ? steer(state.world, command.player, command.direction) : [];
+    case Command.TURN:
+      return state.kind === State.PLAYING
+        ? steer(state.world, command.player, command.direction)
+        : [];
 
-    case "togglePause":
+    case Command.TOGGLE_PAUSE:
       switch (state.kind) {
-        case "playing":
+        case State.PLAYING:
           return [Event.paused];
-        case "paused":
+        case State.PAUSED:
           return [Event.resumed];
-        case "over":
+        case State.OVER:
           return [];
         default:
           return Assert.never(state);
       }
 
-    case "restart":
+    case Command.RESTART:
       return [];
 
     default:

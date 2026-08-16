@@ -1,7 +1,7 @@
 import type p5 from "p5";
 
 import * as Assert from "../core/assert";
-import type * as Geometry from "../core/geometry";
+import * as Geometry from "../core/geometry";
 import * as Option from "../core/option";
 import * as Snake from "../core/snake";
 import * as Layout from "./layout";
@@ -11,7 +11,10 @@ import * as Spine from "./spine";
 import * as Tag from "./tag";
 import * as Units from "./units";
 
-export type Vitality = "alive" | "dead";
+export const ALIVE = "alive";
+export const DEAD = "dead";
+
+export type Vitality = typeof ALIVE | typeof DEAD;
 
 const HEAD_WIDTH = 0.94;
 const TAIL_WIDTH = 0.52;
@@ -49,13 +52,13 @@ const leanOf = (turning: Option.Type<Geometry.Direction>, block: Units.Px): Unit
   const reach = block * LEAN;
 
   switch (turning.value) {
-    case "up":
+    case Geometry.UP:
       return Units.offset(0, -reach);
-    case "down":
+    case Geometry.DOWN:
       return Units.offset(0, reach);
-    case "left":
+    case Geometry.LEFT:
       return Units.offset(-reach, 0);
-    case "right":
+    case Geometry.RIGHT:
       return Units.offset(reach, 0);
     default:
       return Assert.never(turning.value);
@@ -71,13 +74,13 @@ const eyeOffsets = (
   const farSide = size * 0.24;
 
   switch (facing) {
-    case "up":
+    case Geometry.UP:
       return [Units.offset(nearSide, -forward), Units.offset(farSide, -forward)];
-    case "down":
+    case Geometry.DOWN:
       return [Units.offset(nearSide, forward), Units.offset(farSide, forward)];
-    case "left":
+    case Geometry.LEFT:
       return [Units.offset(-forward, nearSide), Units.offset(-forward, farSide)];
-    case "right":
+    case Geometry.RIGHT:
       return [Units.offset(forward, nearSide), Units.offset(forward, farSide)];
     default:
       return Assert.never(facing);
@@ -95,7 +98,7 @@ const eyes = (
   const offsets = eyeOffsets(facing, size);
 
   switch (vitality) {
-    case "dead": {
+    case DEAD: {
       const half = (size * EYE_RATIO * DEAD_EYE_SCALE) / 4;
 
       Paint.stroke(p, scheme.mark);
@@ -111,7 +114,7 @@ const eyes = (
       return;
     }
 
-    case "alive": {
+    case ALIVE: {
       p.noStroke();
       Paint.fill(p, scheme.mark);
 

@@ -9,35 +9,47 @@ import * as Snake from "./snake";
 import type * as Turns from "./turns";
 import * as World from "./world";
 
+export const TURNED = "turned";
+export const QUEUED = "queued";
+export const MOVED = "moved";
+export const GREW = "grew";
+export const SCORED = "scored";
+export const DIED = "died";
+export const FED = "fed";
+export const ROLLED = "rolled";
+export const PAUSED = "paused";
+export const RESUMED = "resumed";
+export const ENDED = "ended";
+
 type Change<B> =
   | {
-      readonly kind: "turned";
+      readonly kind: typeof TURNED;
       readonly player: Players.Id;
       readonly from: Geometry.Direction;
       readonly to: Geometry.Direction;
     }
   | {
-      readonly kind: "queued";
+      readonly kind: typeof QUEUED;
       readonly player: Players.Id;
       readonly from: Turns.Queue;
       readonly to: Turns.Queue;
     }
   | {
-      readonly kind: "moved";
+      readonly kind: typeof MOVED;
       readonly player: Players.Id;
       readonly to: Board.Cell<B>;
       readonly dropped: Option.Type<Board.Cell<B>>;
     }
-  | { readonly kind: "grew"; readonly player: Players.Id }
-  | { readonly kind: "scored"; readonly player: Players.Id; readonly at: Board.Cell<B> }
-  | { readonly kind: "died"; readonly player: Players.Id; readonly at: Board.Cell<B> }
-  | { readonly kind: "fed"; readonly from: Board.Cell<B>; readonly to: Board.Cell<B> }
-  | { readonly kind: "rolled"; readonly from: Rng.State; readonly to: Rng.State };
+  | { readonly kind: typeof GREW; readonly player: Players.Id }
+  | { readonly kind: typeof SCORED; readonly player: Players.Id; readonly at: Board.Cell<B> }
+  | { readonly kind: typeof DIED; readonly player: Players.Id; readonly at: Board.Cell<B> }
+  | { readonly kind: typeof FED; readonly from: Board.Cell<B>; readonly to: Board.Cell<B> }
+  | { readonly kind: typeof ROLLED; readonly from: Rng.State; readonly to: Rng.State };
 
 type Lifecycle =
-  | { readonly kind: "paused" }
-  | { readonly kind: "resumed" }
-  | { readonly kind: "ended"; readonly ending: World.Ending };
+  | { readonly kind: typeof PAUSED }
+  | { readonly kind: typeof RESUMED }
+  | { readonly kind: typeof ENDED; readonly ending: World.Ending };
 
 export type Type<B> = Change<B> | Lifecycle;
 
@@ -45,10 +57,10 @@ export const turned = <B>(
   player: Players.Id,
   of: Player.Type<B>,
   to: Geometry.Direction,
-): Type<B> => ({ kind: "turned", player, from: of.snake.facing, to });
+): Type<B> => ({ kind: TURNED, player, from: of.snake.facing, to });
 
 export const queued = <B>(player: Players.Id, of: Player.Type<B>, to: Turns.Queue): Type<B> => ({
-  kind: "queued",
+  kind: QUEUED,
   player,
   from: of.turns,
   to,
@@ -58,39 +70,39 @@ export const moved = <B>(
   player: Players.Id,
   to: Board.Cell<B>,
   dropped: Option.Type<Board.Cell<B>>,
-): Type<B> => ({ kind: "moved", player, to, dropped });
+): Type<B> => ({ kind: MOVED, player, to, dropped });
 
-export const grew = (player: Players.Id) => ({ kind: "grew", player }) as const;
+export const grew = (player: Players.Id) => ({ kind: GREW, player }) as const;
 
 export const scored = <B>(player: Players.Id, at: Board.Cell<B>): Type<B> => ({
-  kind: "scored",
+  kind: SCORED,
   player,
   at,
 });
 
 export const died = <B>(player: Players.Id, at: Board.Cell<B>): Type<B> => ({
-  kind: "died",
+  kind: DIED,
   player,
   at,
 });
 
 export const fed = <B>(world: World.Type<B>, to: Board.Cell<B>): Type<B> => ({
-  kind: "fed",
+  kind: FED,
   from: world.food,
   to,
 });
 
 export const rolled = <B>(world: World.Type<B>, to: Rng.State): Type<B> => ({
-  kind: "rolled",
+  kind: ROLLED,
   from: world.rng,
   to,
 });
 
-export const ended = (ending: World.Ending) => ({ kind: "ended", ending }) as const;
+export const ended = (ending: World.Ending) => ({ kind: ENDED, ending }) as const;
 
-export const paused = { kind: "paused" } as const;
+export const paused = { kind: PAUSED } as const;
 
-export const resumed = { kind: "resumed" } as const;
+export const resumed = { kind: RESUMED } as const;
 
 const shifting = <B>(
   world: World.Type<B>,
@@ -100,27 +112,27 @@ const shifting = <B>(
 
 export const forward = <B>(world: World.Type<B>, change: Change<B>): World.Type<B> => {
   switch (change.kind) {
-    case "turned":
+    case TURNED:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.turnTo(player.snake, change.to)),
       );
-    case "queued":
+    case QUEUED:
       return shifting(world, change.player, (player) => Player.withTurns(player, change.to));
-    case "moved":
+    case MOVED:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.moveTo(player.snake, change.to, change.dropped)),
       );
-    case "grew":
+    case GREW:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.grow(player.snake)),
       );
-    case "scored":
+    case SCORED:
       return shifting(world, change.player, (player) => Player.withScore(player, player.score + 1));
-    case "died":
+    case DIED:
       return shifting(world, change.player, (player) => Player.withLife(player, false));
-    case "fed":
+    case FED:
       return World.withFood(world, change.to);
-    case "rolled":
+    case ROLLED:
       return World.withRng(world, change.to);
     default:
       return Assert.never(change);
@@ -129,27 +141,27 @@ export const forward = <B>(world: World.Type<B>, change: Change<B>): World.Type<
 
 export const backward = <B>(world: World.Type<B>, change: Change<B>): World.Type<B> => {
   switch (change.kind) {
-    case "turned":
+    case TURNED:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.turnTo(player.snake, change.from)),
       );
-    case "queued":
+    case QUEUED:
       return shifting(world, change.player, (player) => Player.withTurns(player, change.from));
-    case "moved":
+    case MOVED:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.moveBack(player.snake, change.dropped)),
       );
-    case "grew":
+    case GREW:
       return shifting(world, change.player, (player) =>
         Player.withSnake(player, Snake.shrink(player.snake)),
       );
-    case "scored":
+    case SCORED:
       return shifting(world, change.player, (player) => Player.withScore(player, player.score - 1));
-    case "died":
+    case DIED:
       return shifting(world, change.player, (player) => Player.withLife(player, true));
-    case "fed":
+    case FED:
       return World.withFood(world, change.from);
-    case "rolled":
+    case ROLLED:
       return World.withRng(world, change.from);
     default:
       return Assert.never(change);

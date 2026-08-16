@@ -1,10 +1,12 @@
-import type * as Geometry from "./geometry";
+import * as Geometry from "./geometry";
 import * as NonEmpty from "./non-empty";
 import * as Option from "./option";
 
-export type Signal = { readonly kind: "key"; readonly code: string };
+export const KEY = "key";
 
-export const key = (code: string): Signal => ({ kind: "key", code });
+export type Signal = { readonly kind: typeof KEY; readonly code: string };
+
+export const key = (code: string): Signal => ({ kind: KEY, code });
 
 export type Scheme = {
   readonly name: string;
@@ -25,15 +27,25 @@ const keyboard = (name: string, keys: Readonly<Record<string, Geometry.Direction
 };
 
 export const ARROWS = keyboard("ARROWS", {
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
+  ArrowUp: Geometry.UP,
+  ArrowDown: Geometry.DOWN,
+  ArrowLeft: Geometry.LEFT,
+  ArrowRight: Geometry.RIGHT,
 });
 
-export const WASD = keyboard("W A S D", { w: "up", s: "down", a: "left", d: "right" });
+export const WASD = keyboard("W A S D", {
+  w: Geometry.UP,
+  s: Geometry.DOWN,
+  a: Geometry.LEFT,
+  d: Geometry.RIGHT,
+});
 
-export const VIM = keyboard("H J K L", { k: "up", j: "down", h: "left", l: "right" });
+export const VIM = keyboard("H J K L", {
+  k: Geometry.UP,
+  j: Geometry.DOWN,
+  h: Geometry.LEFT,
+  l: Geometry.RIGHT,
+});
 
 export const EVERY: NonEmpty.List<Scheme> = [ARROWS, WASD, VIM];
 

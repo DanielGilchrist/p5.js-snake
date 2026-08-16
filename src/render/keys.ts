@@ -4,6 +4,7 @@ import * as Assert from "../core/assert";
 import type * as Option from "../core/option";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
+import * as Geometry from "../core/geometry";
 import * as Pad from "./pad";
 import * as Units from "./units";
 
@@ -69,19 +70,19 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
   const flank = reach * 0.78;
 
   switch (control) {
-    case "up":
+    case Geometry.UP:
       p.triangle(0, -tip, -flank, -back, flank, -back);
       return;
-    case "down":
+    case Geometry.DOWN:
       p.triangle(0, tip, -flank, back, flank, back);
       return;
-    case "left":
+    case Geometry.LEFT:
       p.triangle(-tip, 0, -back, -flank, -back, flank);
       return;
-    case "right":
+    case Geometry.RIGHT:
       p.triangle(tip, 0, back, -flank, back, flank);
       return;
-    case "menu": {
+    case Pad.MENU: {
       const step = (Math.PI * 2) / GEAR_TEETH;
       const half = step * GEAR_TOOTH * 0.5;
       const root = reach * GEAR_ROOT;
@@ -117,7 +118,7 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
 
       return;
     }
-    case "pause": {
+    case Pad.PAUSE: {
       const width = reach * BAR_WIDTH * 2;
       const height = reach * BAR_HEIGHT * 2;
       const gap = reach * BAR_GAP;
@@ -169,7 +170,7 @@ export const draw = (
 ): void => {
   const down = (control: Pad.Control): boolean => held.some && held.value === control;
   const cut = Math.max(1, of.arm * CUT * 2);
-  const turning = held.some && held.value !== "pause" && held.value !== "menu";
+  const turning = held.some && held.value !== Pad.PAUSE && held.value !== Pad.MENU;
 
   p.noStroke();
 
@@ -193,7 +194,7 @@ export const draw = (
 
   p.pop();
 
-  for (const control of ["up", "down", "left", "right"] as const) {
+  for (const control of Geometry.DIRECTIONS) {
     const at = Pad.armOf(of, control);
     const sunk = down(control) ? SUNK_LIFT : CAP_LIFT;
 
@@ -209,7 +210,7 @@ export const draw = (
 
   if (!extras) return;
 
-  for (const control of ["pause", "menu"] as const) {
+  for (const control of Pad.SWITCHES) {
     const seat = Pad.armOf(of, control);
     const sunk = down(control);
     const lift = -of.button * (sunk ? SUNK_LIFT : CAP_LIFT);

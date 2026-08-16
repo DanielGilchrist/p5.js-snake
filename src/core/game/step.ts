@@ -1,6 +1,6 @@
 import type * as Board from "../board";
 import type * as Event from "../event";
-import type * as Command from "./command";
+import * as Command from "./command";
 import * as Fold from "./fold";
 import * as Rules from "./rules";
 import * as State from "./state";
@@ -20,7 +20,7 @@ export const step = <B>(
   state: State.Type<B>,
   command: Command.Type,
 ): Step<B> => {
-  if (command.kind === "restart") {
+  if (command.kind === Command.RESTART) {
     return stepped(
       Rules.start(state.world.board, state.world.rng, Rules.forPlayers(state.world.players.length)),
       [],

@@ -5,50 +5,55 @@ import type * as Geometry from "./geometry";
 import * as Option from "./option";
 import * as Players from "./players";
 
-const PAUSE = "p";
-const SKIP = "Enter";
-const MENU = "S";
-const HELP = "?";
-const FREEZE = "P";
+export const TURN = "turn";
+export const PAUSE = "pause";
+export const SKIP = "skip";
+export const MENU = "menu";
+export const HELP = "help";
+export const FREEZE = "freeze";
+export const OTHER = "other";
 
 export type Key =
-  | { readonly kind: "turn"; readonly seat: number; readonly direction: Geometry.Direction }
-  | { readonly kind: "pause" }
-  | { readonly kind: "skip" }
-  | { readonly kind: "menu" }
-  | { readonly kind: "help" }
-  | { readonly kind: "freeze" }
-  | { readonly kind: "other" };
+  | { readonly kind: typeof TURN; readonly seat: number; readonly direction: Geometry.Direction }
+  | { readonly kind: typeof PAUSE }
+  | { readonly kind: typeof SKIP }
+  | { readonly kind: typeof MENU }
+  | { readonly kind: typeof HELP }
+  | { readonly kind: typeof FREEZE }
+  | { readonly kind: typeof OTHER };
 
 export const turn = (seat: number, direction: Geometry.Direction): Key => ({
-  kind: "turn",
+  kind: TURN,
   seat,
   direction,
 });
 
-export const pause = { kind: "pause" } as const;
+export const pause = { kind: PAUSE } as const;
 
-const skip = { kind: "skip" } as const;
+const skip = { kind: SKIP } as const;
 
-const menu = { kind: "menu" } as const;
+const menu = { kind: MENU } as const;
 
-const help = { kind: "help" } as const;
+const help = { kind: HELP } as const;
 
-const freeze = { kind: "freeze" } as const;
+const freeze = { kind: FREEZE } as const;
 
-export const other = { kind: "other" } as const;
+export const other = { kind: OTHER } as const;
+
+const SPECIALS = new Map<string, Key>([
+  ["p", pause],
+  ["Enter", skip],
+  ["S", menu],
+  ["?", help],
+  ["P", freeze],
+]);
 
 export const parseKey = (raw: string, assignment: Controls.Assignment = Controls.shared): Key => {
   const turning = Controls.turnFrom(assignment, Controls.key(raw));
 
   if (turning.some) return turn(turning.value.seat, turning.value.direction);
-  if (raw === PAUSE) return pause;
-  if (raw === SKIP) return skip;
-  if (raw === MENU) return menu;
-  if (raw === HELP) return help;
-  if (raw === FREEZE) return freeze;
 
-  return other;
+  return SPECIALS.get(raw) ?? other;
 };
 
 export type Rules = {
@@ -78,21 +83,21 @@ export const commandFor = <B>(
   key: Key,
   rules: Rules = ALONE,
 ): Option.Type<Game.Command> => {
-  if (state.kind === "over") return Option.some(Game.restart);
+  if (state.kind === Game.OVER) return Option.some(Game.restart);
 
   switch (key.kind) {
-    case "turn": {
+    case TURN: {
       const who = drivenBy(rules, key.seat);
 
       return who.some ? Option.some(Game.turn(who.value, key.direction)) : Option.none;
     }
-    case "pause":
+    case PAUSE:
       return rules.suspendable ? Option.some(Game.togglePause) : Option.none;
-    case "skip":
-    case "menu":
-    case "help":
-    case "freeze":
-    case "other":
+    case SKIP:
+    case MENU:
+    case HELP:
+    case FREEZE:
+    case OTHER:
       return Option.none;
     default:
       return Assert.never(key);

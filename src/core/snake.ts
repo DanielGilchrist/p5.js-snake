@@ -10,21 +10,24 @@ export type State<B> = {
   readonly growth: number;
 };
 
+export const MOVED = "moved";
+export const HIT_WALL = "hitWall";
+
 export type Advance<B> =
   | {
-      readonly kind: "moved";
+      readonly kind: typeof MOVED;
       readonly to: Board.Cell<B>;
       readonly dropped: Option.Type<Board.Cell<B>>;
     }
-  | { readonly kind: "hitWall" };
+  | { readonly kind: typeof HIT_WALL };
 
 const advanced = <B>(to: Board.Cell<B>, dropped: Option.Type<Board.Cell<B>>): Advance<B> => ({
-  kind: "moved",
+  kind: MOVED,
   to,
   dropped,
 });
 
-const hitWall = { kind: "hitWall" } as const;
+const hitWall = { kind: HIT_WALL } as const;
 
 export const spawn = <B>(at: Board.Cell<B>, facing: Geometry.Direction): State<B> => ({
   head: at,
@@ -48,7 +51,7 @@ export const turnTo = <B>(snake: State<B>, facing: Geometry.Direction): State<B>
 export const tryMove = <B>(api: Board.Api<B>, snake: State<B>): Advance<B> => {
   const moved = api.move(snake.head, snake.facing);
 
-  if (moved.kind === "hitWall") return hitWall;
+  if (moved.kind === Board.HIT_WALL) return hitWall;
 
   return advanced(moved.cell, snake.growth > 0 ? Option.none : Option.some(last(snake)));
 };

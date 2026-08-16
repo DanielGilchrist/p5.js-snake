@@ -57,7 +57,7 @@ export const apply = <B>(
   match.state = stepped.state;
   Timeline.record(match.timeline, stepped.events);
 
-  if (stepped.events.some((event) => event.kind === "scored")) match.bite = now;
+  if (stepped.events.some((event) => event.kind === Game.SCORED)) match.bite = now;
 
   match.effects = [
     ...match.effects,

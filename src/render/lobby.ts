@@ -1,5 +1,6 @@
 import type p5 from "p5";
 
+import * as Session from "../net/session";
 import * as Paint from "./paint";
 import type * as Palette from "./palette";
 
@@ -8,7 +9,7 @@ const CODE = 0.13;
 const NOTE = 0.032;
 export type Waiting = {
   readonly code: string;
-  readonly role: "host" | "guest";
+  readonly role: Session.Role;
   readonly waiting: boolean;
 };
 
@@ -25,7 +26,12 @@ export const draw = (p: p5, scheme: Palette.Scheme, waiting: Waiting): void => {
   p.noStroke();
 
   Paint.fill(p, scheme.text);
-  centred(p, waiting.role === "host" ? "YOUR ROOM" : "JOINING", short * TITLE, p.height * 0.24);
+  centred(
+    p,
+    waiting.role === Session.HOST ? "YOUR ROOM" : "JOINING",
+    short * TITLE,
+    p.height * 0.24,
+  );
 
   Paint.fill(p, scheme.snake);
   centred(p, waiting.code, short * CODE, p.height * 0.4);

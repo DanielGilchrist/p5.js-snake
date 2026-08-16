@@ -1,5 +1,5 @@
 import * as Assert from "../../core/assert";
-import type * as Event from "../../core/event";
+import * as Event from "../../core/event";
 import * as Layout from "../layout";
 import * as Morsel from "../morsel";
 import * as Palette from "../palette";
@@ -13,7 +13,7 @@ export const unspawn = <B>(
   now: Units.Millis,
 ): readonly Effect.Effect[] => {
   switch (event.kind) {
-    case "scored": {
+    case Event.SCORED: {
       const at = Layout.centreOf(layout, event.at);
 
       const pulp = Morsel.skinAt(scheme, event.at);
@@ -25,16 +25,16 @@ export const unspawn = <B>(
       ];
     }
 
-    case "ended":
-    case "died":
-    case "turned":
-    case "queued":
-    case "moved":
-    case "grew":
-    case "fed":
-    case "rolled":
-    case "paused":
-    case "resumed":
+    case Event.ENDED:
+    case Event.DIED:
+    case Event.TURNED:
+    case Event.QUEUED:
+    case Event.MOVED:
+    case Event.GREW:
+    case Event.FED:
+    case Event.ROLLED:
+    case Event.PAUSED:
+    case Event.RESUMED:
       return [];
 
     default:
@@ -49,7 +49,7 @@ export const spawn = <B>(
   now: Units.Millis,
 ): readonly Effect.Effect[] => {
   switch (event.kind) {
-    case "scored": {
+    case Event.SCORED: {
       const at = Layout.centreOf(layout, event.at);
 
       const pulp = Morsel.skinAt(scheme, event.at);
@@ -61,7 +61,7 @@ export const spawn = <B>(
       ];
     }
 
-    case "died": {
+    case Event.DIED: {
       const at = Layout.centreOf(layout, event.at);
 
       return [
@@ -72,15 +72,15 @@ export const spawn = <B>(
       ];
     }
 
-    case "ended":
-    case "turned":
-    case "queued":
-    case "moved":
-    case "grew":
-    case "fed":
-    case "rolled":
-    case "paused":
-    case "resumed":
+    case Event.ENDED:
+    case Event.TURNED:
+    case Event.QUEUED:
+    case Event.MOVED:
+    case Event.GREW:
+    case Event.FED:
+    case Event.ROLLED:
+    case Event.PAUSED:
+    case Event.RESUMED:
       return [];
 
     default:

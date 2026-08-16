@@ -1,32 +1,39 @@
 import * as Assert from "../core/assert";
 import * as Option from "../core/option";
-import type * as Pad from "./pad";
+import * as Pad from "./pad";
 import * as Palette from "./palette";
 
-export type Theme = "auto" | "earthenware" | "stoneware";
+export const AUTO = "auto";
+export const EARTHENWARE = "earthenware";
+export const STONEWARE = "stoneware";
+
+export type Theme = typeof AUTO | typeof EARTHENWARE | typeof STONEWARE;
 
 export type Type = {
   readonly theme: Theme;
   readonly hand: Pad.Hand;
 };
 
-export const DEFAULT: Type = { theme: "auto", hand: "right" };
+export const DEFAULT: Type = { theme: AUTO, hand: Pad.RIGHT_HAND };
+
+export const THEME = "theme";
+export const HAND = "hand";
 
 export type Choice =
-  | { readonly kind: "theme"; readonly value: Theme }
-  | { readonly kind: "hand"; readonly value: Pad.Hand };
+  | { readonly kind: typeof THEME; readonly value: Theme }
+  | { readonly kind: typeof HAND; readonly value: Pad.Hand };
 
-export const THEMES: readonly Theme[] = ["auto", "earthenware", "stoneware"];
+export const THEMES: readonly Theme[] = [AUTO, EARTHENWARE, STONEWARE];
 
-export const HANDS: readonly Pad.Hand[] = ["left", "right"];
+export const HANDS: readonly Pad.Hand[] = [Pad.LEFT_HAND, Pad.RIGHT_HAND];
 
 export const themeLabel = (theme: Theme): string => {
   switch (theme) {
-    case "auto":
+    case AUTO:
       return "Auto";
-    case "earthenware":
+    case EARTHENWARE:
       return "Light";
-    case "stoneware":
+    case STONEWARE:
       return "Dark";
     default:
       return Assert.never(theme);
@@ -35,9 +42,9 @@ export const themeLabel = (theme: Theme): string => {
 
 export const handLabel = (hand: Pad.Hand): string => {
   switch (hand) {
-    case "right":
+    case Pad.RIGHT_HAND:
       return "Right";
-    case "left":
+    case Pad.LEFT_HAND:
       return "Left";
     default:
       return Assert.never(hand);
@@ -46,9 +53,9 @@ export const handLabel = (hand: Pad.Hand): string => {
 
 export const chosen = (settings: Type, choice: Choice): Type => {
   switch (choice.kind) {
-    case "theme":
+    case THEME:
       return { ...settings, theme: choice.value };
-    case "hand":
+    case HAND:
       return { ...settings, hand: choice.value };
     default:
       return Assert.never(choice);
@@ -57,20 +64,20 @@ export const chosen = (settings: Type, choice: Choice): Type => {
 
 export const schemeFor = (settings: Type, nightly: boolean): Palette.Scheme => {
   switch (settings.theme) {
-    case "auto":
+    case AUTO:
       return nightly ? Palette.STONEWARE : Palette.EARTHENWARE;
-    case "earthenware":
+    case EARTHENWARE:
       return Palette.EARTHENWARE;
-    case "stoneware":
+    case STONEWARE:
       return Palette.STONEWARE;
     default:
       return Assert.never(settings.theme);
   }
 };
 
-const themeAt = (index: number): Theme => THEMES[index] ?? "auto";
+const themeAt = (index: number): Theme => THEMES[index] ?? AUTO;
 
-const handAt = (index: number): Pad.Hand => HANDS[index] ?? "right";
+const handAt = (index: number): Pad.Hand => HANDS[index] ?? Pad.RIGHT_HAND;
 
 export const cycleTheme = (settings: Type, step: number): Type => {
   const at = THEMES.indexOf(settings.theme);

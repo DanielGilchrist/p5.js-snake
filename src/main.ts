@@ -3,6 +3,7 @@ import p5 from "p5";
 import * as Board from "./core/board";
 import * as Game from "./core/game";
 import * as Controls from "./core/controls";
+import * as Geometry from "./core/geometry";
 import * as Input from "./core/input";
 import * as Option from "./core/option";
 import * as Autopilot from "./core/autopilot";
@@ -78,10 +79,13 @@ window.addEventListener("hashchange", () => {
   if (!asked.some || asked.value !== roomCode) window.location.reload();
 });
 
+const DESK = "desk";
+const HANDHELD = "handheld";
+
 type Shell =
-  | { readonly kind: "desk"; readonly stage: Units.Region }
+  | { readonly kind: typeof DESK; readonly stage: Units.Region }
   | {
-      readonly kind: "handheld";
+      readonly kind: typeof HANDHELD;
       readonly stage: Units.Region;
       readonly device: Units.Region;
       readonly pad: Pad.Pad;
@@ -98,12 +102,12 @@ const fillScreen = (): void => {
 };
 
 const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
-  if (!touchFirst()) return { kind: "desk", stage: Layout.desk(viewport) };
+  if (!touchFirst()) return { kind: DESK, stage: Layout.desk(viewport) };
 
   const handheld = Pad.arrange(viewport, hand);
 
   return {
-    kind: "handheld",
+    kind: HANDHELD,
     stage: handheld.stage,
     device: handheld.device,
     pad: handheld.pad,
@@ -132,7 +136,7 @@ export const sketch = new p5((p: p5) => {
 
     const net: Option.Type<Session.Session> = online
       ? Option.some(
-          Session.join(roomCode, mode.joining ? "guest" : "host", () => ({
+          Session.join(roomCode, mode.joining ? Session.GUEST : Session.HOST, () => ({
             cols: mine.cols,
             rows: mine.rows,
             seed: Math.floor(Math.random() * 1_000_000_000),
@@ -154,7 +158,7 @@ export const sketch = new p5((p: p5) => {
         let phase: Phase.Phase<B> = net.some
           ? Phase.READY
           : firstPhase(mode.rules.players > 1, Units.millis(p.millis()));
-        let bite = phase.kind === "counting" ? phase.until : Units.millis(0);
+        let bite = Phase.isCounting(phase) ? phase.until : Units.millis(0);
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
@@ -167,11 +171,12 @@ export const sketch = new p5((p: p5) => {
         const rulesNow = (): Input.Rules => {
           if (!net.some) return Mode.localRules(mode);
 
-          return phase.kind === "ready" ? Input.waiting(myPlayer()) : Input.away(myPlayer());
+          return phase === Phase.READY ? Input.waiting(myPlayer()) : Input.away(myPlayer());
         };
 
         const endingNow = (): Option.Type<Render.Ending> => {
-          if (state.kind !== "over" || Players.count(state.world.players) < 2) return Option.none;
+          if (state.kind !== Game.OVER || Players.count(state.world.players) < 2)
+            return Option.none;
 
           const won = Verdict.winner(state.outcome, state.world.players);
           const title = Mode.cheerFor(mode, won, myPlayer());
@@ -188,7 +193,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const namingNow = (): Option.Type<Render.Naming> => {
-          if (!versus() || phase.kind !== "counting") return Option.none;
+          if (!versus() || !Phase.isCounting(phase)) return Option.none;
 
           const tags = Players.everyone(state.world.players).map(([who]) =>
             Mode.tagFor(mode, who, myPlayer()),
@@ -202,8 +207,8 @@ export const sketch = new p5((p: p5) => {
           Render.chrome(
             scheme,
             shell.stage,
-            shell.kind === "handheld" ? Option.some(shell.device) : Option.none,
-            shell.kind === "handheld" ? "touch" : "keys",
+            shell.kind === HANDHELD ? Option.some(shell.device) : Option.none,
+            shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
             endingNow(),
             namingNow(),
           );
@@ -234,21 +239,21 @@ export const sketch = new p5((p: p5) => {
 
           state = stepped.state;
 
-          if (command.kind === "restart") {
+          if (command.kind === Game.RESTART) {
             timeline = Timeline.start(state);
             bite = now;
           } else {
             Timeline.record(timeline, stepped.events);
           }
 
-          if (stepped.events.some((event) => event.kind === "scored")) bite = now;
+          if (stepped.events.some((event) => event.kind === Game.SCORED)) bite = now;
 
-          if (stepped.events.some((event) => event.kind === "scored")) hitstop = HITSTOP_MS;
+          if (stepped.events.some((event) => event.kind === Game.SCORED)) hitstop = HITSTOP_MS;
 
-          if (stepped.events.some((event) => event.kind === "ended")) {
+          if (stepped.events.some((event) => event.kind === Game.ENDED)) {
             inputLockedUntil = now + ENDING_GRACE_MS;
 
-            if (net.some && state.kind === "over") {
+            if (net.some && state.kind === Game.OVER) {
               verdict = Option.some(
                 Verdict.mineToLose(state.outcome, net.value.seat, state.world.players),
               );
@@ -286,7 +291,7 @@ export const sketch = new p5((p: p5) => {
             apply(Game.restart);
           }
 
-          if (phase.kind === "counting") bite = phase.until;
+          if (Phase.isCounting(phase)) bite = phase.until;
 
           previous = state.world.players;
         };
@@ -316,7 +321,7 @@ export const sketch = new p5((p: p5) => {
 
           const frame = Rewind.frame(playback, timeline, now);
 
-          if (frame.kind === "finished") {
+          if (frame.kind === Rewind.FINISHED) {
             startRound(now);
 
             return;
@@ -342,11 +347,11 @@ export const sketch = new p5((p: p5) => {
           Render.drawSkipHint(
             p,
             scheme,
-            shell.kind === "handheld" ? "touch" : "keys",
+            shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
             net.some && net.value.askedRematch(),
           );
 
-          if (shell.kind === "handheld")
+          if (shell.kind === HANDHELD)
             Keys.draw(p, scheme, shell.pad, Option.none, rulesNow().suspendable);
         };
 
@@ -357,7 +362,7 @@ export const sketch = new p5((p: p5) => {
 
           const opening = Lockstep.step(gate, session.turnsAt(gate.beat));
 
-          if (opening.kind === "commit") {
+          if (opening.kind === Lockstep.COMMIT) {
             session.record(opening.beat, opening.committed, World.fingerprint(state.world));
             gate = opening.next;
             resent = 0;
@@ -365,7 +370,7 @@ export const sketch = new p5((p: p5) => {
 
           const turn = Lockstep.step(gate, session.turnsAt(gate.beat));
 
-          if (turn.kind !== "advance") {
+          if (turn.kind !== Lockstep.ADVANCE) {
             if (stalling === 0) stalling = p.millis();
 
             return false;
@@ -401,7 +406,7 @@ export const sketch = new p5((p: p5) => {
 
         const nudgePilot = (): void => {
           if (!piloted || !net.some) return;
-          if (state.kind !== "playing") return;
+          if (state.kind !== Game.PLAYING) return;
           if (gate.posted === gate.beat || gate.queued.length > 0) return;
 
           const picked = Autopilot.choose(api, state.world, net.value.seat);
@@ -410,7 +415,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const driveCpu = (): void => {
-          if (!cpu || state.kind !== "playing") return;
+          if (!cpu || state.kind !== Game.PLAYING) return;
 
           const picked = Autopilot.choose(api, state.world, Players.id(1));
 
@@ -444,7 +449,7 @@ export const sketch = new p5((p: p5) => {
 
           Effects.draw(p, scheme, effects, layout, now);
 
-          if (shell.kind === "handheld") {
+          if (shell.kind === HANDHELD) {
             if (!thumb.some && now > heldUntil) held = Option.none;
 
             Keys.draw(p, scheme, shell.pad, held, rulesNow().suspendable);
@@ -547,7 +552,7 @@ export const sketch = new p5((p: p5) => {
             { here: standing.here, there: standing.there, verdict },
             layout,
             shell.stage,
-            shell.kind === "handheld" ? "touch" : "keys",
+            shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
           );
         };
 
@@ -556,38 +561,38 @@ export const sketch = new p5((p: p5) => {
 
           keepTalking();
 
-          if (phase.kind === "ready") {
+          if (phase === Phase.READY) {
             drawReady(now);
 
             return;
           }
 
-          if (phase.kind === "counting") {
+          if (Phase.isCounting(phase)) {
             drawCounting(phase.until, now);
 
             return;
           }
 
-          if (phase.kind === "rewinding") {
+          if (Phase.isRewinding(phase)) {
             drawRewind(phase.playback, now);
 
             return;
           }
 
-          if (phase.kind === "settings") {
+          if (Phase.isSettings(phase)) {
             paintWorld(now);
             Panel.draw(p, scheme, menuNow(), layout.blockWidth, phase.cursor);
 
             return;
           }
 
-          if (phase.kind === "frozen") {
+          if (phase === Phase.FROZEN) {
             paintWorld(now);
 
             return;
           }
 
-          if (phase.kind === "help") {
+          if (phase === Phase.HELP) {
             paintWorld(now);
             Render.drawTablet(
               p,
@@ -631,8 +636,8 @@ export const sketch = new p5((p: p5) => {
         const press = (key: Input.Key, now: Units.Millis): void => {
           if (now < inputLockedUntil) return;
 
-          if (phase.kind === "rewinding") {
-            const asking = key.kind === "skip" || key.kind === "other";
+          if (Phase.isRewinding(phase)) {
+            const asking = key.kind === Input.SKIP || key.kind === Input.OTHER;
 
             if (asking && net.some) net.value.askRematch();
             else if (asking) startRound(now);
@@ -643,21 +648,21 @@ export const sketch = new p5((p: p5) => {
           const command = Input.commandFor(state, key, rulesNow());
           if (!command.some) return;
 
-          if (net.some && command.value.kind === "turn") {
+          if (net.some && command.value.kind === Game.TURN) {
             gate = Lockstep.pressed(gate, command.value.direction);
 
             return;
           }
 
-          if (command.value.kind === "restart" && net.some) return;
+          if (command.value.kind === Game.RESTART && net.some) return;
 
-          if (command.value.kind === "restart" && reshaping) {
+          if (command.value.kind === Game.RESTART && reshaping) {
             window.location.reload();
 
             return;
           }
 
-          if (command.value.kind === "restart") {
+          if (command.value.kind === Game.RESTART) {
             const playback = Rewind.begin(timeline, state, now);
 
             if (Rewind.worthWatching(playback)) {
@@ -688,17 +693,12 @@ export const sketch = new p5((p: p5) => {
         };
 
         const menuNow = (): Menu.Menu =>
-          Menu.of(
-            shell.stage,
-            layout.blockWidth,
-            settings,
-            Menu.rowsFor(shell.kind === "handheld"),
-          );
+          Menu.of(shell.stage, layout.blockWidth, settings, Menu.rowsFor(shell.kind === HANDHELD));
 
         const tapped = (at: Units.Point): void => {
           const now = Units.millis(p.millis());
 
-          if (phase.kind === "settings") {
+          if (Phase.isSettings(phase)) {
             const menu = menuNow();
             const picked = Menu.hit(menu, at);
 
@@ -708,13 +708,13 @@ export const sketch = new p5((p: p5) => {
             return;
           }
 
-          if (phase.kind === "ready") {
+          if (phase === Phase.READY) {
             fillScreen();
 
-            if (shell.kind === "handheld") {
+            if (shell.kind === HANDHELD) {
               const picked = Pad.hit(shell.pad, at);
 
-              if (picked.some && picked.value === "menu") {
+              if (picked.some && picked.value === Pad.MENU) {
                 phase = Phase.settings(0);
 
                 return;
@@ -726,7 +726,7 @@ export const sketch = new p5((p: p5) => {
             return;
           }
 
-          if (shell.kind !== "handheld") return;
+          if (shell.kind !== HANDHELD) return;
 
           const control = Pad.hit(shell.pad, at);
 
@@ -735,7 +735,7 @@ export const sketch = new p5((p: p5) => {
             heldUntil = now + PRESS_FEEDBACK_MS;
           }
 
-          if (control.some && control.value === "menu") {
+          if (control.some && control.value === Pad.MENU) {
             if (rulesNow().suspendable) phase = Phase.settings(0);
 
             return;
@@ -747,7 +747,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         const slid = (at: Units.Point): void => {
-          if (shell.kind !== "handheld" || phase.kind !== "live") return;
+          if (shell.kind !== HANDHELD || phase !== Phase.LIVE) return;
 
           const control = Pad.hit(shell.pad, at);
           const steering = control.some && Pad.steers(control.value);
@@ -775,7 +775,7 @@ export const sketch = new p5((p: p5) => {
         window.addEventListener(
           "pointerdown",
           (event: PointerEvent) => {
-            if (shell.kind !== "handheld" && phase.kind !== "settings") return;
+            if (shell.kind !== HANDHELD && !Phase.isSettings(phase)) return;
 
             event.preventDefault();
 
@@ -824,74 +824,75 @@ export const sketch = new p5((p: p5) => {
           const now = Units.millis(p.millis());
           const key = Input.parseKey(p.key, Mode.controlsFor(mode));
 
-          if (phase.kind === "ready") {
-            if (key.kind === "menu") phase = Phase.settings(0);
-            else if (key.kind === "help") phase = Phase.HELP;
-            else if (key.kind === "skip" && net.some) net.value.declareReady();
+          if (phase === Phase.READY) {
+            if (key.kind === Input.MENU) phase = Phase.settings(0);
+            else if (key.kind === Input.HELP) phase = Phase.HELP;
+            else if (key.kind === Input.SKIP && net.some) net.value.declareReady();
 
             return;
           }
 
           if (
             !rulesNow().suspendable &&
-            (key.kind === "freeze" || key.kind === "menu" || key.kind === "help")
+            (key.kind === Input.FREEZE || key.kind === Input.MENU || key.kind === Input.HELP)
           ) {
             return;
           }
 
-          if (key.kind === "freeze") {
-            if (phase.kind === "frozen") resume(now);
+          if (key.kind === Input.FREEZE) {
+            if (phase === Phase.FROZEN) resume(now);
             else phase = Phase.FROZEN;
 
             return;
           }
 
-          if (phase.kind === "frozen") return;
+          if (phase === Phase.FROZEN) return;
 
-          if (phase.kind === "help") {
-            if (key.kind === "menu") phase = Phase.settings(0);
+          if (phase === Phase.HELP) {
+            if (key.kind === Input.MENU) phase = Phase.settings(0);
             else resume(now);
 
             return;
           }
 
-          if (phase.kind === "settings") {
+          if (Phase.isSettings(phase)) {
             const { cursor } = phase;
 
-            if (key.kind === "help") {
+            if (key.kind === Input.HELP) {
               phase = Phase.HELP;
 
               return;
             }
 
-            if (key.kind === "menu" || key.kind === "skip") {
+            if (key.kind === Input.MENU || key.kind === Input.SKIP) {
               resume(now);
 
               return;
             }
 
-            if (key.kind !== "turn") return;
+            if (key.kind !== Input.TURN) return;
 
             const menu = menuNow();
 
-            if (key.direction === "up") phase = Phase.settings(cursor - 1 + menu.lines.length);
-            else if (key.direction === "down") phase = Phase.settings(cursor + 1);
+            if (key.direction === Geometry.UP)
+              phase = Phase.settings(cursor - 1 + menu.lines.length);
+            else if (key.direction === Geometry.DOWN) phase = Phase.settings(cursor + 1);
             else {
               const row = Menu.rowAt(menu, cursor);
 
-              applySettings(Menu.cycle(settings, row, key.direction === "right" ? 1 : -1));
+              applySettings(Menu.cycle(settings, row, key.direction === Geometry.RIGHT ? 1 : -1));
             }
 
             return;
           }
 
-          if (key.kind === "menu") {
+          if (key.kind === Input.MENU) {
             phase = Phase.settings(0);
 
             return;
           }
 
-          if (key.kind === "help") {
+          if (key.kind === Input.HELP) {
             phase = Phase.HELP;
 
             return;
@@ -922,7 +923,7 @@ export const sketch = new p5((p: p5) => {
     p.draw = () => {
       const stage = lobby.stage();
 
-      if (stage.kind === "ready") {
+      if (Session.isReady(stage)) {
         panel.hide();
         boot(Board.size(stage.config.cols, stage.config.rows), stage.config.seed);
 
@@ -932,7 +933,7 @@ export const sketch = new p5((p: p5) => {
       Render.drawLobby(p, schemeFor(vault.read(Slots.SETTINGS)), {
         code: roomCode,
         role: lobby.role,
-        waiting: stage.kind === "waiting",
+        waiting: Session.isWaiting(stage),
       });
     };
   };

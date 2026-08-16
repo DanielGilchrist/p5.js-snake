@@ -4,7 +4,7 @@ import type * as Option from "../core/option";
 import * as Hud from "./hud";
 import type * as Layout from "./layout";
 import type * as Palette from "./palette";
-import type * as Scene from "./scene";
+import * as Scene from "./scene";
 import type * as Units from "./units";
 
 export type Standing = {
@@ -13,7 +13,7 @@ export type Standing = {
   readonly verdict: Option.Type<string>;
 };
 
-const nudgeFor = (prompt: Scene.Prompt): string => (prompt === "touch" ? "Tap" : "Press ENTER");
+const nudgeFor = (prompt: Scene.Prompt): string => (prompt === Scene.TOUCH ? "Tap" : "Press ENTER");
 
 export const draw = (
   p: p5,

@@ -8,16 +8,20 @@ export type Waiting = {
   readonly committed: readonly Geometry.Direction[];
 };
 
+export const COMMIT = "commit";
+export const STALL = "stall";
+export const ADVANCE = "advance";
+
 export type Turn =
   | {
-      readonly kind: "commit";
+      readonly kind: typeof COMMIT;
       readonly beat: number;
       readonly committed: readonly Geometry.Direction[];
       readonly next: Waiting;
     }
-  | { readonly kind: "stall" }
+  | { readonly kind: typeof STALL }
   | {
-      readonly kind: "advance";
+      readonly kind: typeof ADVANCE;
       readonly mine: readonly Geometry.Direction[];
       readonly theirs: readonly Geometry.Direction[];
       readonly next: Waiting;
@@ -38,17 +42,17 @@ export const pressed = (of: Waiting, direction: Geometry.Direction): Waiting => 
 export const step = (of: Waiting, theirs: Option.Type<readonly Geometry.Direction[]>): Turn => {
   if (of.posted !== of.beat) {
     return {
-      kind: "commit",
+      kind: COMMIT,
       beat: of.beat,
       committed: of.queued,
       next: { ...of, posted: of.beat, committed: of.queued, queued: [] },
     };
   }
 
-  if (!theirs.some) return { kind: "stall" };
+  if (!theirs.some) return { kind: STALL };
 
   return {
-    kind: "advance",
+    kind: ADVANCE,
     mine: of.committed,
     theirs: theirs.value,
     next: { beat: of.beat + 1, posted: of.posted, queued: of.queued, committed: [] },

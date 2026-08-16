@@ -75,22 +75,25 @@ const withCursors = <B>(
   ahead: Timeline.Cursor<B>,
 ): Playback<B> => ({ ...playback, cursor, ahead });
 
+export const DRAWING = "drawing";
+export const FINISHED = "finished";
+
 export type Frame<B> =
   | {
-      readonly kind: "drawing";
+      readonly kind: typeof DRAWING;
       readonly playback: Playback<B>;
       readonly scene: Scene.Scene<B>;
       readonly undone: readonly Event.Type<B>[];
     }
-  | { readonly kind: "finished" };
+  | { readonly kind: typeof FINISHED };
 
-const finished = { kind: "finished" } as const;
+const finished = { kind: FINISHED } as const;
 
 const drawing = <B>(
   playback: Playback<B>,
   scene: Scene.Scene<B>,
   undone: readonly Event.Type<B>[],
-): Frame<B> => ({ kind: "drawing", playback, scene, undone });
+): Frame<B> => ({ kind: DRAWING, playback, scene, undone });
 
 export const worthWatching = <B>(playback: Playback<B>): boolean => playback.total > 1;
 

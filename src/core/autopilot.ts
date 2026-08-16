@@ -1,12 +1,10 @@
 import * as Board from "./board";
-import type * as Geometry from "./geometry";
+import * as Geometry from "./geometry";
 import * as Option from "./option";
 import * as Players from "./players";
 import * as Snake from "./snake";
 import * as Turns from "./turns";
 import type * as World from "./world";
-
-const HEADINGS: readonly Geometry.Direction[] = ["up", "down", "left", "right"];
 
 const crowded = <B>(world: World.Type<B>, cell: Board.Cell<B>): boolean =>
   world.players.some((player) => player.alive && Snake.occupies(player.snake, cell));
@@ -19,7 +17,7 @@ const landing = <B>(
 ): Option.Type<Board.Cell<B>> => {
   const moved = api.move(from, heading);
 
-  if (moved.kind === "hitWall") return Option.none;
+  if (moved.kind === Snake.HIT_WALL) return Option.none;
 
   return crowded(world, moved.cell) ? Option.none : Option.some(moved.cell);
 };
@@ -42,7 +40,7 @@ export const choose = <B>(
   let picked: Option.Type<Geometry.Direction> = Option.none;
   let closest = staying.some ? gap(staying.value, world.food) : Number.POSITIVE_INFINITY;
 
-  for (const heading of HEADINGS) {
+  for (const heading of Geometry.DIRECTIONS) {
     if (!Turns.accept(turns, snake.facing, heading).some) continue;
 
     const next = landing(api, world, snake.head, heading);

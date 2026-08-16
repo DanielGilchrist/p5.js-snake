@@ -1,11 +1,11 @@
 import * as Option from "./option";
 import * as Players from "./players";
-import type * as World from "./world";
+import * as World from "./world";
 
 const outlived = <B>(outcome: World.Outcome, players: Players.Type<B>): Option.Type<Players.Id> => {
   const standing = Players.living(players);
 
-  if (outcome.ending !== "collision" || standing.length !== 1 || standing[0] === undefined) {
+  if (outcome.ending !== World.COLLISION || standing.length !== 1 || standing[0] === undefined) {
     return Option.none;
   }
 
@@ -13,12 +13,14 @@ const outlived = <B>(outcome: World.Outcome, players: Players.Type<B>): Option.T
 };
 
 export const onScore = <B>(outcome: World.Outcome, players: Players.Type<B>): boolean =>
-  !outlived(outcome, players).some;
+  outcome.ending !== World.TRADED && !outlived(outcome, players).some;
 
 export const winner = <B>(
   outcome: World.Outcome,
   players: Players.Type<B>,
 ): Option.Type<Players.Id> => {
+  if (outcome.ending === World.TRADED) return Option.none;
+
   const survivor = outlived(outcome, players);
 
   if (survivor.some) return survivor;

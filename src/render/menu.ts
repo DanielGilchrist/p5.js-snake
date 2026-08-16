@@ -3,9 +3,12 @@ import * as Option from "../core/option";
 import * as Settings from "./settings";
 import * as Units from "./units";
 
-export type Row = "theme" | "hand";
+export const THEME = "theme";
+export const HAND = "hand";
 
-export const ROWS: readonly Row[] = ["theme", "hand"];
+export type Row = typeof THEME | typeof HAND;
+
+export const ROWS: readonly Row[] = [THEME, HAND];
 
 export type Chip = {
   readonly at: Units.Region;
@@ -35,9 +38,9 @@ const CHIP_HEIGHT = 0.9;
 
 const labelOf = (row: Row): string => {
   switch (row) {
-    case "theme":
+    case THEME:
       return "Theme";
-    case "hand":
+    case HAND:
       return "Controls";
     default:
       return Assert.never(row);
@@ -46,10 +49,10 @@ const labelOf = (row: Row): string => {
 
 const choicesFor = (row: Row): readonly Settings.Choice[] => {
   switch (row) {
-    case "theme":
-      return Settings.THEMES.map((value) => ({ kind: "theme", value }));
-    case "hand":
-      return Settings.HANDS.map((value) => ({ kind: "hand", value }));
+    case THEME:
+      return Settings.THEMES.map((value) => ({ kind: Settings.THEME, value }));
+    case HAND:
+      return Settings.HANDS.map((value) => ({ kind: Settings.HAND, value }));
     default:
       return Assert.never(row);
   }
@@ -57,9 +60,9 @@ const choicesFor = (row: Row): readonly Settings.Choice[] => {
 
 export const captionOf = (choice: Settings.Choice): string => {
   switch (choice.kind) {
-    case "theme":
+    case THEME:
       return Settings.themeLabel(choice.value);
-    case "hand":
+    case HAND:
       return Settings.handLabel(choice.value);
     default:
       return Assert.never(choice);
@@ -68,9 +71,9 @@ export const captionOf = (choice: Settings.Choice): string => {
 
 const isActive = (choice: Settings.Choice, settings: Settings.Type): boolean => {
   switch (choice.kind) {
-    case "theme":
+    case THEME:
       return settings.theme === choice.value;
-    case "hand":
+    case HAND:
       return settings.hand === choice.value;
     default:
       return Assert.never(choice);
@@ -138,9 +141,9 @@ export const covers = (menu: Menu, at: Units.Point): boolean => within(menu.pane
 
 export const cycle = (settings: Settings.Type, row: Row, step: number): Settings.Type => {
   switch (row) {
-    case "theme":
+    case THEME:
       return Settings.cycleTheme(settings, step);
-    case "hand":
+    case HAND:
       return Settings.cycleHand(settings, step);
     default:
       return Assert.never(row);

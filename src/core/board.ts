@@ -19,9 +19,12 @@ export type Grid<B> = {
   readonly start: Cell<B>;
 };
 
+export const INSIDE = "inside";
+export const HIT_WALL = "hitWall";
+
 export type Move<B> =
-  | { readonly kind: "inside"; readonly cell: Cell<B> }
-  | { readonly kind: "hitWall" };
+  | { readonly kind: typeof INSIDE; readonly cell: Cell<B> }
+  | { readonly kind: typeof HIT_WALL };
 
 export type Api<B> = {
   readonly move: (from: Cell<B>, direction: Geometry.Direction) => Move<B>;
@@ -31,15 +34,17 @@ export type GridSize = { readonly cols: number; readonly rows: number };
 
 export const size = (cols: number, rows: number): GridSize => ({ cols, rows });
 
-export type Error = { readonly kind: "too-small"; readonly given: GridSize };
+export const TOO_SMALL = "too-small";
 
-const tooSmall = (given: GridSize): Error => ({ kind: "too-small", given });
+export type Error = { readonly kind: typeof TOO_SMALL; readonly given: GridSize };
+
+const tooSmall = (given: GridSize): Error => ({ kind: TOO_SMALL, given });
 
 const grid = <B>(fields: Grid<B>): Grid<B> => ({ ...fields });
 
-const inside = <B>(cell: Cell<B>): Move<B> => ({ kind: "inside", cell });
+const inside = <B>(cell: Cell<B>): Move<B> => ({ kind: INSIDE, cell });
 
-const hitWall = { kind: "hitWall" } as const;
+const hitWall = { kind: HIT_WALL } as const;
 
 export const equals = <B>(a: Cell<B>, b: Cell<B>): boolean => a.col === b.col && a.row === b.row;
 

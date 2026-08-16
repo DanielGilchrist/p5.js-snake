@@ -1,4 +1,4 @@
-import type * as Event from "./event";
+import * as Event from "./event";
 import * as Game from "./game";
 
 export type Timeline<B> = {
@@ -25,7 +25,7 @@ export const record = <B>(timeline: Timeline<B>, events: readonly Event.Type<B>[
 };
 
 const ticks = <B>(timeline: Timeline<B>): number =>
-  timeline.log.reduce((count, event) => (event.kind === "moved" ? count + 1 : count), 0);
+  timeline.log.reduce((count, event) => (event.kind === Event.MOVED ? count + 1 : count), 0);
 
 export const cursor = <B>(timeline: Timeline<B>, state: Game.State<B>): Cursor<B> =>
   cursorAt(state, timeline.log.length, ticks(timeline));
@@ -48,7 +48,7 @@ export const back = <B>(timeline: Timeline<B>, from: Cursor<B>): Step<B> => {
     index -= 1;
     undone.push(event);
 
-    if (event.kind === "moved") {
+    if (event.kind === Event.MOVED) {
       tick -= 1;
       break;
     }

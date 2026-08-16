@@ -6,6 +6,7 @@ import * as Game from "./game";
 import * as Players from "./players";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
+import type * as World from "./world";
 
 const ROOM: Board.GridSize = { cols: 12, rows: 12 };
 const CORRIDOR: Board.GridSize = { cols: 9, rows: 3 };
@@ -54,6 +55,7 @@ type Death = {
 
 type Summary = {
   readonly deaths: readonly Death[];
+  readonly closings: readonly World.Ending[];
   readonly endings: number;
   readonly endedOn: readonly number[];
   readonly over: boolean;
@@ -64,6 +66,7 @@ type Summary = {
 const summarise = <B>(api: Board.Api<B>, from: Game.State<B>, limit: number): Summary => {
   const deaths: Death[] = [];
   const endedOn: number[] = [];
+  const closings: World.Ending[] = [];
   let endings = 0;
   let current: Game.State<B> = from;
 
@@ -83,6 +86,7 @@ const summarise = <B>(api: Board.Api<B>, from: Game.State<B>, limit: number): Su
       if (event.kind === "ended") {
         endings += 1;
         endedOn.push(i);
+        closings.push(event.ending);
       }
     }
 
@@ -91,6 +95,7 @@ const summarise = <B>(api: Board.Api<B>, from: Game.State<B>, limit: number): Su
 
   return {
     deaths,
+    closings,
     endings,
     endedOn,
     over: current.kind === "over",
@@ -204,11 +209,26 @@ describe("two players colliding", () => {
     }
   });
 
+  test("driving head-on is a trade, not a win for either of them", () => {
+    const seen = onBoard(CORRIDOR, 3, (api, state) => summarise(api, state, 12));
+
+    expect(seen.closings).toEqual(["traded"]);
+  });
+
   test("the match closes exactly once", () => {
     const seen = onBoard(ROOM, 5, (api, state) => summarise(api, state, 400));
 
     expect(seen.over).toBe(true);
     expect(seen.endings).toBe(1);
+  });
+
+  test("dying at the same moment on separate walls is not a trade", () => {
+    const seen = onBoard(ROOM, 5, (api, state) => summarise(api, state, 400));
+    const [first, second] = seen.deaths;
+
+    expect(seen.deaths.length).toBe(2);
+    expect(first?.tick).toBe(second?.tick as number);
+    expect(seen.closings).toEqual(["collision"]);
   });
 });
 

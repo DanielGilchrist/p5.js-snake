@@ -1,5 +1,6 @@
 import type * as Board from "./board";
 import type * as Brand from "./brand";
+import * as Geometry from "./geometry";
 import * as Players from "./players";
 import type * as Rng from "./rng";
 
@@ -7,7 +8,11 @@ export type Variant = Brand.Of<number, "Variant">;
 
 export const variant = (n: number): Variant => n as Variant;
 
-export type Ending = "collision" | "filled";
+export const COLLISION = "collision";
+export const TRADED = "traded";
+export const FILLED = "filled";
+
+export type Ending = typeof COLLISION | typeof TRADED | typeof FILLED;
 
 export type Outcome = { readonly ending: Ending };
 
@@ -23,7 +28,7 @@ export type Type<B> = {
 
 export const create = <B>(fields: Type<B>): Type<B> => ({ ...fields });
 
-const FACINGS = ["up", "down", "left", "right"] as const;
+const FACINGS = Geometry.DIRECTIONS;
 
 export const fingerprint = <B>(world: Type<B>): number => {
   let mark = 17;

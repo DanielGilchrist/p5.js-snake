@@ -9,21 +9,36 @@ import type * as Palette from "./palette";
 import * as Sculpt from "./sculpt";
 import type * as Units from "./units";
 
-export type Topper = "sprig" | "stalk" | "tuft" | "bare";
+export const SPRIG = "sprig";
+export const STALK = "stalk";
+export const TUFT = "tuft";
+export const BARE = "bare";
 
-export type Form = "apple" | "pear" | "berries" | "root";
+export type Topper = typeof SPRIG | typeof STALK | typeof TUFT | typeof BARE;
 
-export type Hue = "terracotta" | "ochre" | "plum" | "brick";
+export const APPLE = "apple";
+export const PEAR = "pear";
+export const BERRIES = "berries";
+export const ROOT = "root";
+
+export type Form = typeof APPLE | typeof PEAR | typeof BERRIES | typeof ROOT;
+
+export const TERRACOTTA = "terracotta";
+export const OCHRE = "ochre";
+export const PLUM = "plum";
+export const BRICK = "brick";
+
+export type Hue = typeof TERRACOTTA | typeof OCHRE | typeof PLUM | typeof BRICK;
 
 const skinOf = (scheme: Palette.Scheme, hue: Hue): Palette.Rgb => {
   switch (hue) {
-    case "terracotta":
+    case TERRACOTTA:
       return scheme.food;
-    case "ochre":
+    case OCHRE:
       return scheme.ochre;
-    case "plum":
+    case PLUM:
       return scheme.plum;
-    case "brick":
+    case BRICK:
       return scheme.berry;
     default:
       return Assert.never(hue);
@@ -32,13 +47,13 @@ const skinOf = (scheme: Palette.Scheme, hue: Hue): Palette.Rgb => {
 
 const fleshOf = (scheme: Palette.Scheme, hue: Hue): Palette.Rgb => {
   switch (hue) {
-    case "terracotta":
+    case TERRACOTTA:
       return scheme.foodDeep;
-    case "ochre":
+    case OCHRE:
       return scheme.ochreDeep;
-    case "plum":
+    case PLUM:
       return scheme.plumDeep;
-    case "brick":
+    case BRICK:
       return scheme.berryDeep;
     default:
       return Assert.never(hue);
@@ -58,56 +73,56 @@ export type Morsel = {
 
 const morsel = (fields: Morsel): Morsel => ({ ...fields });
 
-const APPLE = morsel({
-  form: "apple",
-  hue: "terracotta",
+const APPLE_CROP = morsel({
+  form: APPLE,
+  hue: TERRACOTTA,
   width: 0.7,
   height: 0.64,
   lobes: 11,
   roughness: 0.11,
   pinch: 0.07,
-  topper: "sprig",
+  topper: SPRIG,
 });
 
-const PEAR = morsel({
-  form: "pear",
-  hue: "ochre",
+const PEAR_CROP = morsel({
+  form: PEAR,
+  hue: OCHRE,
   width: 0.58,
   height: 0.72,
   lobes: 12,
   roughness: 0.09,
   pinch: 0.26,
-  topper: "stalk",
+  topper: STALK,
 });
 
-const BERRIES = morsel({
-  form: "berries",
-  hue: "plum",
+const BERRIES_CROP = morsel({
+  form: BERRIES,
+  hue: PLUM,
   width: 0.66,
   height: 0.58,
   lobes: 9,
   roughness: 0.14,
   pinch: 0,
-  topper: "bare",
+  topper: BARE,
 });
 
-const ROOT = morsel({
-  form: "root",
-  hue: "brick",
+const ROOT_CROP = morsel({
+  form: ROOT,
+  hue: BRICK,
   width: 0.62,
   height: 0.66,
   lobes: 10,
   roughness: 0.12,
   pinch: -0.24,
-  topper: "tuft",
+  topper: TUFT,
 });
 
-const CROP = [APPLE, PEAR, BERRIES, ROOT] as const;
+const CROP = [APPLE_CROP, PEAR_CROP, BERRIES_CROP, ROOT_CROP] as const;
 
 export const at = <B>(cell: Board.Cell<B>): Morsel => {
   const pick = Math.abs(cell.col * 7 + cell.row * 13) % CROP.length;
 
-  return CROP[pick] ?? APPLE;
+  return CROP[pick] ?? APPLE_CROP;
 };
 
 export const seedAt = <B>(cell: Board.Cell<B>): number =>
@@ -140,10 +155,10 @@ const topper = (
   const crest = -height / 2;
 
   switch (kind) {
-    case "bare":
+    case BARE:
       return;
 
-    case "stalk": {
+    case STALK: {
       Paint.fill(p, scheme.stem);
       p.push();
       p.translate(0, crest + height * 0.06);
@@ -153,7 +168,7 @@ const topper = (
       return;
     }
 
-    case "sprig": {
+    case SPRIG: {
       Paint.fill(p, scheme.stem);
       p.push();
       p.translate(0, crest + height * 0.08);
@@ -170,7 +185,7 @@ const topper = (
       return;
     }
 
-    case "tuft": {
+    case TUFT: {
       Paint.fill(p, scheme.leaf);
 
       for (let i = 0; i < TUFT_BLADES; i++) {
@@ -210,7 +225,7 @@ const body = (
     });
 
   switch (crop.form) {
-    case "berries": {
+    case BERRIES: {
       const pip = width * 0.34;
 
       for (let i = 0; i < 3; i++) {
@@ -234,9 +249,9 @@ const body = (
       return;
     }
 
-    case "apple":
-    case "pear":
-    case "root": {
+    case APPLE:
+    case PEAR:
+    case ROOT: {
       Paint.fill(p, fleshOf(scheme, crop.hue));
       Sculpt.press(p, shape(width / 2, height / 2, 0));
 

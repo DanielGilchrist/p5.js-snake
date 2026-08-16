@@ -5,10 +5,10 @@ import * as Option from "../core/option";
 import * as Clay from "./clay";
 import * as Palette from "./palette";
 import * as Keys from "./keys";
-import type * as Game from "../core/game";
+import * as Game from "../core/game";
 import * as Players from "../core/players";
 import * as Turns from "../core/turns";
-import type * as World from "../core/world";
+import * as World from "../core/world";
 import * as FoodView from "./food";
 import * as GridView from "./grid";
 import * as Hud from "./hud";
@@ -19,7 +19,10 @@ import * as SnakeView from "./snake";
 import type * as Tag from "./tag";
 import * as Units from "./units";
 
-export type Prompt = "keys" | "touch";
+export const KEYS = "keys";
+export const TOUCH = "touch";
+
+export type Prompt = typeof KEYS | typeof TOUCH;
 
 export type Tally = {
   readonly name: string;
@@ -68,9 +71,9 @@ export const chrome = (
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
-    case "keys":
+    case KEYS:
       return "Press any key to restart";
-    case "touch":
+    case TOUCH:
       return "Tap to restart";
     default:
       return Assert.never(prompt);
@@ -105,10 +108,11 @@ const OVER_SCRIM = Paint.alpha(140);
 
 const describe = (closing: World.Ending): Outcome => {
   switch (closing) {
-    case "collision":
-      return outcome("GAME OVER", "dead");
-    case "filled":
-      return outcome("YOU WIN", "alive");
+    case World.COLLISION:
+    case World.TRADED:
+      return outcome("GAME OVER", SnakeView.DEAD);
+    case World.FILLED:
+      return outcome("YOU WIN", SnakeView.ALIVE);
     default:
       return Assert.never(closing);
   }
@@ -167,7 +171,7 @@ const tallied = (told: Ending): readonly Hud.Line[] =>
     .map((counted) => Hud.line(`${counted.name}  ${counted.score}`, 0.38));
 
 const lifeIn = <B>(state: Game.State<B>): SnakeView.Vitality =>
-  state.kind === "over" ? describe(state.outcome.ending).vitality : "alive";
+  state.kind === Game.OVER ? describe(state.outcome.ending).vitality : SnakeView.ALIVE;
 
 export const board = <B>(
   p: p5,
@@ -200,14 +204,14 @@ export const draw = <B>(
   const scheme = frame.scheme;
 
   switch (state.kind) {
-    case "playing":
+    case Game.PLAYING:
       return;
 
-    case "paused":
+    case Game.PAUSED:
       Hud.tablet(p, scheme, [Hud.line("PAUSED", 0.8)], layout, frame.stage, PAUSE_SCRIM);
       return;
 
-    case "over": {
+    case Game.OVER: {
       const closing = frame.ending.some
         ? [Hud.line(frame.ending.value.title, 0.9), ...tallied(frame.ending.value)]
         : [

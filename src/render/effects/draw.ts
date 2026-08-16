@@ -24,22 +24,22 @@ export const draw = (
     const seconds = Effect.spanOf(effect) / 1000;
 
     switch (effect.kind) {
-      case "swallow":
+      case Effect.SWALLOW:
         Swallow.draw(p, effect.at, effect.colour, effect.flow, t, block);
         break;
-      case "crumbs":
+      case Effect.CRUMBS:
         Debris.crumbs(p, scheme, effect.at, t, block, effect.colour, effect.flow, seconds);
         break;
-      case "shards":
+      case Effect.SHARDS:
         Debris.shards(p, scheme, effect.at, t, block, effect.colour, seconds);
         break;
-      case "scuff":
+      case Effect.SCUFF:
         Scuff.draw(p, scheme, effect.at, effect.colour, t, block, effect.born);
         break;
-      case "dim":
+      case Effect.DIM:
         Veil.dim(p, effect.colour, t);
         break;
-      case "shake":
+      case Effect.SHAKE:
         break;
       default:
         Assert.never(effect);

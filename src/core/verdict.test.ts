@@ -104,3 +104,19 @@ describe("showing the working", () => {
     expect(settledOn("filled", ALIVE, ALIVE)).toBe(true);
   });
 });
+
+describe("trading blows", () => {
+  test("crashing into each other draws however the scores stand", () => {
+    expect(said("traded", { score: 9, alive: false }, DEAD)).toBe("DRAW");
+    expect(said("traded", DEAD, { score: 9, alive: false })).toBe("DRAW");
+    expect(said("traded", DEAD, DEAD)).toBe("DRAW");
+  });
+
+  test("a trade needs no scores to explain it", () => {
+    expect(
+      onBoard((board) =>
+        Verdict.onScore(World.outcome("traded"), paired(board, { score: 9, alive: false }, DEAD)),
+      ),
+    ).toBe(false);
+  });
+});

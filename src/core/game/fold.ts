@@ -4,11 +4,11 @@ import * as State from "./state";
 
 export const apply = <B>(state: State.Type<B>, event: Event.Type<B>): State.Type<B> => {
   switch (event.kind) {
-    case "paused":
+    case Event.PAUSED:
       return State.paused({ world: state.world });
-    case "resumed":
+    case Event.RESUMED:
       return State.playing({ world: state.world });
-    case "ended":
+    case Event.ENDED:
       return State.over({
         world: state.world,
         outcome: World.outcome(event.ending),
@@ -20,11 +20,11 @@ export const apply = <B>(state: State.Type<B>, event: Event.Type<B>): State.Type
 
 export const revert = <B>(state: State.Type<B>, event: Event.Type<B>): State.Type<B> => {
   switch (event.kind) {
-    case "paused":
+    case Event.PAUSED:
       return State.playing({ world: state.world });
-    case "resumed":
+    case Event.RESUMED:
       return State.paused({ world: state.world });
-    case "ended":
+    case Event.ENDED:
       return State.playing({ world: state.world });
     default:
       return State.withWorld(state, Event.backward(state.world, event));

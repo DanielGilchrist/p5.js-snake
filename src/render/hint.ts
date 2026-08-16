@@ -3,7 +3,7 @@ import type p5 from "p5";
 import * as Assert from "../core/assert";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
-import type * as Scene from "./scene";
+import * as Scene from "./scene";
 
 const TRAILING = "to skip";
 
@@ -11,9 +11,9 @@ const WAITING = "waiting for the other player";
 
 const labelFor = (prompt: Scene.Prompt): string => {
   switch (prompt) {
-    case "keys":
+    case Scene.KEYS:
       return "ENTER";
-    case "touch":
+    case Scene.TOUCH:
       return "TAP";
     default:
       return Assert.never(prompt);
