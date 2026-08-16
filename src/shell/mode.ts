@@ -3,7 +3,6 @@ import * as Controls from "../core/controls";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Players from "../core/players";
-import * as Palette from "../render/palette";
 import * as Code from "../net/code";
 import * as Invite from "../net/invite";
 
@@ -30,13 +29,22 @@ export type Mode = {
 
 const PLAYERS_TOGETHER = 2;
 
+export const MOST_PLAYERS = 8;
+
+const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
+
 export const read = (href: string): Mode => {
   const invited = Invite.read(href);
   const hosting = Invite.flagged(href, "host");
   const networked = invited.some || hosting;
-  const computer = !networked && Invite.flagged(href, "cpu");
+  const asked = networked ? Option.none : Invite.counted(href, "cpu");
+  const computer = asked.some;
   const friend = !networked && !computer && Invite.flagged(href, "friend");
-  const together = networked || computer || friend;
+  const playing = asked.some
+    ? clamp(asked.value + 1, PLAYERS_TOGETHER, MOST_PLAYERS)
+    : networked || friend
+      ? PLAYERS_TOGETHER
+      : 1;
 
   const kind: Kind = networked
     ? OVER_THE_NETWORK
@@ -48,7 +56,7 @@ export const read = (href: string): Mode => {
 
   return {
     kind,
-    rules: Game.forPlayers(together ? PLAYERS_TOGETHER : 1),
+    rules: Game.forPlayers(playing),
     room: invited.some ? invited.value : Code.fresh(),
     hosting,
     joining: invited.some,
@@ -59,8 +67,6 @@ export const read = (href: string): Mode => {
 
 export const networked = (mode: Mode): boolean => mode.kind === OVER_THE_NETWORK;
 
-export const runItself = (mode: Mode): boolean => mode.kind === AGAINST_THE_COMPUTER;
-
 export const localRules = (mode: Mode): Input.Rules =>
   mode.kind === WITH_A_FRIEND ? Input.sharing(PLAYERS_TOGETHER) : Input.ALONE;
 
@@ -69,18 +75,10 @@ export const controlsFor = (mode: Mode): Controls.Assignment =>
     ? Controls.between([Controls.ARROWS, Controls.WASD])
     : Controls.shared;
 
-const machinesIn = (mode: Mode): readonly Players.Id[] =>
+export const machines = (mode: Mode): readonly Players.Id[] =>
   mode.kind === AGAINST_THE_COMPUTER
     ? Array.from({ length: mode.rules.players - 1 }, (_, seat) => Players.id(seat + 1))
     : [];
-
-export const nameFor = (mode: Mode, who: Players.Id, mine: Players.Id): string => {
-  if (mode.kind !== WITH_A_FRIEND && who === mine) return "YOU";
-
-  const machines = machinesIn(mode);
-
-  return machines.length === 1 && machines[0] === who ? "CPU" : Palette.nameOf(who);
-};
 
 export const ringed = (mode: Mode): boolean => mode.kind !== WITH_A_FRIEND;
 
@@ -89,16 +87,28 @@ export const tagFor = (mode: Mode, who: Players.Id, mine: Players.Id): Option.Ty
 
   if (mode.kind === WITH_A_FRIEND) return Option.some(Controls.nameOf(controlsFor(mode), who));
 
-  return who === mine ? Option.some(nameFor(mode, who, mine)) : Option.none;
+  return who === mine ? Option.some("YOU") : Option.none;
 };
 
-export const cheerFor = (mode: Mode, won: Option.Type<Players.Id>, mine: Players.Id): string => {
-  if (!won.some) return "DRAW";
-
-  if (mode.kind !== WITH_A_FRIEND && won.value === mine) return "YOU WIN";
-
-  return `${nameFor(mode, won.value, mine)} WINS`;
+export type Cheer = {
+  readonly who: readonly Players.Id[];
+  readonly title: string;
 };
 
-export const rival = (mode: Mode): Option.Type<Players.Id> =>
-  mode.kind === AGAINST_THE_COMPUTER ? Option.some(Players.id(1)) : Option.none;
+export const cheerFor = (
+  mode: Mode,
+  won: Option.Type<Players.Id>,
+  mine: Players.Id,
+  shared: readonly Players.Id[] = [],
+): Cheer => {
+  if (!won.some) return { who: shared, title: "DRAW" };
+
+  if (mode.kind !== WITH_A_FRIEND && won.value === mine) {
+    return { who: [won.value], title: "YOU WIN" };
+  }
+
+  const driven = machines(mode);
+  const alone = driven.length === 1 && driven[0] === won.value;
+
+  return { who: [won.value], title: alone ? "CPU WINS" : "WINS" };
+};

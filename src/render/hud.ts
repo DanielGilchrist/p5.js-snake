@@ -6,11 +6,35 @@ import * as Layout from "./layout";
 import * as Morsel from "./morsel";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
+import * as SnakeView from "./snake";
+import * as Geometry from "../core/geometry";
 import * as Units from "./units";
 
-export type Line = { readonly text: string; readonly scale: number };
+export type Badge = {
+  readonly seat: number;
+  readonly facing: Geometry.Direction;
+  readonly vitality: SnakeView.Vitality;
+};
 
-export const line = (text: string, scale: number): Line => ({ text, scale });
+export const badge = (
+  seat: number,
+  facing: Geometry.Direction,
+  vitality: SnakeView.Vitality,
+): Badge => ({ seat, facing, vitality });
+
+export type Line = {
+  readonly text: string;
+  readonly scale: number;
+  readonly badges: readonly Badge[];
+};
+
+export const line = (text: string, scale: number): Line => ({ text, scale, badges: [] });
+
+export const badged = (worn: readonly Badge[], text: string, scale: number): Line => ({
+  text,
+  scale,
+  badges: worn,
+});
 
 const PLATE_PAD = 0.62;
 const PLATE_MIN = 2.1;
@@ -29,6 +53,12 @@ const TABLET_PAD_Y = 0.9;
 const TABLET_RADIUS = 0.36;
 const LINE_HEIGHT = 1.55;
 const MIN_TEXT = 15;
+
+const BADGE_RATIO = 1.05;
+const BADGE_GAP = 0.34;
+
+const badgeRoom = (entry: Line, size: number): number =>
+  entry.badges.length * size * (BADGE_RATIO + BADGE_GAP);
 
 const sizeOf = (block: Units.Px, scale: number): number => Math.max(MIN_TEXT, block * scale);
 
@@ -147,7 +177,7 @@ export const tablet = (
     const size = sizeOf(block, entry.scale);
 
     p.textSize(size);
-    widest = Math.max(widest, p.textWidth(entry.text));
+    widest = Math.max(widest, p.textWidth(entry.text) + badgeRoom(entry, size));
     tall += size * LINE_HEIGHT;
   }
 
@@ -170,7 +200,26 @@ export const tablet = (
 
     p.textSize(size);
     y += (size * LINE_HEIGHT) / 2;
-    engrave(p, scheme, entry.text, middle.x, y, block);
+
+    const room = badgeRoom(entry, size);
+    const group = p.textWidth(entry.text) + room;
+    const start = middle.x - group / 2;
+
+    for (const [worn, shown] of entry.badges.entries()) {
+      const step = size * (BADGE_RATIO + BADGE_GAP);
+
+      SnakeView.head(
+        p,
+        scheme,
+        Units.point(start + worn * step + (size * BADGE_RATIO) / 2, y),
+        size * BADGE_RATIO,
+        Palette.bodyFor(scheme, shown.seat),
+        shown.facing,
+        shown.vitality,
+      );
+    }
+
+    engrave(p, scheme, entry.text, start + room + p.textWidth(entry.text) / 2, y, block);
     y += (size * LINE_HEIGHT) / 2;
   }
 

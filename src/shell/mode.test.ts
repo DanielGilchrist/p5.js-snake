@@ -16,42 +16,41 @@ const cpu = Mode.read(`${SITE}?cpu`);
 const friend = Mode.read(`${SITE}?friend`);
 const crowd = { ...cpu, rules: Game.forPlayers(3) };
 
-const cheer = (mode: Mode.Mode, who: Players.Id): string =>
+const cheer = (mode: Mode.Mode, who: Players.Id): Mode.Cheer =>
   Mode.cheerFor(mode, Option.some(who), Players.FIRST);
 
-describe("naming players", () => {
-  test("against the computer, you are you and it is the CPU", () => {
-    expect(cheer(cpu, Players.FIRST)).toBe("YOU WIN");
-    expect(cheer(cpu, SECOND)).toBe("CPU WINS");
+const shown = (mode: Mode.Mode, who: Players.Id): string => {
+  const told = cheer(mode, who);
+  const heads = told.who.map((seat) => `<${Number(seat)}>`).join(" ");
+
+  return heads === "" ? told.title : `${heads} ${told.title}`;
+};
+
+describe("calling the winner", () => {
+  test("winning it yourself shows your snake beside the call", () => {
+    expect(cheer(cpu, Players.FIRST)).toEqual({ who: [Players.FIRST], title: "YOU WIN" });
   });
 
-  test("with a friend, neither of you is 'you', so they go by colour", () => {
-    expect(cheer(friend, Players.FIRST)).toBe("GREEN WINS");
-    expect(cheer(friend, SECOND)).toBe("PURPLE WINS");
+  test("a lone machine is still called the CPU, beside its snake", () => {
+    expect(shown(cpu, SECOND)).toBe("<1> CPU WINS");
   });
 
-  test("nobody left standing is a draw", () => {
-    expect(Mode.cheerFor(cpu, Option.none, Players.FIRST)).toBe("DRAW");
+  test("anyone else is called by their snake rather than a colour", () => {
+    expect(shown(friend, Players.FIRST)).toBe("<0> WINS");
+    expect(shown(friend, SECOND)).toBe("<1> WINS");
   });
 
-  test("more than one machine drops the ambiguous CPU label for colours", () => {
-    expect(cheer(crowd, Players.FIRST)).toBe("YOU WIN");
-    expect(cheer(crowd, SECOND)).toBe(`${Palette.nameOf(1)} WINS`);
-    expect(cheer(crowd, THIRD)).toBe(`${Palette.nameOf(2)} WINS`);
-    expect(cheer(crowd, SECOND)).not.toBe(cheer(crowd, THIRD));
+  test("a draw shows the snakes that shared it", () => {
+    expect(Mode.cheerFor(cpu, Option.none, Players.FIRST, [Players.FIRST, SECOND])).toEqual({
+      who: [Players.FIRST, SECOND],
+      title: "DRAW",
+    });
   });
 
-  test("names follow the colours a player is actually drawn in", () => {
-    for (let seat = 0; seat < Palette.bodies(); seat++) {
-      expect(Mode.nameFor(friend, Players.id(seat), Players.FIRST)).toBe(Palette.nameOf(seat));
-    }
-  });
-
-  test("a seat past the last colour wraps rather than falling apart", () => {
-    const extra = Palette.bodies();
-
-    expect(Palette.nameOf(extra)).toBe(Palette.nameOf(0));
-    expect(Mode.nameFor(friend, Players.id(extra), Players.FIRST)).toBe(Palette.nameOf(0));
+  test("a crowd of machines is told apart by whose snake is shown", () => {
+    expect(shown(crowd, Players.FIRST)).toBe("<0> YOU WIN");
+    expect(shown(crowd, SECOND)).toBe("<1> WINS");
+    expect(shown(crowd, THIRD)).toBe("<2> WINS");
   });
 });
 
@@ -96,5 +95,40 @@ describe("who the keyboard drives", () => {
 
     expect(Input.parseKey("ArrowUp", shared)).toEqual(Input.turn(0, "up"));
     expect(Input.parseKey("w", shared)).toEqual(Input.turn(1, "up"));
+  });
+});
+
+const playersIn = (href: string): number => Mode.read(href).rules.players;
+
+describe("how many players a link asks for", () => {
+  test("plain cpu is you against one machine", () => {
+    expect(playersIn(`${SITE}?cpu`)).toBe(2);
+  });
+
+  test("a count asks for that many machines alongside you", () => {
+    expect(playersIn(`${SITE}?cpu=2`)).toBe(3);
+    expect(playersIn(`${SITE}?cpu=7`)).toBe(8);
+  });
+
+  test("the table is capped however many are asked for", () => {
+    expect(playersIn(`${SITE}?cpu=20`)).toBe(Mode.MOST_PLAYERS);
+  });
+
+  test("nonsense counts fall back to a single machine", () => {
+    expect(playersIn(`${SITE}?cpu=nope`)).toBe(2);
+    expect(playersIn(`${SITE}?cpu=0`)).toBe(2);
+    expect(playersIn(`${SITE}?cpu=-3`)).toBe(2);
+  });
+
+  test("every machine but you is driven by the computer", () => {
+    const crowded = Mode.read(`${SITE}?cpu=3`);
+
+    expect(Mode.machines(crowded)).toEqual([Players.id(1), Players.id(2), Players.id(3)]);
+    expect(Mode.machines(Mode.read(SITE))).toEqual([]);
+  });
+
+  test("there is a colour for every seat at a full table", () => {
+    expect(Palette.bodies(Palette.EARTHENWARE)).toBeGreaterThanOrEqual(Mode.MOST_PLAYERS);
+    expect(Palette.bodies(Palette.STONEWARE)).toBe(Palette.bodies(Palette.EARTHENWARE));
   });
 });

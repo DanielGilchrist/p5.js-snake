@@ -51,9 +51,14 @@ export const draw = <B>(
     (label) => crown + block * HEAD_GAP + p.textWidth(label) + block * PLATE_PAD * 2,
   );
   const gap = block * BETWEEN;
-  const total = widths.reduce((across, width) => across + width, 0) + gap * (widths.length - 1);
+  const total = widths.reduce((sum, width) => sum + width, 0) + gap * (widths.length - 1);
+  const across = world.board.cols * block;
+  const squeeze = Math.min(1, across / Math.max(total, 1));
 
-  let left = middle.x - total / 2;
+  p.translate(middle.x, middle.y);
+  p.scale(squeeze);
+
+  let left = -total / 2;
 
   for (const [seat, [, player]] of seated.entries()) {
     const label = labels[seat] ?? "";
@@ -61,7 +66,7 @@ export const draw = <B>(
     const group = crown + block * HEAD_GAP + p.textWidth(label);
 
     p.push();
-    p.translate(left + width / 2, middle.y);
+    p.translate(left + width / 2, 0);
 
     Hud.plate(p, scheme, width, height, block);
 

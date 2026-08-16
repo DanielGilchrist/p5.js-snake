@@ -66,8 +66,6 @@ const mode = Mode.read(here);
 
 const online = Mode.networked(mode);
 
-const cpu = Mode.runItself(mode);
-
 const probing = mode.showing;
 
 const piloted = mode.automatic;
@@ -165,6 +163,7 @@ export const sketch = new p5((p: p5) => {
         let inputLockedUntil = 0;
         let reshaping = false;
         let standings = Standings.blank(mode.rules.players);
+        let finalists: readonly Players.Id[] = [];
 
         const versus = (): boolean => mode.rules.players > 1;
 
@@ -181,17 +180,17 @@ export const sketch = new p5((p: p5) => {
             return Option.none;
 
           const won = Verdict.winner(state.outcome, state.world.players);
-          const title = Mode.cheerFor(mode, won, myPlayer());
+          const cheer = Mode.cheerFor(mode, won, myPlayer(), finalists);
 
           if (!Verdict.onScore(state.outcome, state.world.players)) {
-            return Option.some(Render.ending(title));
+            return Option.some(Render.ending(cheer.who, cheer.title));
           }
 
           const counted = Players.everyone(state.world.players).map(([who, player]) =>
-            Render.tally(Mode.nameFor(mode, who, myPlayer()), player.score),
+            Render.tally(who, player.score),
           );
 
-          return Option.some(Render.ending(title, counted));
+          return Option.some(Render.ending(cheer.who, cheer.title, counted));
         };
 
         const namingNow = (): Option.Type<Render.Naming> => {
@@ -220,7 +219,7 @@ export const sketch = new p5((p: p5) => {
         let coaxed = 0;
         let stalling = 0;
         let split = false;
-        let verdict: Option.Type<string> = Option.none;
+        let verdict: Option.Type<Render.Line> = Option.none;
         let held: Option.Type<Pad.Control> = Option.none;
         let heldUntil = 0;
         let thumb: Option.Type<number> = Option.none;
@@ -257,15 +256,20 @@ export const sketch = new p5((p: p5) => {
             inputLockedUntil = now + ENDING_GRACE_MS;
 
             if (state.kind === Game.OVER && Players.count(state.world.players) > 1) {
-              standings = Standings.award(
-                standings,
-                Verdict.winner(state.outcome, state.world.players),
+              const fallen = stepped.events.flatMap((event) =>
+                event.kind === Game.DIED ? [event.player] : [],
               );
+
+              finalists = Verdict.rewarded(state.outcome, state.world.players, fallen);
+              standings = Standings.award(standings, finalists);
             }
 
             if (net.some && state.kind === Game.OVER) {
+              const won = Verdict.winner(state.outcome, state.world.players);
+              const cheer = Mode.cheerFor(mode, won, myPlayer(), finalists);
+
               verdict = Option.some(
-                Verdict.mineToLose(state.outcome, net.value.seat, state.world.players),
+                Render.crowned(state.world, Render.ending(cheer.who, cheer.title)),
               );
               askAgain(now);
             }
@@ -425,11 +429,13 @@ export const sketch = new p5((p: p5) => {
         };
 
         const driveCpu = (): void => {
-          if (!cpu || state.kind !== Game.PLAYING) return;
+          if (state.kind !== Game.PLAYING) return;
 
-          const picked = Autopilot.choose(api, state.world, Players.id(1));
+          for (const who of Mode.machines(mode)) {
+            const picked = Autopilot.choose(api, state.world, who);
 
-          if (picked.some) apply(Game.turn(Players.id(1), picked.value));
+            if (picked.some) apply(Game.turn(who, picked.value));
+          }
         };
 
         const stepWorld = (now: Units.Millis): void => {

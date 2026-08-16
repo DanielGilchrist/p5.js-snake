@@ -12,6 +12,7 @@ import * as World from "../core/world";
 import * as FoodView from "./food";
 import * as GridView from "./grid";
 import * as Hud from "./hud";
+import * as Geometry from "../core/geometry";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Surface from "./surface";
@@ -27,21 +28,23 @@ export const TOUCH = "touch";
 export type Prompt = typeof KEYS | typeof TOUCH;
 
 export type Tally = {
-  readonly name: string;
+  readonly seat: number;
   readonly score: number;
 };
 
-export const tally = (name: string, score: number): Tally => ({ name, score });
+export const tally = (seat: number, score: number): Tally => ({ seat, score });
 
 export type Ending = {
+  readonly who: readonly number[];
   readonly title: string;
   readonly tally: readonly Tally[];
 };
 
-export const ending = (title: string, counted: readonly Tally[] = []): Ending => ({
-  title,
-  tally: counted,
-});
+export const ending = (
+  who: readonly number[],
+  title: string,
+  counted: readonly Tally[] = [],
+): Ending => ({ who, title, tally: counted });
 
 export type Naming = {
   readonly tags: readonly Option.Type<string>[];
@@ -169,10 +172,27 @@ const taggedAs = (frame: Chrome, who: number, alive: boolean): Option.Type<Tag.T
   return Option.some({ name, mine: ours, above: true });
 };
 
-const tallied = (told: Ending): readonly Hud.Line[] =>
+const badgeOf = <B>(current: World.Type<B>, seat: number): Hud.Badge => {
+  const sitting = Players.at(current.players, Players.id(seat));
+
+  if (!sitting.some) return Hud.badge(seat, Geometry.RIGHT, SnakeView.ALIVE);
+
+  const player = sitting.value;
+
+  return Hud.badge(seat, player.snake.facing, player.alive ? SnakeView.ALIVE : SnakeView.DEAD);
+};
+
+export const crowned = <B>(current: World.Type<B>, told: Ending): Hud.Line =>
+  Hud.badged(
+    told.who.map((seat) => badgeOf(current, seat)),
+    told.title,
+    0.9,
+  );
+
+const tallied = <B>(current: World.Type<B>, told: Ending): readonly Hud.Line[] =>
   told.tally
     .toSorted((one, other) => other.score - one.score)
-    .map((counted) => Hud.line(`${counted.name}  ${counted.score}`, 0.38));
+    .map((counted) => Hud.badged([badgeOf(current, counted.seat)], `${counted.score}`, 0.38));
 
 export const board = <B>(
   p: p5,
@@ -214,9 +234,13 @@ export const draw = <B>(
 
     case Game.OVER: {
       const closing = frame.ending.some
-        ? [Hud.line(frame.ending.value.title, 0.9), ...tallied(frame.ending.value)]
+        ? [crowned(state.world, frame.ending.value), ...tallied(state.world, frame.ending.value)]
         : [
-            Hud.line(describe(state.outcome.ending).title, 0.9),
+            Hud.badged(
+              [badgeOf(state.world, Players.FIRST)],
+              describe(state.outcome.ending).title,
+              0.9,
+            ),
             Hud.line(`Score: ${Players.scored(state.world.players)}`, 0.45),
           ];
 

@@ -2,7 +2,7 @@ import type p5 from "p5";
 
 import * as Session from "../net/session";
 import * as Paint from "./paint";
-import type * as Palette from "./palette";
+import * as Palette from "./palette";
 
 const TITLE = 0.055;
 const CODE = 0.13;
@@ -33,7 +33,7 @@ export const draw = (p: p5, scheme: Palette.Scheme, waiting: Waiting): void => {
     p.height * 0.24,
   );
 
-  Paint.fill(p, scheme.snake);
+  Paint.fill(p, Palette.bodyFor(scheme, 0).skin);
   centred(p, waiting.code, short * CODE, p.height * 0.4);
 
   Paint.fill(p, scheme.text);

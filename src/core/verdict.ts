@@ -28,14 +28,18 @@ export const winner = <B>(
   return Players.drawn(players) ? Option.none : Option.some(Players.leader(players));
 };
 
-export const mineToLose = <B>(
+const HEADS_UP = 2;
+
+export const rewarded = <B>(
   outcome: World.Outcome,
-  mine: Players.Id,
   players: Players.Type<B>,
-): string => {
+  fallen: readonly Players.Id[],
+): readonly Players.Id[] => {
   const won = winner(outcome, players);
 
-  if (!won.some) return "DRAW";
+  if (won.some) return [won.value];
 
-  return won.value === mine ? "YOU WIN" : "THEY WIN";
+  if (Players.count(players) <= HEADS_UP) return [];
+
+  return [...Players.living(players), ...fallen];
 };

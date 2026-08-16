@@ -99,7 +99,13 @@ const attempt = <B>(api: Board.Api<B>, seated: Players.Seated<B>): Attempt<B> =>
 const crashed = <B>(mover: Snake.State<B>, others: readonly Snake.State<B>[]): boolean =>
   Snake.hitsItself(mover) || others.some((body) => Snake.occupies(body, mover.head));
 
-const deathsAmong = <B>(attempts: readonly Attempt<B>[]): readonly Event.Type<B>[] =>
+const remains = <B>(players: Players.Type<B>): readonly Snake.State<B>[] =>
+  Players.everyone(players).flatMap(([, player]) => (player.alive ? [] : [player.snake]));
+
+const deathsAmong = <B>(
+  attempts: readonly Attempt<B>[],
+  fallen: readonly Snake.State<B>[],
+): readonly Event.Type<B>[] =>
   attempts.flatMap((each) => {
     if (!each.after.some) return [Event.died(each.who, each.before.head)];
 
@@ -107,7 +113,9 @@ const deathsAmong = <B>(attempts: readonly Attempt<B>[]): readonly Event.Type<B>
       other.who === each.who || !other.after.some ? [] : [other.after.value],
     );
 
-    return crashed(each.after.value, others) ? [Event.died(each.who, each.after.value.head)] : [];
+    return crashed(each.after.value, [...others, ...fallen])
+      ? [Event.died(each.who, each.after.value.head)]
+      : [];
   });
 
 const settled = <B>(players: Players.Type<B>, attempts: readonly Attempt<B>[]): Players.Type<B> =>
@@ -145,13 +153,27 @@ const traded = <B>(attempts: readonly Attempt<B>[]): boolean =>
     ),
   );
 
-const lastAlone = <B>(world: World.Type<B>, deaths: readonly Event.Type<B>[]): boolean => {
+const standing = <B>(
+  world: World.Type<B>,
+  deaths: readonly Event.Type<B>[],
+): readonly Players.Id[] => {
   const dying = new Set(
     deaths.flatMap((event) => (event.kind === Event.DIED ? [event.player] : [])),
   );
-  const left = Players.living(world.players).filter((who) => !dying.has(who));
 
-  return left.length <= 1;
+  return Players.living(world.players).filter((who) => !dying.has(who));
+};
+
+const closingFor = <B>(
+  world: World.Type<B>,
+  attempts: readonly Attempt<B>[],
+  deaths: readonly Event.Type<B>[],
+): readonly Event.Type<B>[] => {
+  const left = standing(world, deaths);
+
+  if (left.length > 1) return [];
+
+  return [Event.ended(left.length === 0 && traded(attempts) ? World.TRADED : World.COLLISION)];
 };
 
 const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B>[] => {
@@ -163,14 +185,10 @@ const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B
       ? [Event.moved(each.who, each.moved.to, each.moved.dropped)]
       : [],
   );
-  const deaths = deathsAmong(attempts);
+  const deaths = deathsAmong(attempts, remains(world.players));
 
   if (deaths.length > 0) {
-    const closing = lastAlone(world, deaths)
-      ? [Event.ended(traded(attempts) ? World.TRADED : World.COLLISION)]
-      : [];
-
-    return [...turning, ...motion, ...deaths, ...closing];
+    return [...turning, ...motion, ...deaths, ...closingFor(world, attempts, deaths)];
   }
 
   const eating = attempts.find(

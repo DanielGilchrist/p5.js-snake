@@ -1,5 +1,4 @@
 import type * as Brand from "../core/brand";
-import * as NonEmpty from "../core/non-empty";
 import type * as World from "../core/world";
 
 export type Rgb = {
@@ -15,7 +14,6 @@ const tint = (n: number): Tint => n as Tint;
 const rgb = (red: number, green: number, blue: number): Rgb => ({ red, green, blue });
 
 export type Body = {
-  readonly name: string;
   readonly skin: Rgb;
   readonly deep: Rgb;
 };
@@ -33,10 +31,7 @@ export type Scheme = {
   readonly markEdge: Rgb;
   readonly relief: number;
   readonly eye: Rgb;
-  readonly snake: Rgb;
-  readonly snakeDeep: Rgb;
-  readonly rival: Rgb;
-  readonly rivalDeep: Rgb;
+  readonly clays: Clays;
   readonly blood: Rgb;
   readonly bloodDeep: Rgb;
   readonly food: Rgb;
@@ -50,6 +45,12 @@ export type Scheme = {
   readonly leaf: Rgb;
   readonly stem: Rgb;
 };
+
+type Tone = { readonly skin: Rgb; readonly deep: Rgb };
+
+const tone = (skin: Rgb, deep: Rgb): Tone => ({ skin, deep });
+
+type Clays = readonly [Tone, Tone, Tone, Tone, Tone, Tone, Tone, Tone];
 
 const scheme = (fields: Scheme): Scheme => ({ ...fields });
 
@@ -66,10 +67,16 @@ export const EARTHENWARE: Scheme = scheme({
   markEdge: rgb(251, 246, 238),
   relief: 165,
   eye: rgb(72, 58, 46),
-  snake: rgb(122, 150, 116),
-  snakeDeep: rgb(96, 122, 92),
-  rival: rgb(150, 126, 154),
-  rivalDeep: rgb(120, 98, 126),
+  clays: [
+    tone(rgb(122, 150, 116), rgb(96, 122, 92)),
+    tone(rgb(150, 126, 154), rgb(120, 98, 126)),
+    tone(rgb(112, 140, 166), rgb(86, 112, 136)),
+    tone(rgb(198, 154, 88), rgb(166, 124, 62)),
+    tone(rgb(196, 126, 128), rgb(164, 96, 100)),
+    tone(rgb(104, 156, 148), rgb(78, 126, 120)),
+    tone(rgb(206, 184, 138), rgb(174, 152, 108)),
+    tone(rgb(126, 128, 148), rgb(98, 100, 120)),
+  ],
   blood: rgb(146, 40, 34),
   bloodDeep: rgb(104, 24, 20),
   food: rgb(203, 104, 82),
@@ -97,10 +104,16 @@ export const STONEWARE: Scheme = scheme({
   markEdge: rgb(18, 15, 12),
   relief: 42,
   eye: rgb(24, 20, 17),
-  snake: rgb(148, 178, 136),
-  snakeDeep: rgb(112, 140, 102),
-  rival: rgb(176, 148, 182),
-  rivalDeep: rgb(132, 108, 138),
+  clays: [
+    tone(rgb(148, 178, 136), rgb(112, 140, 102)),
+    tone(rgb(176, 148, 182), rgb(132, 108, 138)),
+    tone(rgb(134, 168, 200), rgb(98, 128, 158)),
+    tone(rgb(222, 178, 104), rgb(180, 138, 72)),
+    tone(rgb(218, 144, 146), rgb(176, 108, 112)),
+    tone(rgb(122, 182, 172), rgb(88, 142, 136)),
+    tone(rgb(224, 202, 152), rgb(184, 162, 116)),
+    tone(rgb(148, 152, 176), rgb(112, 116, 140)),
+  ],
   blood: rgb(158, 36, 30),
   bloodDeep: rgb(112, 22, 18),
   food: rgb(232, 138, 108),
@@ -123,25 +136,7 @@ export const shift = (colour: Rgb, by: Tint): Rgb =>
 export const floorTint = (variant: World.Variant): Tint =>
   tint((variant % (TINT_RANGE * 2)) - TINT_RANGE);
 
-type Clay = {
-  readonly name: string;
-  readonly skin: (of: Scheme) => Rgb;
-  readonly deep: (of: Scheme) => Rgb;
-};
+export const bodies = (of: Scheme): number => of.clays.length;
 
-const CLAYS: NonEmpty.List<Clay> = [
-  { name: "GREEN", skin: (of) => of.snake, deep: (of) => of.snakeDeep },
-  { name: "PURPLE", skin: (of) => of.rival, deep: (of) => of.rivalDeep },
-];
-
-const clayFor = (seat: number): Clay => NonEmpty.at(CLAYS, seat % CLAYS.length);
-
-export const bodyFor = (clay: Scheme, seat: number): Body => {
-  const worn = clayFor(seat);
-
-  return { name: worn.name, skin: worn.skin(clay), deep: worn.deep(clay) };
-};
-
-export const nameOf = (seat: number): string => clayFor(seat).name;
-
-export const bodies = (): number => CLAYS.length;
+export const bodyFor = (of: Scheme, seat: number): Body =>
+  of.clays[seat % of.clays.length] ?? of.clays[0];
