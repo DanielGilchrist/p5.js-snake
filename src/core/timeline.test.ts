@@ -73,10 +73,13 @@ const played = <R>(seed: number, run: <B>(played: Played<B>) => R): R => {
   return result.value;
 };
 
+const logged = <B>(timeline: Timeline.Timeline<B>): readonly Game.Event<B>[] =>
+  timeline.entries.flatMap((entry) => entry.events);
+
 describe("timeline", () => {
   test("the fixture reaches a real game over with turns, eats and pauses", () => {
     played(9, ({ timeline, state }) => {
-      const kinds = new Set(timeline.log.map((event) => event.kind));
+      const kinds = new Set(logged(timeline).map((event) => event.kind));
 
       expect(state.kind).toBe("over");
       expect(kinds).toContain("moved");
@@ -92,7 +95,7 @@ describe("timeline", () => {
       played(seed, ({ timeline }) => {
         let state = timeline.initial;
 
-        for (const event of timeline.log) {
+        for (const event of logged(timeline)) {
           const next = Game.apply(state, event);
 
           expect(Game.revert(next, event)).toEqual(state);
@@ -108,7 +111,7 @@ describe("timeline", () => {
       played(seed, ({ timeline, state }) => {
         let folded = timeline.initial;
 
-        for (const event of timeline.log) folded = Game.apply(folded, event);
+        for (const event of logged(timeline)) folded = Game.apply(folded, event);
 
         expect(folded).toEqual(state);
       });
