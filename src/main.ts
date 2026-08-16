@@ -8,6 +8,7 @@ import * as Input from "./core/input";
 import * as Option from "./core/option";
 import * as Autopilot from "./core/autopilot";
 import * as Rng from "./core/rng";
+import * as Standings from "./core/standings";
 import * as Invite from "./net/invite";
 import * as Session from "./net/session";
 import * as Players from "./core/players";
@@ -163,6 +164,7 @@ export const sketch = new p5((p: p5) => {
         let hitstop = 0;
         let inputLockedUntil = 0;
         let reshaping = false;
+        let standings = Standings.blank(mode.rules.players);
 
         const versus = (): boolean => mode.rules.players > 1;
 
@@ -211,6 +213,7 @@ export const sketch = new p5((p: p5) => {
             shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
             endingNow(),
             namingNow(),
+            standings,
           );
         let gate = Lockstep.waiting(0);
         let resent = 0;
@@ -252,6 +255,13 @@ export const sketch = new p5((p: p5) => {
 
           if (stepped.events.some((event) => event.kind === Game.ENDED)) {
             inputLockedUntil = now + ENDING_GRACE_MS;
+
+            if (state.kind === Game.OVER && Players.count(state.world.players) > 1) {
+              standings = Standings.award(
+                standings,
+                Verdict.winner(state.outcome, state.world.players),
+              );
+            }
 
             if (net.some && state.kind === Game.OVER) {
               verdict = Option.some(

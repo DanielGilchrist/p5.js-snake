@@ -101,6 +101,7 @@ const eyes = (
     case DEAD: {
       const half = (size * EYE_RATIO * DEAD_EYE_SCALE) / 4;
 
+      p.push();
       Paint.stroke(p, scheme.mark);
       p.strokeWeight(2);
 
@@ -110,6 +111,8 @@ const eyes = (
         p.line(at.x - half, at.y - half, at.x + half, at.y + half);
         p.line(at.x + half, at.y - half, at.x - half, at.y + half);
       }
+
+      p.pop();
 
       return;
     }
@@ -157,6 +160,28 @@ const tube = (
   }
 };
 
+export const head = (
+  p: p5,
+  scheme: Palette.Scheme,
+  at: Units.Point,
+  crown: number,
+  body: Palette.Body,
+  facing: Geometry.Direction,
+  vitality: Vitality,
+): void => {
+  const crest = Units.point(at.x, at.y - crown * CREST_LIFT);
+
+  p.noStroke();
+
+  Paint.fill(p, body.deep);
+  p.circle(at.x, at.y, crown);
+
+  Paint.fill(p, body.skin);
+  p.circle(crest.x, crest.y, crown * CREST_RATIO);
+
+  eyes(p, scheme, crest, facing, crown * CREST_RATIO, vitality);
+};
+
 const TAG_CLEAR = 1.9;
 
 const roomy = (
@@ -186,23 +211,23 @@ export const draw = <B>(
 
   if (nose === undefined) return;
 
-  const head = nose.at;
+  const nib = nose.at;
   const lean = leanOf(turning, block);
   const bulge = bulgeAt(now, bite);
   const crown = block * HEAD_WIDTH * bulge;
-  const crest = Units.point(head.x + lean.dx, head.y - block * CREST_LIFT + lean.dy);
+  const crest = Units.point(nib.x + lean.dx, nib.y - block * CREST_LIFT + lean.dy);
 
   tube(p, spine, block, scheme.shadow, SHADOW_ALPHA, 1, block * SHADOW_DROP);
 
   p.noStroke();
   Paint.fillWith(p, scheme.shadow, SHADOW_ALPHA);
-  p.circle(head.x, head.y + block * SHADOW_DROP, crown);
+  p.circle(nib.x, nib.y + block * SHADOW_DROP, crown);
 
   tube(p, spine, block, body.deep, Paint.OPAQUE, 1, 0);
 
   p.noStroke();
   Paint.fill(p, body.deep);
-  p.circle(head.x, head.y, crown);
+  p.circle(nib.x, nib.y, crown);
 
   tube(p, spine, block, body.skin, Paint.OPAQUE, CREST_RATIO, -block * CREST_LIFT);
 
@@ -214,7 +239,7 @@ export const draw = <B>(
 
   if (!tag.some) return;
 
-  if (tag.value.mine) Tag.ring(p, scheme, head, block, body, now / RING_PACE);
+  if (tag.value.mine) Tag.ring(p, scheme, nib, block, body, now / RING_PACE);
 
   Tag.draw(p, scheme, crest, block, body, roomy(tag.value, crest, block, layout));
 };

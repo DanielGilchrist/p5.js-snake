@@ -16,6 +16,8 @@ import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Surface from "./surface";
 import * as SnakeView from "./snake";
+import * as StandingsView from "./standings";
+import type * as Standings from "../core/standings";
 import type * as Tag from "./tag";
 import * as Units from "./units";
 
@@ -53,6 +55,7 @@ export const naming = (
 
 export type Chrome = {
   readonly scheme: Palette.Scheme;
+  readonly standings: Standings.Type;
   readonly stage: Units.Region;
   readonly device: Option.Type<Units.Region>;
   readonly prompt: Prompt;
@@ -67,7 +70,8 @@ export const chrome = (
   prompt: Prompt,
   told: Option.Type<Ending> = Option.none,
   named: Option.Type<Naming> = Option.none,
-): Chrome => ({ scheme, stage, device, prompt, ending: told, naming: named });
+  standings: Standings.Type = [],
+): Chrome => ({ scheme, standings, stage, device, prompt, ending: told, naming: named });
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
@@ -94,12 +98,9 @@ export const of = <B>(
   bite: Units.Millis,
 ): Scene<B> => ({ current, previous, alpha, bite });
 
-type Outcome = {
-  readonly title: string;
-  readonly vitality: SnakeView.Vitality;
-};
+type Outcome = { readonly title: string };
 
-const outcome = (title: string, vitality: SnakeView.Vitality): Outcome => ({ title, vitality });
+const outcome = (title: string): Outcome => ({ title });
 
 const SURROUND_WASH = 0.24;
 
@@ -110,9 +111,9 @@ const describe = (closing: World.Ending): Outcome => {
   switch (closing) {
     case World.COLLISION:
     case World.TRADED:
-      return outcome("GAME OVER", SnakeView.DEAD);
+      return outcome("GAME OVER");
     case World.FILLED:
-      return outcome("YOU WIN", SnakeView.ALIVE);
+      return outcome("YOU WIN");
     default:
       return Assert.never(closing);
   }
@@ -123,7 +124,6 @@ const world = <B>(
   scheme: Palette.Scheme,
   current: World.Type<B>,
   layout: Layout.Metrics,
-  vitality: SnakeView.Vitality,
   scene: Scene<B>,
   surface: Surface.Surface,
   frame: Chrome,
@@ -140,7 +140,7 @@ const world = <B>(
       before.some ? before.value.snake : player.snake,
       scene.alpha,
       layout,
-      vitality,
+      player.alive ? SnakeView.ALIVE : SnakeView.DEAD,
       scene.bite,
       Turns.next(player.turns),
       Palette.bodyFor(scheme, who),
@@ -148,7 +148,11 @@ const world = <B>(
     );
   }
 
-  if (Players.count(current.players) > 1) return;
+  if (Players.count(current.players) > 1) {
+    StandingsView.draw(p, scheme, layout, current, frame.standings, Units.millis(p.millis()));
+
+    return;
+  }
 
   Hud.score(p, scheme, current, layout, Players.scored(current.players), Units.millis(p.millis()));
 };
@@ -170,9 +174,6 @@ const tallied = (told: Ending): readonly Hud.Line[] =>
     .toSorted((one, other) => other.score - one.score)
     .map((counted) => Hud.line(`${counted.name}  ${counted.score}`, 0.38));
 
-const lifeIn = <B>(state: Game.State<B>): SnakeView.Vitality =>
-  state.kind === Game.OVER ? describe(state.outcome.ending).vitality : SnakeView.ALIVE;
-
 export const board = <B>(
   p: p5,
   scene: Scene<B>,
@@ -188,7 +189,7 @@ export const board = <B>(
 
   if (frame.device.some) Keys.shell(p, scheme, frame.device.value, frame.stage);
 
-  world(p, scheme, scene.current.world, layout, lifeIn(scene.current), scene, surface, frame);
+  world(p, scheme, scene.current.world, layout, scene, surface, frame);
 };
 
 export const draw = <B>(

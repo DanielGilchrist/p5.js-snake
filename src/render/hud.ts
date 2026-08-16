@@ -34,7 +34,7 @@ const sizeOf = (block: Units.Px, scale: number): number => Math.max(MIN_TEXT, bl
 
 const cutOf = (block: Units.Px): number => Math.max(1.2, block * 0.03);
 
-const engrave = (
+export const engrave = (
   p: p5,
   scheme: Palette.Scheme,
   text: string,
@@ -51,6 +51,27 @@ const engrave = (
   p.text(text, x, y - cut * 0.4);
 };
 
+export const plate = (
+  p: p5,
+  scheme: Palette.Scheme,
+  width: number,
+  height: number,
+  block: Units.Px,
+): void => {
+  const cut = cutOf(block);
+
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
+  p.rect(-width / 2, -height / 2, width, height, block * PLATE_RADIUS);
+
+  Paint.fillWith(p, scheme.paper, Paint.alpha(PLATE_LIP));
+  p.rect(-width / 2, -height / 2 + cut, width, height, block * PLATE_RADIUS);
+
+  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
+  p.rect(-width / 2, -height / 2, width, height - cut, block * PLATE_RADIUS);
+};
+
+export const plateHeight = (block: Units.Px): number => block * PLATE_HEIGHT;
+
 export const score = <B>(
   p: p5,
   scheme: Palette.Scheme,
@@ -65,7 +86,6 @@ export const score = <B>(
     layout.origin.y + block / 2,
   );
   const height = block * PLATE_HEIGHT;
-  const cut = cutOf(block);
 
   p.push();
   p.translate(middle.x, middle.y);
@@ -83,14 +103,7 @@ export const score = <B>(
   const width = Math.max(block * PLATE_MIN, group + block * PLATE_PAD * 2);
   const start = -group / 2;
 
-  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
-  p.rect(-width / 2, -height / 2, width, height, block * PLATE_RADIUS);
-
-  Paint.fillWith(p, scheme.paper, Paint.alpha(PLATE_LIP));
-  p.rect(-width / 2, -height / 2 + cut, width, height, block * PLATE_RADIUS);
-
-  Paint.fillWith(p, scheme.shadow, Paint.alpha(PLATE_SINK));
-  p.rect(-width / 2, -height / 2, width, height - cut, block * PLATE_RADIUS);
+  plate(p, scheme, width, height, block);
 
   engrave(p, scheme, label, start + token + gap + digits / 2, 0, block);
 
