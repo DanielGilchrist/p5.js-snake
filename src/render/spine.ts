@@ -19,6 +19,17 @@ export const alongAt = (spine: Spine, index: number): number =>
   spine.values[index * STRIDE + 2] ?? 0;
 
 const EDGE = 1e-6;
+const STRAIGHT = 1e-6;
+
+export const straight = (
+  fromX: number,
+  fromY: number,
+  byX: number,
+  byY: number,
+  toX: number,
+  toY: number,
+): boolean => Math.abs((byX - fromX) * (toY - byY) - (byY - fromY) * (toX - byX)) <= STRAIGHT;
+
 const centreX = <B>(layout: Layout.Metrics, cell: Board.Cell<B>): number =>
   layout.origin.x + cell.col * layout.blockWidth + layout.blockWidth / 2;
 

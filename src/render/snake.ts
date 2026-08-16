@@ -154,24 +154,62 @@ const tube = (
   p.strokeJoin(p.ROUND);
 
   let band = -1;
+  let lastX = 0;
+  let lastY = 0;
+  let heldX = 0;
+  let heldY = 0;
+  let holding = false;
+
+  const put = (x: number, y: number): void => {
+    p.vertex(x, y + lift);
+    lastX = x;
+    lastY = y;
+  };
+
+  const flush = (): void => {
+    if (!holding) return;
+
+    put(heldX, heldY);
+    holding = false;
+  };
 
   for (let i = Spine.count(spine) - 1; i >= 1; i--) {
     const wanted = bandOf(Spine.alongAt(spine, i - 1), block, scale);
+    const startX = Spine.xAt(spine, i);
+    const startY = Spine.yAt(spine, i);
 
     if (wanted !== band) {
+      flush();
+
       if (band >= 0) {
-        p.vertex(Spine.xAt(spine, i), Spine.yAt(spine, i) + lift);
+        put(startX, startY);
         p.endShape();
       }
 
       band = wanted;
       p.strokeWeight(Math.max(WIDTH_STEP, wanted * WIDTH_STEP));
       p.beginShape();
-      p.vertex(Spine.xAt(spine, i), Spine.yAt(spine, i) + lift);
+      put(startX, startY);
     }
 
-    p.vertex(Spine.xAt(spine, i - 1), Spine.yAt(spine, i - 1) + lift);
+    const x = Spine.xAt(spine, i - 1);
+    const y = Spine.yAt(spine, i - 1);
+
+    if (holding && Spine.straight(lastX, lastY, heldX, heldY, x, y)) {
+      heldX = x;
+      heldY = y;
+
+      continue;
+    }
+
+    flush();
+
+    heldX = x;
+    heldY = y;
+    holding = true;
   }
+
+  flush();
 
   if (band >= 0) p.endShape();
 };

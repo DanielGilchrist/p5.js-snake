@@ -168,3 +168,24 @@ describe("spine", () => {
     });
   });
 });
+
+describe("spotting points a stroke can skip", () => {
+  test("a point in the middle of a straight run adds nothing", () => {
+    expect(Spine.straight(0, 0, 10, 0, 20, 0)).toBe(true);
+    expect(Spine.straight(0, 0, 0, 10, 0, 20)).toBe(true);
+    expect(Spine.straight(5, 5, 5, 5, 5, 5)).toBe(true);
+  });
+
+  test("a corner is kept", () => {
+    expect(Spine.straight(0, 0, 10, 0, 10, 10)).toBe(false);
+    expect(Spine.straight(0, 0, 0, 10, 10, 10)).toBe(false);
+  });
+
+  test("even a slight bend is kept, so a curve never flattens", () => {
+    expect(Spine.straight(0, 0, 10, 0, 20, 0.01)).toBe(false);
+  });
+
+  test("a half step along the same line still counts as straight", () => {
+    expect(Spine.straight(0, 0, 3.5, 0, 20, 0)).toBe(true);
+  });
+});
