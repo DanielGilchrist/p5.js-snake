@@ -1,11 +1,13 @@
+import * as Build from "./build";
+
 const stdio = ["inherit", "inherit", "inherit"] as const;
 
-const initial = Bun.spawnSync(["bun", "build", "src/index.html", "--outdir", "dist"], { stdio });
+const initial = Bun.spawnSync([...Build.argsFor(Build.DEBUG)], { stdio });
 if (!initial.success) process.exit(initial.exitCode);
 
 const children = [
   Bun.spawn(["bunx", "tsc", "--noEmit", "--watch", "--preserveWatchOutput"], { stdio }),
-  Bun.spawn(["bun", "build", "src/index.html", "--outdir", "dist", "--watch"], { stdio }),
+  Bun.spawn([...Build.argsFor(Build.DEBUG, true)], { stdio }),
   Bun.spawn(["bun", "run", "scripts/serve.ts"], { stdio }),
 ];
 

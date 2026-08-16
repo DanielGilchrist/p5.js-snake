@@ -15,6 +15,7 @@ import * as Players from "./core/players";
 import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
 import * as Fault from "./shell/fault";
+import * as Build from "./shell/build";
 import * as Mode from "./shell/mode";
 import * as Phase from "./shell/phase";
 import * as Verdict from "./core/verdict";
@@ -133,6 +134,8 @@ const HELP_LINES: readonly (readonly [string, string])[] = [
   ["Settings", "Shift+S"],
   ["Controls", "?"],
 ];
+
+p5.disableFriendlyErrors = !Build.debugging();
 
 export const sketch = new p5((p: p5) => {
   p.setup = () => {
