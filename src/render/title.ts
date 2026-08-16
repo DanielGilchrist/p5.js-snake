@@ -4,6 +4,7 @@ import * as Geometry from "../core/geometry";
 import * as Option from "../core/option";
 import * as Clay from "./clay";
 import * as Hud from "./hud";
+import * as Keys from "./keys";
 import * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
@@ -51,7 +52,13 @@ export type Slot = {
   readonly steps: readonly Step[];
 };
 
+export const INSET = "inset";
+export const FILL = "fill";
+
+export type Fit = typeof INSET | typeof FILL;
+
 export type Screen = {
+  readonly fit: Fit;
   readonly block: Units.Px;
   readonly panel: Units.Region;
   readonly crown: Units.Point;
@@ -65,11 +72,13 @@ const CARD_SHARE = 0.92;
 const CREST_BAND = 2.6;
 const WORDS_BAND = 1.9;
 const ROW_HEIGHT = 1.35;
+const ROW_TALLEST = 1.7;
 const CARD_FOOT = 0.7;
 const HINT_DROP = 1;
 
 const PAD = 0.7;
 const ARROW = 0.7;
+const STEP_REACH = 1.5;
 const HEAD = 0.46;
 const HEAD_GAP = 0.1;
 
@@ -98,43 +107,71 @@ const stepsFor = (at: Units.Region, block: Units.Px, counted: Option.Type<Heads>
   if (!counted.some) return [];
 
   const arrow = block * ARROW;
+  const reach = Math.max(block * STEP_REACH, arrow);
   const middle = at.top + at.height / 2;
   const right = at.left + at.width - block * PAD;
   const left = right - arrow - headRoom(block, counted.value.most) - arrow;
 
-  const box = (edge: number, by: number): Step => ({
-    at: Units.region({ left: edge, top: middle - arrow / 2, width: arrow, height: arrow }),
+  const box = (centre: number, by: number): Step => ({
+    at: Units.region({
+      left: centre - reach / 2,
+      top: middle - at.height / 2,
+      width: reach,
+      height: at.height,
+    }),
     by,
   });
 
-  return [box(left, -1), box(right - arrow, 1)];
+  return [box(left + arrow / 2, -1), box(right - arrow / 2, 1)];
 };
 
-export const of = (stage: Units.Region, card: Card): Screen => {
-  const block = Layout.panelBlock(stage);
+const FILL_WIDE = 10.5;
+const HINT_BAND = 1.2;
+
+const filling = (stage: Units.Region, card: Card, band: number): Units.Px => {
+  const units = band + card.rows.length * ROW_HEIGHT + CARD_FOOT + HINT_BAND;
+
+  return Units.px(Math.min(stage.height / units, stage.width / FILL_WIDE));
+};
+
+export const of = (stage: Units.Region, card: Card, fit: Fit = INSET): Screen => {
   const band = bandOf(card.heading);
-  const width = Math.min(stage.width * CARD_SHARE, block * CARD_WIDE);
-  const height = block * (band + card.rows.length * ROW_HEIGHT + CARD_FOOT);
+  const block = fit === FILL ? filling(stage, card, band) : Layout.panelBlock(stage);
+  const width = fit === FILL ? stage.width : Math.min(stage.width * CARD_SHARE, block * CARD_WIDE);
+  const tall = block * (band + card.rows.length * ROW_HEIGHT + CARD_FOOT);
+  const height = fit === FILL ? stage.height : tall;
   const left = stage.left + (stage.width - width) / 2;
   const top = stage.top + (stage.height - height) / 2;
+
+  const rowTall =
+    fit === FILL
+      ? Math.min(
+          (height - block * (band + HINT_BAND)) / Math.max(1, card.rows.length),
+          block * ROW_TALLEST,
+        )
+      : block * ROW_HEIGHT;
 
   const slots = card.rows.map((row, index) => {
     const at = Units.region({
       left,
-      top: top + block * (band + index * ROW_HEIGHT),
+      top: top + block * band + index * rowTall,
       width,
-      height: block * ROW_HEIGHT,
+      height: rowTall,
     });
 
     return { at, steps: stepsFor(at, block, row.heads) };
   });
 
   return {
+    fit,
     block,
     panel: Units.region({ left, top, width, height }),
     crown: Units.point(left + width / 2, top + block * band * 0.52),
     slots,
-    hint: Units.point(left + width / 2, top + height + block * HINT_DROP),
+    hint: Units.point(
+      left + width / 2,
+      fit === FILL ? top + height - block * HINT_BAND * 0.5 : top + height + block * HINT_DROP,
+    ),
     card,
   };
 };
@@ -337,13 +374,18 @@ export const draw = (p: p5, scheme: Palette.Scheme, screen: Screen, cursor: numb
   p.push();
   p.noStroke();
 
-  Paint.fillWith(p, scheme.shadow, WASH);
-  p.rect(0, 0, p.width, p.height);
+  if (screen.fit === INSET) {
+    Paint.fillWith(p, scheme.shadow, WASH);
+    p.rect(0, 0, p.width, p.height);
 
-  Clay.cast(p, Clay.RAISED, scheme.shadow, () => {
-    Paint.fill(p, scheme.body);
-    p.rect(panel.left, panel.top, panel.width, panel.height, block * CARD_RADIUS);
-  });
+    Clay.cast(p, Clay.RAISED, scheme.shadow, () => {
+      Paint.fill(p, scheme.body);
+      p.rect(panel.left, panel.top, panel.width, panel.height, block * CARD_RADIUS);
+    });
+  } else {
+    Paint.fill(p, scheme.floor);
+    p.rect(panel.left, panel.top, panel.width, panel.height, Keys.screenRadius(panel));
+  }
 
   heading(p, scheme, screen);
 

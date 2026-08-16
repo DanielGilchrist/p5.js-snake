@@ -5,10 +5,11 @@ import * as Units from "./units";
 
 export const THEME = "theme";
 export const HAND = "hand";
+export const FULL = "full";
 export const HOW = "how";
 export const HOME = "home";
 
-export type Row = typeof THEME | typeof HAND | typeof HOW | typeof HOME;
+export type Row = typeof THEME | typeof HAND | typeof FULL | typeof HOW | typeof HOME;
 
 export const ROWS: readonly Row[] = [THEME, HAND];
 
@@ -54,6 +55,8 @@ const labelOf = (row: Row): string => {
       return "Theme";
     case HAND:
       return "Controls";
+    case FULL:
+      return "Fullscreen";
     case HOW:
       return "How to play";
     case HOME:
@@ -63,7 +66,7 @@ const labelOf = (row: Row): string => {
   }
 };
 
-const acts = (row: Row): boolean => row === HOW || row === HOME;
+const acts = (row: Row): boolean => row === HOW || row === HOME || row === FULL;
 
 const choicesFor = (row: Row): readonly Settings.Choice[] => {
   switch (row) {
@@ -71,6 +74,7 @@ const choicesFor = (row: Row): readonly Settings.Choice[] => {
       return Settings.THEMES.map((value) => ({ kind: Settings.THEME, value }));
     case HAND:
       return Settings.HANDS.map((value) => ({ kind: Settings.HAND, value }));
+    case FULL:
     case HOW:
     case HOME:
       return [];
@@ -187,6 +191,7 @@ export const cycle = (settings: Settings.Type, row: Row, step: number): Settings
       return Settings.cycleTheme(settings, step);
     case HAND:
       return Settings.cycleHand(settings, step);
+    case FULL:
     case HOW:
     case HOME:
       return settings;
@@ -196,7 +201,7 @@ export const cycle = (settings: Settings.Type, row: Row, step: number): Settings
 };
 
 export const rowsFor = (handheld: boolean, where: Where): readonly Row[] => {
-  const chips: readonly Row[] = handheld ? [THEME, HAND] : [THEME];
+  const chips: readonly Row[] = handheld ? [THEME, HAND, FULL] : [THEME];
 
   switch (where) {
     case IN_GAME:

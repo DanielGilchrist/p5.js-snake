@@ -24,6 +24,7 @@ export type Showing = typeof PLAYING | typeof REWINDING;
 export type Type = {
   readonly frame: (now: Units.Millis, scheme: Palette.Scheme) => void;
   readonly showing: () => Showing;
+  readonly forget: () => void;
 };
 
 const PLAYERS = 3;
@@ -196,6 +197,10 @@ export const start = (
         },
 
         showing: () => showing.kind,
+
+        forget: () => {
+          Surface.forget(surface);
+        },
       };
     },
   );

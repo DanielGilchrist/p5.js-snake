@@ -51,18 +51,39 @@ export const desk = (viewport: Units.Viewport): Units.Region => {
   });
 };
 
-const blockFor = (available: Units.Viewport, cols: number, rows: number): number =>
-  clamp(Math.min(available.width / cols, available.height / rows), MIN_BLOCK, MAX_BLOCK);
+export const WHOLE = "whole";
+export const INNER = "inner";
 
-const wasteOf = (available: Units.Viewport, cols: number, rows: number): number => {
-  const block = blockFor(available, cols, rows);
+export type Reach = typeof WHOLE | typeof INNER;
 
-  return Math.abs(available.width - cols * block) + Math.abs(available.height - rows * block);
+const WALLS = 2;
+
+const spanOf = (cells: number, reach: Reach): number => (reach === INNER ? cells - WALLS : cells);
+
+const blockFor = (available: Units.Viewport, cols: number, rows: number, reach: Reach): number =>
+  clamp(
+    Math.min(available.width / spanOf(cols, reach), available.height / spanOf(rows, reach)),
+    MIN_BLOCK,
+    MAX_BLOCK,
+  );
+
+const wasteOf = (available: Units.Viewport, cols: number, rows: number, reach: Reach): number => {
+  const block = blockFor(available, cols, rows, reach);
+
+  return (
+    Math.abs(available.width - spanOf(cols, reach) * block) +
+    Math.abs(available.height - spanOf(rows, reach) * block)
+  );
 };
 
-export const cellsFor = (stage: Units.Region, target: number): Board.GridSize => {
+export const cellsFor = (
+  stage: Units.Region,
+  target: number,
+  reach: Reach = WHOLE,
+): Board.GridSize => {
   const available = Units.sizeOf(stage);
-  const around = clamp(Math.round(available.width / target), MIN_COLS, MAX_COLS);
+  const walls = reach === INNER ? WALLS : 0;
+  const around = clamp(Math.round(available.width / target) + walls, MIN_COLS, MAX_COLS);
   let best = Board.size(around, MIN_ROWS);
   let tightest = Number.POSITIVE_INFINITY;
 
@@ -73,11 +94,11 @@ export const cellsFor = (stage: Units.Region, target: number): Board.GridSize =>
   ) {
     const shortest = Math.max(MIN_ROWS, Math.round(cols * MIN_ASPECT));
     const rows = clamp(
-      Math.round((available.height * cols) / available.width),
+      Math.round((available.height * spanOf(cols, reach)) / available.width) + walls,
       Math.min(shortest, MAX_ROWS),
       MAX_ROWS,
     );
-    const waste = wasteOf(available, cols, rows);
+    const waste = wasteOf(available, cols, rows, reach);
 
     if (waste < tightest) {
       tightest = waste;
@@ -88,17 +109,26 @@ export const cellsFor = (stage: Units.Region, target: number): Board.GridSize =>
   return best;
 };
 
-const shrunkTo = (available: Units.Viewport, cols: number, rows: number): number =>
-  Math.min(available.width / cols, available.height / rows, MAX_BLOCK);
+const shrunkTo = (available: Units.Viewport, cols: number, rows: number, reach: Reach): number =>
+  Math.min(
+    available.width / spanOf(cols, reach),
+    available.height / spanOf(rows, reach),
+    MAX_BLOCK,
+  );
 
-export const fit = <B>(board: Board.Grid<B>, stage: Units.Region): Metrics => {
-  const block = shrunkTo(Units.sizeOf(stage), board.cols, board.rows);
+export const fit = <B>(
+  board: Board.Grid<B>,
+  stage: Units.Region,
+  reach: Reach = WHOLE,
+): Metrics => {
+  const block = shrunkTo(Units.sizeOf(stage), board.cols, board.rows, reach);
+  const held = reach === INNER ? block : 0;
 
   return metrics(
     Units.px(block),
     Units.point(
-      stage.left + (stage.width - board.cols * block) / 2,
-      stage.top + (stage.height - board.rows * block) / 2,
+      stage.left + (stage.width - spanOf(board.cols, reach) * block) / 2 - held,
+      stage.top + (stage.height - spanOf(board.rows, reach) * block) / 2 - held,
     ),
   );
 };

@@ -12,6 +12,7 @@ import type * as Palette from "../render/palette";
 import * as Panel from "../render/panel";
 import * as Settings from "../render/settings";
 import * as Units from "../render/units";
+import * as Fullscreen from "./fullscreen";
 import * as Intent from "./intent";
 import * as Phase from "./phase";
 
@@ -77,6 +78,16 @@ export const mount = (p: p5, deps: Deps): Aside => {
         return;
 
       case Intent.PICK_ROW:
+        if (Phase.isSettings(phase) && Menu.rowAt(menuNow(), phase.cursor) === Menu.FULL) {
+          Fullscreen.ask();
+
+          return;
+        }
+
+        over = Option.none;
+
+        return;
+
       case Intent.RESUME:
         over = Option.none;
 
@@ -126,6 +137,8 @@ export const mount = (p: p5, deps: Deps): Aside => {
         return;
 
       case Menu.ACTED:
+        if (picked.value.row === Menu.FULL) Fullscreen.ask();
+
         return;
 
       default:

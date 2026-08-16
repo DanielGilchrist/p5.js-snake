@@ -161,13 +161,19 @@ describe("menu", () => {
     const handheld = Menu.rowsFor(true, Menu.ON_TITLE);
 
     expect(desk).toEqual([Menu.THEME]);
-    expect(handheld).toEqual(Menu.ROWS);
+    expect(handheld).toEqual([...Menu.ROWS, Menu.FULL]);
     expect(Menu.of(STAGE, BLOCK, Settings.DEFAULT, desk).lines.length).toBe(1);
   });
 
   test("the in-game menu adds the actions the title screen does not need", () => {
     expect(Menu.rowsFor(false, Menu.IN_GAME)).toEqual([Menu.THEME, Menu.HOW, Menu.HOME]);
     expect(Menu.rowsFor(false, Menu.ON_TITLE)).toEqual([Menu.THEME]);
+  });
+
+  test("only a touch shell is offered fullscreen, and it is offered on both screens", () => {
+    expect(Menu.rowsFor(true, Menu.ON_TITLE)).toContain(Menu.FULL);
+    expect(Menu.rowsFor(true, Menu.IN_GAME)).toContain(Menu.FULL);
+    expect(Menu.rowsFor(false, Menu.IN_GAME)).not.toContain(Menu.FULL);
   });
 
   test("tapping anywhere along an action row picks that action", () => {

@@ -129,6 +129,43 @@ const describe = (closing: World.Ending): Outcome => {
   }
 };
 
+const TALLY_SIT = 0.62;
+
+const tallyAt = <B>(current: World.Type<B>, layout: Layout.Metrics, frame: Chrome): Units.Point => {
+  const block = layout.blockWidth;
+
+  if (!frame.device.some) {
+    return Units.point(
+      layout.origin.x + (current.board.cols * block) / 2,
+      layout.origin.y + block / 2,
+    );
+  }
+
+  return Units.point(
+    frame.stage.left + frame.stage.width / 2,
+    frame.stage.top + Hud.plateHeight(block) * TALLY_SIT,
+  );
+};
+
+export const onScreen = (p: p5, stage: Units.Region, body: () => void): void => {
+  const surface = p.drawingContext;
+
+  if (!(surface instanceof CanvasRenderingContext2D)) {
+    body();
+
+    return;
+  }
+
+  surface.save();
+  surface.beginPath();
+  surface.roundRect(stage.left, stage.top, stage.width, stage.height, Keys.screenRadius(stage));
+  surface.clip();
+
+  body();
+
+  surface.restore();
+};
+
 const world = <B>(
   p: p5,
   scheme: Palette.Scheme,
@@ -160,13 +197,34 @@ const world = <B>(
 
   if (frame.tallying === TALLY_HIDDEN) return;
 
+  const at = tallyAt(current, layout, frame);
+
   if (Players.count(current.players) > 1) {
-    StandingsView.draw(p, scheme, layout, current, frame.standings, Units.millis(p.millis()));
+    const room = Math.min(frame.stage.width, current.board.cols * layout.blockWidth);
+
+    StandingsView.draw(
+      p,
+      scheme,
+      layout,
+      current,
+      frame.standings,
+      at,
+      room,
+      Units.millis(p.millis()),
+    );
 
     return;
   }
 
-  Hud.score(p, scheme, current, layout, Players.scored(current.players), Units.millis(p.millis()));
+  Hud.score(
+    p,
+    scheme,
+    current,
+    layout,
+    at,
+    Players.scored(current.players),
+    Units.millis(p.millis()),
+  );
 };
 
 const taggedAs = (frame: Chrome, who: number, alive: boolean): Option.Type<Tag.Tag> => {
@@ -213,12 +271,19 @@ export const board = <B>(
   const { scheme } = frame;
 
   p.background(scheme.background.red, scheme.background.green, scheme.background.blue);
-  Surface.table(p, surface);
-  Clay.surround(p, scheme.shadow, SURROUND_WASH);
 
-  if (frame.device.some) Keys.shell(p, scheme, frame.device.value, frame.stage);
+  if (!frame.device.some) {
+    Surface.table(p, surface);
+    Clay.surround(p, scheme.shadow, SURROUND_WASH);
+    world(p, scheme, scene.current.world, layout, scene, surface, frame);
 
-  world(p, scheme, scene.current.world, layout, scene, surface, frame);
+    return;
+  }
+
+  Keys.shell(p, scheme, frame.device.value, frame.stage);
+  onScreen(p, frame.stage, () => {
+    world(p, scheme, scene.current.world, layout, scene, surface, frame);
+  });
 };
 
 export const draw = <B>(

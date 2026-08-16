@@ -86,7 +86,10 @@ describe("pad", () => {
       for (const hand of HANDS) {
         const { device, stage, pad } = Pad.arrange(viewport, hand);
 
-        expect(device.left).toBeGreaterThan(0);
+        expect(device.left).toBeCloseTo(0, 6);
+        expect(device.top).toBeCloseTo(0, 6);
+        expect(device.width).toBeCloseTo(viewport.width, 6);
+        expect(device.height).toBeCloseTo(viewport.height, 6);
         expect(device.left + device.width).toBeLessThanOrEqual(viewport.width);
         expect(device.top + device.height).toBeLessThanOrEqual(viewport.height);
 

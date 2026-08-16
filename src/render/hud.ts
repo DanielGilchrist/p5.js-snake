@@ -107,14 +107,11 @@ export const score = <B>(
   scheme: Palette.Scheme,
   world: World.Type<B>,
   layout: Layout.Metrics,
+  middle: Units.Point,
   points: number,
   now: Units.Millis,
 ): void => {
   const block = layout.blockWidth;
-  const middle = Units.point(
-    layout.origin.x + (world.board.cols * block) / 2,
-    layout.origin.y + block / 2,
-  );
   const height = block * PLATE_HEIGHT;
 
   p.push();

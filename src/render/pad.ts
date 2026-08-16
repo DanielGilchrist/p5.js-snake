@@ -31,9 +31,8 @@ export type Handheld = {
   readonly pad: Pad;
 };
 
-const CASE_MARGIN = 0.022;
-const CASE_PAD = 0.035;
-const STAGE_SHARE = 0.66;
+const CASE_PAD = 0.014;
+const STAGE_SHARE = 0.7;
 
 const CROSS_SPAN = 0.22;
 const CROSS_ARM = 0.083;
@@ -64,15 +63,14 @@ const across = (device: Units.Region, share: number, hand: Hand): number =>
 
 export const arrange = (viewport: Units.Viewport, hand: Hand): Handheld => {
   const shortest = Math.min(viewport.width, viewport.height);
-  const margin = shortest * CASE_MARGIN;
   const inset = shortest * CASE_PAD;
   const upright = viewport.height >= viewport.width;
 
   const device = Units.region({
-    left: margin,
-    top: margin,
-    width: viewport.width - margin * 2,
-    height: viewport.height - margin * 2,
+    left: 0,
+    top: 0,
+    width: viewport.width,
+    height: viewport.height,
   });
 
   if (upright) {

@@ -246,6 +246,12 @@ export const of = <B>(
   };
 };
 
+export const forget = (surface: Surface): void => {
+  surface.grain.remove();
+  surface.art.remove();
+  surface.frame.remove();
+};
+
 export const casement = (p: p5, surface: Surface): void => {
   p.image(surface.frame, surface.frameAt.x, surface.frameAt.y);
 };

@@ -138,9 +138,23 @@ export type Place = {
   readonly where: Where;
   readonly cursor: number;
   readonly counts: Counts;
+  readonly entries: readonly Entry[];
 };
 
-export const OPENING: Place = { where: { kind: ROOT }, cursor: 0, counts: START };
+export const SHARED = "shared";
+export const OWN_DEVICE = "ownDevice";
+
+export type Company = typeof SHARED | typeof OWN_DEVICE;
+
+export const entriesFor = (company: Company): readonly Entry[] =>
+  company === SHARED ? ENTRIES : ENTRIES.filter((entry) => entry !== FRIEND);
+
+export const opening = (company: Company): Place => ({
+  where: { kind: ROOT },
+  cursor: 0,
+  counts: START,
+  entries: entriesFor(company),
+});
 
 export const PLAYERS = "players";
 export const BEGIN = "begin";
@@ -214,7 +228,7 @@ const setupSlot = (entry: Entry, counts: Counts, line: Line): Slot => {
 export const slotsAt = (place: Place): readonly Slot[] => {
   switch (place.where.kind) {
     case ROOT:
-      return ENTRIES.map((entry) => rootSlot(entry));
+      return place.entries.map((entry) => rootSlot(entry));
     case SETUP: {
       const { entry } = place.where;
 
@@ -239,7 +253,8 @@ export const headingOf = (place: Place): Option.Type<string> => {
 const wrapped = (cursor: number, count: number): number =>
   count === 0 ? 0 : ((cursor % count) + count) % count;
 
-export const entryAt = (cursor: number): Entry => ENTRIES[wrapped(cursor, ENTRIES.length)] ?? SOLO;
+export const entryAt = (place: Place, cursor: number): Entry =>
+  place.entries[wrapped(cursor, place.entries.length)] ?? SOLO;
 
 const lineAt = (cursor: number): Line => SETUP_LINES[wrapped(cursor, SETUP_LINES.length)] ?? BEGIN;
 
@@ -314,7 +329,7 @@ export type Outcome =
   | { readonly kind: typeof SHOW_SETTINGS };
 
 const fromRoot = (here: string, place: Place): Outcome => {
-  const entry = entryAt(place.cursor);
+  const entry = entryAt(place, place.cursor);
 
   switch (entry) {
     case COMPUTER:
@@ -337,7 +352,7 @@ export const backed = (place: Place): Place => {
     case ROOT:
       return place;
     case SETUP:
-      return { ...place, where: { kind: ROOT }, cursor: ENTRIES.indexOf(place.where.entry) };
+      return { ...place, where: { kind: ROOT }, cursor: place.entries.indexOf(place.where.entry) };
     default:
       return Assert.never(place.where);
   }
@@ -365,7 +380,7 @@ const rootHint = (prompt: Prompt.Prompt): string => {
     case Prompt.KEYS:
       return "↑↓ choose   ENTER to pick";
     case Prompt.TOUCH:
-      return "Tap to pick";
+      return "Tap a row, or OK on the pad";
     default:
       return Assert.never(prompt);
   }
@@ -376,7 +391,7 @@ const setupHint = (prompt: Prompt.Prompt): string => {
     case Prompt.KEYS:
       return "←→ players   ENTER to start   ESC to go back";
     case Prompt.TOUCH:
-      return "Tap the arrows, then Start";
+      return "Arrows set the players, OK starts";
 
     default:
       return Assert.never(prompt);

@@ -10,6 +10,7 @@ export {
   ending,
   naming,
   of as scene,
+  onScreen,
   tally,
 } from "./scene";
 export { draw as drawError } from "./error";

@@ -38,9 +38,13 @@ const stamp = (names: readonly string[]): string => {
 const workerFor = (names: readonly string[]): string => `const SHELF = "snake-${stamp(names)}";
 const KEPT = ${JSON.stringify(["./", ...names.map((name) => `./${name}`)], null, 2)};
 
+const fresh = (url) => new Request(url, { cache: "reload" });
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(SHELF).then((shelf) => shelf.addAll(KEPT)));
+  event.waitUntil(
+    caches.open(SHELF).then((shelf) => Promise.all(KEPT.map((url) => shelf.add(fresh(url))))),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -52,13 +56,29 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+const answered = async (request) => {
+  try {
+    return await fetch(request);
+  } catch {
+    return undefined;
+  }
+};
+
 const page = async (request) => {
   const shelf = await caches.open(SHELF);
+  const answer = await answered(request);
+
+  if (answer !== undefined && answer.ok) {
+    await shelf.put("./index.html", answer.clone());
+
+    return answer;
+  }
+
   const held = await shelf.match("./index.html");
 
   if (held !== undefined) return held;
 
-  return fetch(request);
+  return answer ?? Response.error();
 };
 
 const asset = async (request) => {

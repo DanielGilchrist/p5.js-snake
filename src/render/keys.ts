@@ -10,6 +10,7 @@ import * as Units from "./units";
 
 const CASE_RADIUS = 0.06;
 const SCREEN_BEZEL = 0.5;
+const SCREEN_INSET = 0.014;
 
 const CROSS_RADIUS = 0.28;
 const CASE_DROP = 0.14;
@@ -35,24 +36,32 @@ const ROUND_GLYPH = 1.35;
 const CUT = 0.022;
 const LIP_ALPHA = Paint.alpha(52);
 
+export const screenRadius = (stage: Units.Region): number =>
+  Math.min(stage.width, stage.height) * SCREEN_INSET * 2 * SCREEN_BEZEL;
+
 export const shell = (
   p: p5,
   scheme: Palette.Scheme,
   device: Units.Region,
   stage: Units.Region,
 ): void => {
-  const radius = Math.min(device.width, device.height) * CASE_RADIUS;
+  const filling = device.left <= 1 && device.top <= 1;
+  const radius = filling ? 0 : Math.min(device.width, device.height) * CASE_RADIUS;
   const drop = radius * CASE_DROP;
 
   p.noStroke();
 
-  Paint.fillWith(p, scheme.shadow, Paint.alpha(58));
-  p.rect(device.left, device.top + drop, device.width, device.height, radius);
+  if (!filling) {
+    Paint.fillWith(p, scheme.shadow, Paint.alpha(58));
+    p.rect(device.left, device.top + drop, device.width, device.height, radius);
+  }
 
   Paint.fill(p, scheme.body);
-  p.rect(device.left, device.top, device.width, device.height, radius);
 
-  const bezel = Math.min(stage.width, stage.height) * 0.03;
+  if (filling) p.rect(0, 0, p.width, p.height);
+  else p.rect(device.left, device.top, device.width, device.height, radius);
+
+  const bezel = Math.min(stage.width, stage.height) * SCREEN_INSET;
 
   Paint.fillWith(p, scheme.shadow, Paint.alpha(52));
   p.rect(
@@ -60,11 +69,30 @@ export const shell = (
     stage.top - bezel,
     stage.width + bezel * 2,
     stage.height + bezel * 2,
-    bezel * 2 * SCREEN_BEZEL + radius * 0.4,
+    bezel * 2 * SCREEN_BEZEL,
   );
 };
 
-const arrow = (p: p5, control: Pad.Control, reach: number): void => {
+export const PLAYING = "playing";
+export const CHOOSING = "choosing";
+
+export type Role = typeof PLAYING | typeof CHOOSING;
+
+const BARS = "bars";
+const PICK = "pick";
+
+type Glyph = Geometry.Direction | typeof Pad.MENU | typeof BARS | typeof PICK;
+
+const glyphFor = (control: Pad.Control, role: Role): Glyph => {
+  if (control !== Pad.PAUSE) return control;
+
+  return role === CHOOSING ? PICK : BARS;
+};
+
+const PICK_WORD = "OK";
+const PICK_RATIO = 1.15;
+
+const arrow = (p: p5, control: Glyph, reach: number): void => {
   const tip = reach;
   const back = -reach * 0.5;
   const flank = reach * 0.78;
@@ -118,7 +146,15 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
 
       return;
     }
-    case Pad.PAUSE: {
+    case PICK: {
+      p.textAlign(p.CENTER, p.CENTER);
+      p.textStyle(p.BOLD);
+      p.textSize(reach * PICK_RATIO);
+      p.text(PICK_WORD, 0, 0);
+
+      return;
+    }
+    case BARS: {
       const width = reach * BAR_WIDTH * 2;
       const height = reach * BAR_HEIGHT * 2;
       const gap = reach * BAR_GAP;
@@ -136,7 +172,7 @@ const arrow = (p: p5, control: Pad.Control, reach: number): void => {
 const engraved = (
   p: p5,
   scheme: Palette.Scheme,
-  control: Pad.Control,
+  control: Glyph,
   at: Units.Point,
   reach: number,
   cut: number,
@@ -167,6 +203,7 @@ export const draw = (
   of: Pad.Pad,
   held: Option.Type<Pad.Control>,
   extras = true,
+  role: Role = PLAYING,
 ): void => {
   const down = (control: Pad.Control): boolean => held.some && held.value === control;
   const cut = Math.max(1, of.arm * CUT * 2);
@@ -232,7 +269,7 @@ export const draw = (
     engraved(
       p,
       scheme,
-      control,
+      glyphFor(control, role),
       Units.point(seat.x, seat.y + lift),
       of.button * GLYPH_RATIO * ROUND_GLYPH,
       cut,

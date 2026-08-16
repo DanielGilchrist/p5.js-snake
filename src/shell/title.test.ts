@@ -8,9 +8,11 @@ import * as Title from "./title";
 
 const SITE = "https://example.test/snake/";
 
+const START = Title.opening(Title.SHARED);
+
 const at = (entry: Title.Entry, counts: Title.Counts = Title.START): Title.Place => ({
-  where: { kind: Title.ROOT },
-  cursor: Title.ENTRIES.indexOf(entry),
+  ...START,
+  cursor: START.entries.indexOf(entry),
   counts,
 });
 
@@ -51,10 +53,42 @@ describe("what the menu offers", () => {
     expect(outcome(at(Title.SETTINGS)).kind).toBe(Title.SHOW_SETTINGS);
   });
 
+  test("sharing one small screen is not offered when there is only one pad", () => {
+    const shared = Title.entriesFor(Title.SHARED);
+    const alone = Title.entriesFor(Title.OWN_DEVICE);
+
+    expect(shared).toContain(Title.FRIEND);
+    expect(alone).not.toContain(Title.FRIEND);
+    expect(alone.length).toBe(shared.length - 1);
+
+    for (const entry of alone) expect(shared).toContain(entry);
+  });
+
+  test("the cursor still names the right entry once one is missing", () => {
+    const handheld = Title.opening(Title.OWN_DEVICE);
+
+    expect(Title.slotsAt(handheld).length).toBe(Title.entriesFor(Title.OWN_DEVICE).length);
+
+    for (const [index, entry] of Title.entriesFor(Title.OWN_DEVICE).entries()) {
+      expect(Title.entryAt(handheld, index)).toBe(entry);
+    }
+  });
+
+  test("a link still starts a shared game even where the menu hides it", () => {
+    expect(Mode.read(`${SITE}?friend`).kind).toBe(Mode.WITH_A_FRIEND);
+  });
+
   test("only the modes that need a number ask for one", () => {
-    const opens = Title.slotsAt(Title.OPENING).map((slot) => slot.kind === Title.OPENS);
+    const opens = Title.slotsAt(START).map((slot) => slot.kind === Title.OPENS);
 
     expect(opens).toEqual([false, true, false, true, false, false]);
+    expect(Title.slotsAt(Title.opening(Title.OWN_DEVICE)).map((slot) => slot.kind)).toEqual([
+      Title.PLAIN,
+      Title.OPENS,
+      Title.OPENS,
+      Title.PLAIN,
+      Title.PLAIN,
+    ]);
   });
 
   test("every entry has a label", () => {
@@ -82,10 +116,10 @@ describe("the setup screen", () => {
       const left = Title.backed({ ...setup, cursor });
 
       expect(left.where.kind).toBe(Title.ROOT);
-      expect(Title.entryAt(left.cursor)).toBe(Title.COMPUTER);
+      expect(Title.entryAt(left, left.cursor)).toBe(Title.COMPUTER);
     }
 
-    expect(Title.backed(Title.OPENING)).toEqual(Title.OPENING);
+    expect(Title.backed(START)).toEqual(START);
   });
 
   test("going back keeps the count for when you come again", () => {
@@ -99,7 +133,7 @@ describe("the setup screen", () => {
     const back = moved(Title.moved(Title.moved(setup, 1), 1));
 
     expect(back.where.kind).toBe(Title.ROOT);
-    expect(Title.entryAt(back.cursor)).toBe(Title.COMPUTER);
+    expect(Title.entryAt(back, back.cursor)).toBe(Title.COMPUTER);
   });
 
   test("the count it leaves with is the count the game starts with", () => {
@@ -120,7 +154,7 @@ describe("the setup screen", () => {
     const onStart = Title.moved(setup, 1);
 
     expect(Title.nudged(onStart, 1)).toEqual(onStart);
-    expect(Title.nudged(Title.OPENING, 1)).toEqual(Title.OPENING);
+    expect(Title.nudged(START, 1)).toEqual(START);
   });
 
   test("the count stops at both ends instead of wrapping", () => {
@@ -158,8 +192,8 @@ describe("walking the rows", () => {
   test("the cursor wraps at both ends of whichever screen it is on", () => {
     const last = Title.ENTRIES.length - 1;
 
-    expect(Title.moved(Title.OPENING, -1).cursor).toBe(last);
-    expect(Title.moved({ ...Title.OPENING, cursor: last }, 1).cursor).toBe(0);
+    expect(Title.moved(START, -1).cursor).toBe(last);
+    expect(Title.moved({ ...START, cursor: last }, 1).cursor).toBe(0);
 
     const setup = moved(at(Title.ROOM));
 
@@ -169,7 +203,7 @@ describe("walking the rows", () => {
 
   test("both screens say what the keys do", () => {
     for (const prompt of [Prompt.KEYS, Prompt.TOUCH] as const) {
-      expect(Title.hintFor(Title.OPENING, prompt).length).toBeGreaterThan(0);
+      expect(Title.hintFor(START, prompt).length).toBeGreaterThan(0);
       expect(Title.hintFor(moved(at(Title.ROOM)), prompt).length).toBeGreaterThan(0);
     }
   });

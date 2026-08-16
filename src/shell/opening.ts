@@ -5,17 +5,21 @@ import * as Geometry from "../core/geometry";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Render from "../render";
+import * as Keys from "../render/keys";
+import * as Pad from "../render/pad";
 import type * as Palette from "../render/palette";
 import type * as Settings from "../render/settings";
 import * as TitleView from "../render/title";
 import * as Units from "../render/units";
 import * as Aside from "./aside";
 import * as Demo from "./demo";
+import * as Frame from "./frame";
 import * as Phase from "./phase";
 import * as Title from "./title";
 
 export type Deps = {
   readonly here: string;
+  readonly frame: () => Frame.Frame;
   readonly stage: () => Units.Region;
   readonly handheld: () => boolean;
   readonly prompt: () => Render.Prompt;
@@ -33,6 +37,7 @@ export type Screen = {
   readonly resize: () => void;
   readonly showing: () => Title.Where["kind"];
   readonly playing: () => string;
+  readonly forget: () => void;
 };
 
 export const NAME = "title";
@@ -64,12 +69,63 @@ const cardFor = (place: Title.Place, prompt: Render.Prompt): TitleView.Card => {
 };
 
 export const open = (p: p5, deps: Deps): Screen => {
-  let place = Title.OPENING;
-  let demo = Demo.start(p, deps.stage(), deps.scheme(), deps.seed());
+  const companyNow = (): Title.Company => (deps.handheld() ? Title.OWN_DEVICE : Title.SHARED);
+
+  let company = companyNow();
+  let place = Title.opening(company);
+  let demo = deps.handheld()
+    ? Option.none
+    : Demo.start(p, deps.stage(), deps.scheme(), deps.seed());
 
   const aside = Aside.mount(p, deps);
 
-  const view = (): TitleView.Screen => TitleView.of(deps.stage(), cardFor(place, deps.prompt()));
+  const view = (): TitleView.Screen =>
+    TitleView.of(
+      deps.stage(),
+      cardFor(place, deps.prompt()),
+      deps.handheld() ? TitleView.FILL : TitleView.INSET,
+    );
+
+  const steered = (by: number, along: boolean): void => {
+    place = along ? Title.moved(place, by) : Title.nudged(place, by);
+  };
+
+  const padded = (control: Pad.Control): void => {
+    switch (control) {
+      case Pad.MENU:
+        aside.show(Phase.settings(0));
+
+        return;
+
+      case Pad.PAUSE:
+        settled(Title.chosen(deps.here, place));
+
+        return;
+
+      case Geometry.UP:
+        steered(-1, true);
+
+        return;
+
+      case Geometry.DOWN:
+        steered(1, true);
+
+        return;
+
+      case Geometry.LEFT:
+        steered(-1, false);
+
+        return;
+
+      case Geometry.RIGHT:
+        steered(1, false);
+
+        return;
+
+      default:
+        return Assert.never(control);
+    }
+  };
 
   const settled = (outcome: Title.Outcome): void => {
     switch (outcome.kind) {
@@ -138,7 +194,22 @@ export const open = (p: p5, deps: Deps): Screen => {
     }
   };
 
+  const dropDemo = (): void => {
+    if (demo.some) demo.value.forget();
+
+    demo = Option.none;
+  };
+
   const backdrop = (now: Units.Millis, scheme: Palette.Scheme): void => {
+    const frame = deps.frame();
+
+    if (frame.kind === Frame.HANDHELD) {
+      p.background(scheme.background.red, scheme.background.green, scheme.background.blue);
+      Keys.shell(p, scheme, frame.device, frame.stage);
+
+      return;
+    }
+
     if (demo.some) {
       demo.value.frame(now, scheme);
 
@@ -146,6 +217,14 @@ export const open = (p: p5, deps: Deps): Screen => {
     }
 
     p.background(scheme.background.red, scheme.background.green, scheme.background.blue);
+  };
+
+  const buttons = (scheme: Palette.Scheme): void => {
+    const frame = deps.frame();
+
+    if (frame.kind !== Frame.HANDHELD) return;
+
+    Keys.draw(p, scheme, frame.pad, Option.none, true, Keys.CHOOSING);
   };
 
   return {
@@ -156,6 +235,7 @@ export const open = (p: p5, deps: Deps): Screen => {
 
       backdrop(now, scheme);
       TitleView.draw(p, scheme, screen, place.cursor);
+      buttons(scheme);
       aside.draw();
     },
 
@@ -176,6 +256,18 @@ export const open = (p: p5, deps: Deps): Screen => {
         return;
       }
 
+      const frame = deps.frame();
+
+      if (frame.kind === Frame.HANDHELD) {
+        const control = Pad.hit(frame.pad, at);
+
+        if (control.some) {
+          padded(control.value);
+
+          return;
+        }
+      }
+
       const screen = view();
       const nudge = TitleView.nudged(screen, at);
 
@@ -194,12 +286,28 @@ export const open = (p: p5, deps: Deps): Screen => {
       }
 
       place = { ...place, cursor: picked.value };
+
+      const slot = Title.slotsAt(place)[picked.value];
+
+      if (slot?.kind === Title.COUNTED) return;
+
       settled(Title.chosen(deps.here, place));
     },
 
     resize: () => {
-      demo = Demo.start(p, deps.stage(), deps.scheme(), deps.seed());
+      if (companyNow() !== company) {
+        company = companyNow();
+        place = Title.opening(company);
+      }
+
+      dropDemo();
+
+      demo = deps.handheld()
+        ? Option.none
+        : Demo.start(p, deps.stage(), deps.scheme(), deps.seed());
     },
+
+    forget: dropDemo,
 
     showing: () => place.where.kind,
 

@@ -29,14 +29,12 @@ export const draw = <B>(
   layout: Layout.Metrics,
   world: World.Type<B>,
   standings: Standings.Type,
+  middle: Units.Point,
+  room: number,
   now: Units.Millis,
 ): void => {
   const block = layout.blockWidth;
   const height = Hud.plateHeight(block);
-  const middle = Units.point(
-    layout.origin.x + (world.board.cols * block) / 2,
-    layout.origin.y + block / 2,
-  );
 
   p.push();
   p.noStroke();
@@ -52,8 +50,7 @@ export const draw = <B>(
   );
   const gap = block * BETWEEN;
   const total = widths.reduce((sum, width) => sum + width, 0) + gap * (widths.length - 1);
-  const across = world.board.cols * block;
-  const squeeze = Math.min(1, across / Math.max(total, 1));
+  const squeeze = Math.min(1, room / Math.max(total, 1));
 
   p.translate(middle.x, middle.y);
   p.scale(squeeze);
