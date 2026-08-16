@@ -23,7 +23,7 @@ export type Link = {
 };
 
 const relaysIn = (href: string): readonly string[] => {
-  const asked = new URL(href).searchParams.get("relay");
+  const asked = new URL(href).searchParams.get(RELAY);
 
   if (asked === null) return [];
 

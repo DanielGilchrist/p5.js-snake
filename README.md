@@ -9,31 +9,24 @@ Made using [p5.js](https://p5js.org/)
 ## Keyboard
 | Key | |
 | --- | --- |
-| Arrow keys, `hjkl` or `wsad` | Move |
+| Arrow keys, `hjkl` or `wsad` | Move, and choose on the menu |
+| `Enter` | Play the entry under the cursor |
 | `p` | Pause |
-| `Shift+S` | Settings |
-| `?` | Controls |
+| `Shift+S` or `Esc` or `Backspace` | Menu |
+| `Esc` or `Backspace` | Back |
+| `?` | How to play |
 
 # Modes
 
-Append these to the URL. Without one you get the usual single player game.
+The mode is selected through the menu and is facilitated through a link and query parameters.
 
 | Link | |
 | --- | --- |
-| `?cpu` | One board, two snakes, the second played by the computer |
+| `?solo` | Straight into the single player game, skipping the menu |
+| `?cpu=N` | One board, you and N computer players, up to eight in total |
 | `?friend` | Two players on one keyboard: arrows for green, `wsad` for purple |
-| `?host` | Start a 1v1 over your network and get a link to send |
-| `?room=CODE` | Join someone's 1v1, which is what their link looks like |
-
-## 1v1 over your network
-
-Open `?host`, send the link, and you both press `Enter` on the ready screen. Whoever
-dies first loses, the board freezes on the result, and the next round starts once you
-have both agreed to it. Both of you have to be on the same network.
-
-There is no pausing during a 1v1, and no settings or help either, because stopping
-your own game would stop your opponent's with it. All three are available on the
-ready screen once the game is paused anyway.
+| `?host&players=N` | Open a room for N over your network and get a link to send |
+| `?room=CODE` | Join someone's room, which is what their link looks like |
 
 # Development
 

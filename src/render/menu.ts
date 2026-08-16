@@ -5,10 +5,17 @@ import * as Units from "./units";
 
 export const THEME = "theme";
 export const HAND = "hand";
+export const HOW = "how";
+export const HOME = "home";
 
-export type Row = typeof THEME | typeof HAND;
+export type Row = typeof THEME | typeof HAND | typeof HOW | typeof HOME;
 
 export const ROWS: readonly Row[] = [THEME, HAND];
+
+export const IN_GAME = "inGame";
+export const ON_TITLE = "onTitle";
+
+export type Where = typeof IN_GAME | typeof ON_TITLE;
 
 export type Chip = {
   readonly at: Units.Region;
@@ -16,10 +23,15 @@ export type Chip = {
   readonly active: boolean;
 };
 
+export const CHOICES = "choices";
+export const ACTION = "action";
+
 export type Line = {
+  readonly kind: typeof CHOICES | typeof ACTION;
   readonly row: Row;
   readonly label: string;
   readonly at: Units.Point;
+  readonly reach: Units.Region;
   readonly chips: readonly Chip[];
 };
 
@@ -42,10 +54,16 @@ const labelOf = (row: Row): string => {
       return "Theme";
     case HAND:
       return "Controls";
+    case HOW:
+      return "How to play";
+    case HOME:
+      return "Main menu";
     default:
       return Assert.never(row);
   }
 };
+
+const acts = (row: Row): boolean => row === HOW || row === HOME;
 
 const choicesFor = (row: Row): readonly Settings.Choice[] => {
   switch (row) {
@@ -53,6 +71,9 @@ const choicesFor = (row: Row): readonly Settings.Choice[] => {
       return Settings.THEMES.map((value) => ({ kind: Settings.THEME, value }));
     case HAND:
       return Settings.HANDS.map((value) => ({ kind: Settings.HAND, value }));
+    case HOW:
+    case HOME:
+      return [];
     default:
       return Assert.never(row);
   }
@@ -100,11 +121,19 @@ export const of = (
     const choices = choicesFor(row);
     const span = chipWidth * choices.length + block * CHIP_GAP * (choices.length - 1);
     const start = left + width - block * PANEL_PAD - span;
+    const reach = Units.region({
+      left,
+      top: middle - (block * ROW_HEIGHT) / 2,
+      width,
+      height: block * ROW_HEIGHT,
+    });
 
     return {
+      kind: acts(row) ? ACTION : CHOICES,
       row,
       label: labelOf(row),
       at: Units.point(left + block * PANEL_PAD, middle),
+      reach,
       chips: choices.map((choice, slot) => ({
         at: Units.region({
           left: start + slot * (chipWidth + block * CHIP_GAP),
@@ -115,7 +144,7 @@ export const of = (
         choice,
         active: isActive(choice, settings),
       })),
-    };
+    } as const;
   });
 
   return { panel, lines, title: Units.point(left + width / 2, top + block * TITLE_HEIGHT * 0.55) };
@@ -127,10 +156,23 @@ const within = (box: Units.Region, at: Units.Point): boolean =>
   at.y >= box.top &&
   at.y <= box.top + box.height;
 
-export const hit = (menu: Menu, at: Units.Point): Option.Type<Settings.Choice> => {
+export const CHOSEN = "chosen";
+export const ACTED = "acted";
+
+export type Picked =
+  | { readonly kind: typeof CHOSEN; readonly choice: Settings.Choice }
+  | { readonly kind: typeof ACTED; readonly row: Row };
+
+export const hit = (menu: Menu, at: Units.Point): Option.Type<Picked> => {
   for (const line of menu.lines) {
+    if (line.kind === ACTION) {
+      if (within(line.reach, at)) return Option.some({ kind: ACTED, row: line.row });
+
+      continue;
+    }
+
     for (const chip of line.chips) {
-      if (within(chip.at, at)) return Option.some(chip.choice);
+      if (within(chip.at, at)) return Option.some({ kind: CHOSEN, choice: chip.choice });
     }
   }
 
@@ -145,12 +187,26 @@ export const cycle = (settings: Settings.Type, row: Row, step: number): Settings
       return Settings.cycleTheme(settings, step);
     case HAND:
       return Settings.cycleHand(settings, step);
+    case HOW:
+    case HOME:
+      return settings;
     default:
       return Assert.never(row);
   }
 };
 
-export const rowsFor = (handheld: boolean): readonly Row[] => (handheld ? ROWS : ["theme"]);
+export const rowsFor = (handheld: boolean, where: Where): readonly Row[] => {
+  const chips: readonly Row[] = handheld ? [THEME, HAND] : [THEME];
+
+  switch (where) {
+    case IN_GAME:
+      return [...chips, HOW, HOME];
+    case ON_TITLE:
+      return chips;
+    default:
+      return Assert.never(where);
+  }
+};
 
 export const nextCursor = (menu: Menu, cursor: number, by: number): number => {
   const count = menu.lines.length;
@@ -164,5 +220,5 @@ export const rowAt = (menu: Menu, cursor: number): Row => {
   const count = menu.lines.length;
   const line = menu.lines[((cursor % count) + count) % count];
 
-  return line === undefined ? "theme" : line.row;
+  return line === undefined ? THEME : line.row;
 };

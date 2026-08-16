@@ -12,6 +12,7 @@ const TITLE_RATIO = 0.42;
 const LABEL_RATIO = 0.34;
 const CHIP_RATIO = 0.28;
 const CUT = 0.03;
+const ACTION_INSET = 0.9;
 const SHADOW_DROP = 0.1;
 
 const engrave = (
@@ -36,6 +37,7 @@ export const draw = (
   menu: Menu.Menu,
   block: Units.Px,
   cursor: number,
+  heading: string,
 ): void => {
   const { panel } = menu;
 
@@ -60,12 +62,18 @@ export const draw = (
   p.textAlign(p.CENTER, p.CENTER);
   p.textStyle(p.BOLD);
   p.textSize(block * TITLE_RATIO);
-  engrave(p, scheme, "SETTINGS", menu.title, block);
+  engrave(p, scheme, heading, menu.title, block);
 
   menu.lines.forEach((line, index) => {
     p.textAlign(p.LEFT, p.CENTER);
     p.textSize(block * LABEL_RATIO);
     engrave(p, scheme, line.label, line.at, block);
+
+    if (line.kind === Menu.ACTION) {
+      p.textAlign(p.RIGHT, p.CENTER);
+      Paint.fillWith(p, scheme.mark, Paint.alpha(index === cursor ? 220 : 110));
+      p.text("›", line.reach.left + line.reach.width - block * ACTION_INSET, line.at.y as number);
+    }
 
     for (const chip of line.chips) {
       const middle = chip.at.top + chip.at.height / 2;

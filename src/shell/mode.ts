@@ -64,18 +64,27 @@ const playersOf = (
   }
 };
 
+export const SOLO = "solo";
+export const CPU = "cpu";
+export const FRIEND = "friend";
+export const HOST = "host";
+export const PLAYERS = "players";
+export const LONG = "long";
+export const PROBE = "probe";
+export const BOT = "bot";
+
 export const read = (href: string): Mode => {
   const wanted = Invite.asked(href);
   const invited = wanted.kind === Invite.ROOM ? Option.some(wanted.code) : Option.none;
-  const hosting = Invite.flagged(href, "host");
+  const hosting = Invite.flagged(href, HOST);
   const networked = invited.some || hosting;
-  const asked = networked ? Option.none : Invite.counted(href, "cpu");
+  const asked = networked ? Option.none : Invite.counted(href, CPU);
   const computer = asked.some;
-  const friend = !networked && !computer && Invite.flagged(href, "friend");
-  const room = Invite.counted(href, "players");
+  const friend = !networked && !computer && Invite.flagged(href, FRIEND);
+  const room = Invite.counted(href, PLAYERS);
   const kind = kindOf(networked, computer, friend);
   const playing = playersOf(kind, asked, room);
-  const long = Invite.counted(href, "long");
+  const long = Invite.counted(href, LONG);
 
   return {
     kind,
@@ -84,9 +93,27 @@ export const read = (href: string): Mode => {
     hosting,
     joining: invited.some,
     fault: wanted.kind === Invite.MALFORMED ? Option.some(wanted.raw) : Option.none,
-    showing: Invite.flagged(href, "probe"),
-    automatic: Invite.flagged(href, "bot"),
+    showing: Invite.flagged(href, PROBE),
+    automatic: Invite.flagged(href, BOT),
   };
+};
+
+export const TITLE = "title";
+export const PLAY = "play";
+
+export type Launch =
+  | { readonly kind: typeof TITLE }
+  | { readonly kind: typeof PLAY; readonly mode: Mode };
+
+const ASKS_TO_PLAY: readonly string[] = [SOLO, CPU, FRIEND, HOST];
+
+export const launch = (href: string): Launch => {
+  const wanted = Invite.asked(href);
+  const flagged = ASKS_TO_PLAY.some((name) => Invite.flagged(href, name));
+
+  if (wanted.kind === Invite.NOBODY && !flagged) return { kind: TITLE };
+
+  return { kind: PLAY, mode: read(href) };
 };
 
 export const networked = (mode: Mode): boolean => mode.kind === OVER_THE_NETWORK;

@@ -4,6 +4,8 @@ import * as Serve from "./serve";
 
 type Probe = {
   readonly phase: string;
+  readonly where?: string;
+  readonly demo?: string;
   readonly mark: number;
   readonly score: number;
 };
@@ -55,16 +57,40 @@ const boots = async (page: Playwright.Page, url: string): Promise<void> => {
   if (painted === 0) complain("a canvas exists but nothing gave it a size");
 };
 
-const runs = async (page: Playwright.Page): Promise<void> => {
+const shows = async (page: Playwright.Page, phase: string): Promise<void> => {
   await page
     .waitForFunction(
-      () =>
-        (window as unknown as { snakeProbe: () => { phase: string } }).snakeProbe().phase ===
-        "live",
-      undefined,
+      (wanted) =>
+        (window as unknown as { snakeProbe?: () => { phase: string } }).snakeProbe?.().phase ===
+        wanted,
+      phase,
       { timeout: 10_000 },
     )
-    .catch(() => complain("the game never started playing"));
+    .catch(() => complain(`the game never reached "${phase}"`));
+};
+
+const opens = async (page: Playwright.Page): Promise<void> => {
+  await shows(page, "title");
+
+  const menu = await probing(page);
+
+  if (menu.demo === "off") complain("the game behind the menu never started");
+
+  await pressed(page, "ArrowDown");
+  await pressed(page, "Enter");
+
+  const setup = await probing(page);
+
+  if (setup.where !== "setup") {
+    complain(`the menu never opened the setup screen: it is showing "${setup.where}"`);
+  }
+
+  await pressed(page, "ArrowRight");
+  await pressed(page, "Enter");
+};
+
+const runs = async (page: Playwright.Page): Promise<void> => {
+  await shows(page, "live");
 
   const before = await probing(page);
 
@@ -114,7 +140,8 @@ page.on("console", (line) => {
 });
 
 try {
-  await boots(page, `http://localhost:${server.port}/?cpu&probe`);
+  await boots(page, `http://localhost:${server.port}/?probe`);
+  await opens(page);
   await runs(page);
   await listens(page);
 } finally {
@@ -126,4 +153,4 @@ try {
   await shut(browser, server);
 }
 
-console.log("smoke: the game boots, runs and answers the keyboard");
+console.log("smoke: the menu opens, the game runs and the keyboard reaches it");

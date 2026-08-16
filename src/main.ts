@@ -15,10 +15,13 @@ import * as Session from "./net/session";
 import * as Players from "./core/players";
 import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
+import * as Title from "./shell/title";
 import * as Fault from "./shell/fault";
 import * as Build from "./shell/build";
 import * as Intent from "./shell/intent";
 import * as Mode from "./shell/mode";
+import * as Aside from "./shell/aside";
+import * as Opening from "./shell/opening";
 import * as Pace from "./shell/pace";
 import * as Phase from "./shell/phase";
 import * as Verdict from "./core/verdict";
@@ -42,7 +45,6 @@ import * as Units from "./render/units";
 
 Offline.keep();
 
-const TARGET_BLOCK = 34;
 const ENDING_GRACE_MS = 600;
 const PRESS_FEEDBACK_MS = 130;
 const MAX_DENSITY = 2;
@@ -70,21 +72,9 @@ const vault = Storage.browser();
 
 const here = window.location.href;
 
-const mode = Mode.read(here);
+const launch = Mode.launch(here);
 
-const online = Mode.networked(mode);
-
-const probing = mode.showing;
-
-const piloted = mode.automatic;
-
-const roomCode = mode.room;
-
-window.addEventListener("hashchange", () => {
-  const wanted = Invite.asked(window.location.href);
-
-  if (wanted.kind !== Invite.ROOM || wanted.code !== roomCode) window.location.reload();
-});
+const probing = Invite.flagged(here, Mode.PROBE);
 
 const DESK = "desk";
 const HANDHELD = "handheld";
@@ -127,11 +117,11 @@ const shellFor = (viewport: Units.Viewport, hand: Pad.Hand): Shell => {
   };
 };
 
-const HELP_LINES: readonly (readonly [string, string])[] = [
+const helpLines = (mode: Mode.Mode): readonly (readonly [string, string])[] => [
   ["Move", Controls.nameOf(Mode.controlsFor(mode), Players.FIRST)],
   ["Pause", "P"],
-  ["Settings", "Shift+S"],
-  ["Controls", "?"],
+  ["Menu", "Shift+S"],
+  ["This screen", "?"],
 ];
 
 p5.disableFriendlyErrors = !Build.debugging();
@@ -163,6 +153,79 @@ export const sketch = new p5((p: p5) => {
     let scheme = schemeFor(settings);
     let shell = shellFor(viewport, settings.hand);
 
+    const keepSettings = (next: Settings.Type): void => {
+      settings = next;
+      vault.write(Slots.SETTINGS, settings);
+      scheme = schemeFor(settings);
+      shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
+    };
+
+    if (launch.kind === Mode.TITLE) {
+      const opening = Opening.open(p, {
+        here,
+        stage: () => Layout.desk(Units.viewport(p.windowWidth, p.windowHeight)),
+        handheld: () => shell.kind === HANDHELD,
+        prompt: () => (shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS),
+        settings: () => settings,
+        scheme: () => scheme,
+        keep: keepSettings,
+        go: (href) => {
+          window.location.href = href;
+        },
+        seed: () => Date.now(),
+      });
+
+      onFrame = opening.frame;
+
+      onKey = () => {
+        opening.key(Input.parseKey(p.key));
+      };
+
+      onResize = () => {
+        p.pixelDensity(densityFor(p.windowWidth, p.windowHeight, p.displayDensity()));
+        p.resizeCanvas(p.windowWidth, p.windowHeight);
+        shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
+        opening.resize();
+      };
+
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        scheme = schemeFor(settings);
+      });
+
+      window.addEventListener(
+        "pointerdown",
+        (event: PointerEvent) => {
+          event.preventDefault();
+          fillScreen();
+          opening.tap(Units.point(event.clientX, event.clientY));
+        },
+        { passive: false },
+      );
+
+      if (probing) {
+        Object.assign(window, {
+          snakeProbe: () => ({
+            phase: Opening.NAME,
+            where: opening.showing(),
+            demo: opening.playing(),
+          }),
+        });
+      }
+
+      return;
+    }
+
+    const mode = launch.mode;
+    const online = Mode.networked(mode);
+    const piloted = mode.automatic;
+    const roomCode = mode.room;
+
+    window.addEventListener("hashchange", () => {
+      const wanted = Invite.asked(window.location.href);
+
+      if (wanted.kind !== Invite.ROOM || wanted.code !== roomCode) window.location.reload();
+    });
+
     if (mode.fault.some) {
       const told = Fault.ofLink(mode.fault.value);
 
@@ -176,7 +239,7 @@ export const sketch = new p5((p: p5) => {
       return;
     }
 
-    const mine = Layout.cellsFor(shell.stage, TARGET_BLOCK);
+    const mine = Layout.cellsFor(shell.stage, Layout.TARGET_BLOCK);
 
     const net: Option.Type<Session.Session> = online
       ? Option.some(
@@ -680,7 +743,7 @@ export const sketch = new p5((p: p5) => {
 
           if (Phase.isSettings(phase)) {
             paintWorld(now);
-            Panel.draw(p, scheme, menuNow(), layout.blockWidth, phase.cursor);
+            Panel.draw(p, scheme, menuNow(), layout.blockWidth, phase.cursor, "MENU");
 
             return;
           }
@@ -697,8 +760,8 @@ export const sketch = new p5((p: p5) => {
               p,
               scheme,
               [
-                Render.line("CONTROLS", 0.62),
-                ...HELP_LINES.map(([what, how]) => Render.line(`${what}: ${how}`, 0.3)),
+                Render.line("HOW TO PLAY", 0.62),
+                ...helpLines(mode).map(([what, how]) => Render.line(`${what}: ${how}`, 0.3)),
               ],
               layout,
               shell.stage,
@@ -719,7 +782,7 @@ export const sketch = new p5((p: p5) => {
         const wantsReshaping = (): boolean => {
           if (online) return false;
 
-          const ideal = Layout.cellsFor(shell.stage, TARGET_BLOCK);
+          const ideal = Layout.cellsFor(shell.stage, Layout.TARGET_BLOCK);
           return ideal.cols !== board.cols || ideal.rows !== board.rows;
         };
 
@@ -779,21 +842,48 @@ export const sketch = new p5((p: p5) => {
         const applySettings = (next: Settings.Type): void => {
           const before = settings;
 
-          settings = next;
-          vault.write(Slots.SETTINGS, settings);
-          scheme = schemeFor(settings);
+          keepSettings(next);
 
-          if (before.hand !== settings.hand) {
-            shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
-            layout = Layout.fit(board, shell.stage);
-          }
+          if (before.hand !== settings.hand) layout = Layout.fit(board, shell.stage);
 
           surface = Surface.of(p, scheme, board, layout);
           effects = [];
         };
 
         const menuNow = (): Menu.Menu =>
-          Menu.of(shell.stage, layout.blockWidth, settings, Menu.rowsFor(shell.kind === HANDHELD));
+          Menu.of(
+            shell.stage,
+            layout.blockWidth,
+            settings,
+            Menu.rowsFor(shell.kind === HANDHELD, Menu.IN_GAME),
+          );
+
+        const leave = (): void => {
+          window.location.href = Title.home(here);
+        };
+
+        const acted = (row: Menu.Row, now: Units.Millis): void => {
+          switch (row) {
+            case Menu.HOW:
+              phase = Phase.HELP;
+
+              return;
+
+            case Menu.HOME:
+              leave();
+
+              return;
+
+            case Menu.THEME:
+            case Menu.HAND:
+              resume(now);
+
+              return;
+
+            default:
+              return Assert.never(row);
+          }
+        };
 
         const tapped = (at: Units.Point): void => {
           const now = Units.millis(p.millis());
@@ -802,10 +892,26 @@ export const sketch = new p5((p: p5) => {
             const menu = menuNow();
             const picked = Menu.hit(menu, at);
 
-            if (picked.some) applySettings(Settings.chosen(settings, picked.value));
-            else if (!Menu.covers(menu, at)) resume(now);
+            if (!picked.some) {
+              if (!Menu.covers(menu, at)) resume(now);
 
-            return;
+              return;
+            }
+
+            switch (picked.value.kind) {
+              case Menu.CHOSEN:
+                applySettings(Settings.chosen(settings, picked.value.choice));
+
+                return;
+
+              case Menu.ACTED:
+                acted(picked.value.row, now);
+
+                return;
+
+              default:
+                return Assert.never(picked.value);
+            }
           }
 
           if (phase === Phase.READY) {
@@ -977,6 +1083,11 @@ export const sketch = new p5((p: p5) => {
 
               return;
 
+            case Intent.PICK_ROW:
+              if (Phase.isSettings(phase)) acted(Menu.rowAt(menuNow(), phase.cursor), now);
+
+              return;
+
             case Intent.PRESS:
               press(wanted.key, now);
 
@@ -1006,11 +1117,47 @@ export const sketch = new p5((p: p5) => {
 
     if (mode.hosting) panel.show(invite);
 
+    const aside = Aside.mount(p, {
+      stage: () => shell.stage,
+      handheld: () => shell.kind === HANDHELD,
+      settings: () => settings,
+      scheme: () => scheme,
+      keep: keepSettings,
+    });
+
+    const leaveRoom = (): void => {
+      window.location.href = Title.home(here);
+    };
+
     onKey = () => {
       const key = Input.parseKey(p.key, Mode.controlsFor(mode));
 
       if (Session.isTrouble(lobby.stage())) {
         soloAgain();
+
+        return;
+      }
+
+      if (aside.busy()) {
+        aside.key(key);
+
+        return;
+      }
+
+      if (key.kind === Input.BACK) {
+        leaveRoom();
+
+        return;
+      }
+
+      if (key.kind === Input.MENU) {
+        aside.show(Phase.settings(0));
+
+        return;
+      }
+
+      if (key.kind === Input.HELP) {
+        aside.show(Phase.HELP);
 
         return;
       }
@@ -1022,14 +1169,70 @@ export const sketch = new p5((p: p5) => {
       if (key.direction === Geometry.RIGHT) lobby.resize(1);
     };
 
-    window.addEventListener("pointerdown", () => {
+    const waitingNow = (): Render.Lobby.Waiting => {
+      const waiting = lobby.lobby();
+
+      return {
+        code: roomCode,
+        role: lobby.role,
+        prompt: touchFirst() ? Render.TOUCH : Render.KEYS,
+        size: waiting.size,
+        here: waiting.here,
+      };
+    };
+
+    const worked = (control: Render.Lobby.Control): void => {
+      switch (control) {
+        case Render.Lobby.SMALLER:
+          lobby.resize(-1);
+
+          return;
+
+        case Render.Lobby.BIGGER:
+          lobby.resize(1);
+
+          return;
+
+        case Render.Lobby.START:
+          lobby.start();
+
+          return;
+
+        case Render.Lobby.LEAVE:
+          leaveRoom();
+
+          return;
+
+        case Render.Lobby.SETTINGS:
+          aside.show(Phase.settings(0));
+
+          return;
+
+        default:
+          return Assert.never(control);
+      }
+    };
+
+    window.addEventListener("pointerdown", (event: PointerEvent) => {
       if (Session.isTrouble(lobby.stage())) {
         soloAgain();
 
         return;
       }
 
-      lobby.start();
+      const at = Units.point(event.clientX, event.clientY);
+
+      if (aside.busy()) {
+        aside.tap(at);
+
+        return;
+      }
+
+      fillScreen();
+
+      const picked = Render.Lobby.hit(Render.Lobby.of(p, waitingNow()), at);
+
+      if (picked.some) worked(picked.value);
     });
 
     onFrame = () => {
@@ -1039,7 +1242,7 @@ export const sketch = new p5((p: p5) => {
         panel.hide();
         Render.drawTrouble(
           p,
-          schemeFor(vault.read(Slots.SETTINGS)),
+          scheme,
           Fault.ofSession(stage),
           touchFirst() ? Render.TOUCH : Render.KEYS,
         );
@@ -1054,15 +1257,10 @@ export const sketch = new p5((p: p5) => {
         return;
       }
 
-      const waiting = lobby.lobby();
+      const waiting = waitingNow();
 
-      Render.drawLobby(p, schemeFor(vault.read(Slots.SETTINGS)), {
-        code: roomCode,
-        role: lobby.role,
-        prompt: touchFirst() ? Render.TOUCH : Render.KEYS,
-        size: waiting.size,
-        here: waiting.here,
-      });
+      Render.Lobby.draw(p, scheme, Render.Lobby.of(p, waiting), waiting);
+      aside.draw();
     };
   };
 });

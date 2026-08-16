@@ -1,12 +1,22 @@
 import * as Board from "../core/board";
 import * as Units from "./units";
 
+export const TARGET_BLOCK = 34;
+
+const PANEL_ACROSS = 13;
+const PANEL_DOWN = 17;
+const PANEL_SMALLEST = 22;
+const PANEL_LARGEST = 58;
+
 export type Metrics = {
   readonly blockWidth: Units.Px;
   readonly origin: Units.Point;
 };
 
-const metrics = (blockWidth: Units.Px, origin: Units.Point): Metrics => ({ blockWidth, origin });
+export const metrics = (blockWidth: Units.Px, origin: Units.Point): Metrics => ({
+  blockWidth,
+  origin,
+});
 
 const MIN_COLS = 12;
 const MIN_ROWS = 10;
@@ -20,6 +30,15 @@ const SURROUND = 0.035;
 const MIN_SURROUND = 18;
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
+
+export const panelBlock = (stage: Units.Region): Units.Px =>
+  Units.px(
+    clamp(
+      Math.min(stage.width / PANEL_ACROSS, stage.height / PANEL_DOWN),
+      PANEL_SMALLEST,
+      PANEL_LARGEST,
+    ),
+  );
 
 export const desk = (viewport: Units.Viewport): Units.Region => {
   const surround = Math.max(MIN_SURROUND, Math.min(viewport.width, viewport.height) * SURROUND);

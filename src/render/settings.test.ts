@@ -83,7 +83,7 @@ describe("menu", () => {
         const picked = Menu.hit(menu, middle);
 
         expect(picked.some).toBe(true);
-        if (picked.some) expect(picked.value).toEqual(chip.choice);
+        if (picked.some) expect(picked.value).toEqual({ kind: Menu.CHOSEN, choice: chip.choice });
       }
     }
   });
@@ -157,12 +157,41 @@ describe("menu", () => {
   });
 
   test("a keyboard shell is not offered the touch-only rows", () => {
-    const desk = Menu.rowsFor(false);
-    const handheld = Menu.rowsFor(true);
+    const desk = Menu.rowsFor(false, Menu.ON_TITLE);
+    const handheld = Menu.rowsFor(true, Menu.ON_TITLE);
 
-    expect(desk).toEqual(["theme"]);
+    expect(desk).toEqual([Menu.THEME]);
     expect(handheld).toEqual(Menu.ROWS);
     expect(Menu.of(STAGE, BLOCK, Settings.DEFAULT, desk).lines.length).toBe(1);
+  });
+
+  test("the in-game menu adds the actions the title screen does not need", () => {
+    expect(Menu.rowsFor(false, Menu.IN_GAME)).toEqual([Menu.THEME, Menu.HOW, Menu.HOME]);
+    expect(Menu.rowsFor(false, Menu.ON_TITLE)).toEqual([Menu.THEME]);
+  });
+
+  test("tapping anywhere along an action row picks that action", () => {
+    const menu = Menu.of(STAGE, BLOCK, Settings.DEFAULT, Menu.rowsFor(false, Menu.IN_GAME));
+    const action = menu.lines.find((line) => line.row === Menu.HOME);
+
+    expect(action).toBeDefined();
+
+    if (action === undefined) return;
+
+    for (const share of [0.1, 0.5, 0.9]) {
+      const picked = Menu.hit(
+        menu,
+        Units.point(action.reach.left + action.reach.width * share, action.at.y),
+      );
+
+      expect(picked.some).toBe(true);
+      if (picked.some) expect(picked.value).toEqual({ kind: Menu.ACTED, row: Menu.HOME });
+    }
+  });
+
+  test("cycling an action row leaves the settings alone", () => {
+    expect(Menu.cycle(Settings.DEFAULT, Menu.HOME, 1)).toEqual(Settings.DEFAULT);
+    expect(Menu.cycle(Settings.DEFAULT, Menu.HOW, -1)).toEqual(Settings.DEFAULT);
   });
 
   test("the panel scales with the board", () => {
@@ -189,7 +218,7 @@ describe("walking the settings cursor", () => {
     Units.region({ left: 0, top: 0, width: 800, height: 600 }),
     Units.px(30),
     Settings.DEFAULT,
-    Menu.rowsFor(false),
+    Menu.rowsFor(false, Menu.IN_GAME),
   );
 
   test("it always lands on a real row", () => {

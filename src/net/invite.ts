@@ -31,7 +31,7 @@ export const flagged = (href: string, name: string): boolean => {
   return url.searchParams.has(name) || fragment(url.hash).has(name);
 };
 
-const valueOf = (href: string, name: string): Option.Type<string> => {
+export const valued = (href: string, name: string): Option.Type<string> => {
   const url = new URL(href);
   const held = url.searchParams.get(name) ?? fragment(url.hash).get(name);
 
@@ -39,7 +39,7 @@ const valueOf = (href: string, name: string): Option.Type<string> => {
 };
 
 export const counted = (href: string, name: string): Option.Type<number> => {
-  const raw = valueOf(href, name);
+  const raw = valued(href, name);
 
   if (!raw.some) return Option.none;
 

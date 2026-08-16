@@ -9,6 +9,7 @@ export const TURN = "turn";
 export const PAUSE = "pause";
 export const SKIP = "skip";
 export const MENU = "menu";
+export const BACK = "back";
 export const HELP = "help";
 export const FREEZE = "freeze";
 export const OTHER = "other";
@@ -18,6 +19,7 @@ export type Key =
   | { readonly kind: typeof PAUSE }
   | { readonly kind: typeof SKIP }
   | { readonly kind: typeof MENU }
+  | { readonly kind: typeof BACK }
   | { readonly kind: typeof HELP }
   | { readonly kind: typeof FREEZE }
   | { readonly kind: typeof OTHER };
@@ -34,6 +36,8 @@ const skip = { kind: SKIP } as const;
 
 const menu = { kind: MENU } as const;
 
+const back = { kind: BACK } as const;
+
 const help = { kind: HELP } as const;
 
 const freeze = { kind: FREEZE } as const;
@@ -44,6 +48,8 @@ const SPECIALS = new Map<string, Key>([
   ["p", pause],
   ["Enter", skip],
   ["S", menu],
+  ["Escape", back],
+  ["Backspace", back],
   ["?", help],
   ["P", freeze],
 ]);
@@ -95,6 +101,7 @@ export const commandFor = <B>(
       return rules.suspendable ? Option.some(Game.togglePause) : Option.none;
     case SKIP:
     case MENU:
+    case BACK:
     case HELP:
     case FREEZE:
     case OTHER:

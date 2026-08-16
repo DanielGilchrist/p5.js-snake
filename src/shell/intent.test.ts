@@ -94,9 +94,12 @@ describe("in the settings", () => {
     });
   });
 
-  test("the menu key and enter both close it", () => {
+  test("the menu key closes it", () => {
     expect(kindFor(SETTINGS, "S")).toBe(Intent.RESUME);
-    expect(kindFor(SETTINGS, "Enter")).toBe(Intent.RESUME);
+  });
+
+  test("enter acts on the row under the cursor", () => {
+    expect(kindFor(SETTINGS, "Enter")).toBe(Intent.PICK_ROW);
   });
 
   test("help opens the controls from here", () => {

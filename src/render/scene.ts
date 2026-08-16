@@ -56,8 +56,14 @@ export const naming = (
   mine: Option.Type<number>,
 ): Naming => ({ tags, mine });
 
+export const TALLY_SHOWN = "tallyShown";
+export const TALLY_HIDDEN = "tallyHidden";
+
+export type Tallying = typeof TALLY_SHOWN | typeof TALLY_HIDDEN;
+
 export type Chrome = {
   readonly scheme: Palette.Scheme;
+  readonly tallying: Tallying;
   readonly standings: Standings.Type;
   readonly stage: Units.Region;
   readonly device: Option.Type<Units.Region>;
@@ -74,7 +80,8 @@ export const chrome = (
   told: Option.Type<Ending> = Option.none,
   named: Option.Type<Naming> = Option.none,
   standings: Standings.Type = [],
-): Chrome => ({ scheme, standings, stage, device, prompt, ending: told, naming: named });
+  tallying: Tallying = TALLY_SHOWN,
+): Chrome => ({ scheme, tallying, standings, stage, device, prompt, ending: told, naming: named });
 
 const restartWith = (prompt: Prompt): string => {
   switch (prompt) {
@@ -150,6 +157,8 @@ const world = <B>(
       taggedAs(frame, who, player.alive),
     );
   }
+
+  if (frame.tallying === TALLY_HIDDEN) return;
 
   if (Players.count(current.players) > 1) {
     StandingsView.draw(p, scheme, layout, current, frame.standings, Units.millis(p.millis()));

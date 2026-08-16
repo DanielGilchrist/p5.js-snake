@@ -7,7 +7,7 @@ const STYLE = `
 .invite {
   position: fixed;
   left: 50%;
-  bottom: 8vh;
+  bottom: 6vh;
   display: none;
   flex-direction: column;
   align-items: center;
