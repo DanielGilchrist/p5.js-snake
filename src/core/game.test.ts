@@ -9,6 +9,20 @@ import * as NonEmpty from "./non-empty";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
 
+const toward = (dc: number, dr: number): Geometry.Direction => {
+  if (dc > 0) return "right";
+  if (dc < 0) return "left";
+
+  return dr > 0 ? "down" : "up";
+};
+
+const backward = (dc: number, dr: number): Geometry.Direction => {
+  if (dc > 0) return "left";
+  if (dc < 0) return "right";
+
+  return dr > 0 ? "up" : "down";
+};
+
 const onBoard = <R>(
   size: Board.GridSize,
   seed: number,
@@ -38,8 +52,7 @@ const chase = <B>(state: Game.State<B>): Game.Command => {
   const { snake } = NonEmpty.head(state.world.players);
   const dc = food.col - snake.head.col;
   const dr = food.row - snake.head.row;
-  const direction: Geometry.Direction =
-    dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up";
+  const direction = toward(dc, dr);
 
   return { kind: "turn", player: Players.FIRST, direction };
 };
@@ -443,8 +456,7 @@ describe("end to end", () => {
         const dc = head.col - neck.col;
         const dr = head.row - neck.row;
 
-        const back: Geometry.Direction =
-          dc > 0 ? "left" : dc < 0 ? "right" : dr > 0 ? "up" : "down";
+        const back = backward(dc, dr);
         const side: Geometry.Direction = dc === 0 ? "left" : "up";
 
         const folded = play(api, grown, [

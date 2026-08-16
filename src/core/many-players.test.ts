@@ -433,3 +433,81 @@ describe("trading while others are still playing", () => {
     expect(seen.closings).toEqual([]);
   });
 });
+
+describe("a player dropping out", () => {
+  test("they die where they stood and the rest play on", () => {
+    onBoard(
+      ROOM,
+      1,
+      (api, state) => {
+        const before = playerIn(state, SECOND).snake.head;
+        const stepped = Game.step(api, state, Game.drop(SECOND));
+        const deaths = stepped.events.flatMap((event) => (event.kind === Game.DIED ? [event] : []));
+
+        const [death] = deaths;
+
+        expect(deaths.length).toBe(1);
+        expect(death?.player).toBe(SECOND);
+        expect(death !== undefined && Board.equals(death.at, before)).toBe(true);
+        expect(playerIn(stepped.state, Players.FIRST).alive).toBe(true);
+      },
+      3,
+    );
+  });
+
+  test("their body still blocks whoever runs into it", () => {
+    onBoard(
+      ROOM,
+      1,
+      (api, state) => {
+        const gone = Game.step(api, state, Game.drop(SECOND)).state;
+        const corpse = playerIn(gone, SECOND);
+
+        expect(corpse.alive).toBe(false);
+        expect(Snake.occupies(corpse.snake, corpse.snake.head)).toBe(true);
+      },
+      3,
+    );
+  });
+
+  test("dropping to one player left ends the match", () => {
+    onBoard(ROOM, 1, (api, state) => {
+      const stepped = Game.step(api, state, Game.drop(SECOND));
+
+      expect(stepped.events.some((event) => event.kind === Game.ENDED)).toBe(true);
+      expect(stepped.state.kind).toBe(Game.OVER);
+    });
+  });
+
+  test("dropping someone already gone changes nothing", () => {
+    onBoard(
+      ROOM,
+      1,
+      (api, state) => {
+        const gone = Game.step(api, state, Game.drop(SECOND)).state;
+        const again = Game.step(api, gone, Game.drop(SECOND));
+
+        expect(again.events).toEqual([]);
+        expect(again.state).toEqual(gone);
+      },
+      3,
+    );
+  });
+
+  test("a drop still inverts back like every other event", () => {
+    onBoard(
+      ROOM,
+      1,
+      <B>(api: Board.Api<B>, state: Game.State<B>) => {
+        const stepped = Game.step(api, state, Game.drop(SECOND));
+        const back = stepped.events.reduceRight(
+          (carried: Game.State<B>, event) => Game.revert(carried, event),
+          stepped.state,
+        );
+
+        expect(JSON.stringify(back)).toBe(JSON.stringify(state));
+      },
+      3,
+    );
+  });
+});

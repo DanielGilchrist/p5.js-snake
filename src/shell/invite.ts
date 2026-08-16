@@ -20,11 +20,6 @@ const STYLE = `
   display: flex;
 }
 
-.invite-hint {
-  color: #8d8477;
-  font-size: 0.82rem;
-}
-
 .invite-link {
   max-width: min(90vw, 34rem);
   padding: 0.55rem 0.8rem;
@@ -67,23 +62,19 @@ export const mount = (): Panel => {
   document.head.append(sheet);
 
   const root = document.createElement("div");
-  const hint = document.createElement("p");
   const field = document.createElement("div");
   const copy = document.createElement("button");
 
   root.className = "invite";
-  hint.className = "invite-hint";
   field.className = "invite-link";
   copy.className = "invite-copy";
   copy.type = "button";
-
-  hint.textContent = "Send this link, both of you on the same network";
 
   const resting = (): string => (sharable() ? "SHARE LINK" : "COPY LINK");
 
   copy.textContent = resting();
 
-  root.append(hint, field, copy);
+  root.append(field, copy);
   document.body.append(root);
 
   let settled = 0;

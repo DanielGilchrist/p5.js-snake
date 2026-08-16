@@ -1,3 +1,4 @@
+import * as Assert from "../core/assert";
 import * as Game from "../core/game";
 import * as Controls from "../core/controls";
 import * as Input from "../core/input";
@@ -25,6 +26,7 @@ export type Mode = {
   readonly joining: boolean;
   readonly showing: boolean;
   readonly automatic: boolean;
+  readonly fault: Option.Type<string>;
 };
 
 const PLAYERS_TOGETHER = 2;
@@ -33,26 +35,44 @@ export const MOST_PLAYERS = 8;
 
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
 
+const kindOf = (networked: boolean, computer: boolean, friend: boolean): Kind => {
+  if (networked) return OVER_THE_NETWORK;
+  if (computer) return AGAINST_THE_COMPUTER;
+  if (friend) return WITH_A_FRIEND;
+
+  return ALONE;
+};
+
+const playersOf = (
+  kind: Kind,
+  machines: Option.Type<number>,
+  room: Option.Type<number>,
+): number => {
+  switch (kind) {
+    case AGAINST_THE_COMPUTER:
+      return clamp(Option.getOrElse(machines, 1) + 1, PLAYERS_TOGETHER, MOST_PLAYERS);
+    case OVER_THE_NETWORK:
+      return clamp(Option.getOrElse(room, PLAYERS_TOGETHER), PLAYERS_TOGETHER, MOST_PLAYERS);
+    case WITH_A_FRIEND:
+      return PLAYERS_TOGETHER;
+    case ALONE:
+      return 1;
+    default:
+      return Assert.never(kind);
+  }
+};
+
 export const read = (href: string): Mode => {
-  const invited = Invite.read(href);
+  const wanted = Invite.asked(href);
+  const invited = wanted.kind === Invite.ROOM ? Option.some(wanted.code) : Option.none;
   const hosting = Invite.flagged(href, "host");
   const networked = invited.some || hosting;
   const asked = networked ? Option.none : Invite.counted(href, "cpu");
   const computer = asked.some;
   const friend = !networked && !computer && Invite.flagged(href, "friend");
-  const playing = asked.some
-    ? clamp(asked.value + 1, PLAYERS_TOGETHER, MOST_PLAYERS)
-    : networked || friend
-      ? PLAYERS_TOGETHER
-      : 1;
-
-  const kind: Kind = networked
-    ? OVER_THE_NETWORK
-    : computer
-      ? AGAINST_THE_COMPUTER
-      : friend
-        ? WITH_A_FRIEND
-        : ALONE;
+  const room = Invite.counted(href, "players");
+  const kind = kindOf(networked, computer, friend);
+  const playing = playersOf(kind, asked, room);
 
   return {
     kind,
@@ -60,6 +80,7 @@ export const read = (href: string): Mode => {
     room: invited.some ? invited.value : Code.fresh(),
     hosting,
     joining: invited.some,
+    fault: wanted.kind === Invite.MALFORMED ? Option.some(wanted.raw) : Option.none,
     showing: Invite.flagged(href, "probe"),
     automatic: Invite.flagged(href, "bot"),
   };

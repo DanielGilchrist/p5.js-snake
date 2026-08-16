@@ -1,4 +1,5 @@
 import type * as Geometry from "../core/geometry";
+import type * as Players from "../core/players";
 import * as Option from "../core/option";
 
 export type Waiting = {
@@ -6,6 +7,11 @@ export type Waiting = {
   readonly posted: number;
   readonly queued: readonly Geometry.Direction[];
   readonly committed: readonly Geometry.Direction[];
+};
+
+export type Seated = {
+  readonly seat: Players.Id;
+  readonly runs: readonly Geometry.Direction[];
 };
 
 export const COMMIT = "commit";
@@ -23,7 +29,7 @@ export type Turn =
   | {
       readonly kind: typeof ADVANCE;
       readonly mine: readonly Geometry.Direction[];
-      readonly theirs: readonly Geometry.Direction[];
+      readonly theirs: readonly Seated[];
       readonly next: Waiting;
     };
 
@@ -39,7 +45,7 @@ export const pressed = (of: Waiting, direction: Geometry.Direction): Waiting => 
   queued: [...of.queued, direction],
 });
 
-export const step = (of: Waiting, theirs: Option.Type<readonly Geometry.Direction[]>): Turn => {
+export const step = (of: Waiting, theirs: Option.Type<readonly Seated[]>): Turn => {
   if (of.posted !== of.beat) {
     return {
       kind: COMMIT,

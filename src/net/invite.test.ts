@@ -13,6 +13,12 @@ const madeUp = (): Code.Type => {
   return parsed.value;
 };
 
+const roomIn = (href: string): string => {
+  const asked = Invite.asked(href);
+
+  return asked.kind === Invite.ROOM ? `${asked.code}` : asked.kind;
+};
+
 describe("invite links", () => {
   test("a shared link puts the room in the query, where chat apps will see it", () => {
     const made = Invite.link(SITE, madeUp());
@@ -27,36 +33,30 @@ describe("invite links", () => {
   });
 
   test("a room reads back out of a query link", () => {
-    const read = Invite.read(`${SITE}?room=4KA4U5`);
-
-    expect(read.some).toBe(true);
-    if (read.some) expect(`${read.value}`).toBe("4KA4U5");
+    expect(roomIn(`${SITE}?room=4KA4U5`)).toBe("4KA4U5");
   });
 
   test("older hash links still work", () => {
-    const read = Invite.read(`${SITE}#room=4KA4U5`);
-
-    expect(read.some).toBe(true);
-    if (read.some) expect(`${read.value}`).toBe("4KA4U5");
+    expect(roomIn(`${SITE}#room=4KA4U5`)).toBe("4KA4U5");
   });
 
-  test("a link with no room is not a room", () => {
-    expect(Invite.read(SITE).some).toBe(false);
-    expect(Invite.read(`${SITE}#host`).some).toBe(false);
-    expect(Invite.read(`${SITE}?other=4KA4U5`).some).toBe(false);
+  test("a link with no room asks for nobody", () => {
+    for (const href of [SITE, `${SITE}#host`, `${SITE}?other=4KA4U5`]) {
+      expect(Invite.asked(href)).toEqual({ kind: Invite.NOBODY });
+    }
   });
 
-  test("a malformed room is refused rather than trusted", () => {
-    expect(Invite.read(`${SITE}?room=nope`).some).toBe(false);
-    expect(Invite.read(`${SITE}?room=`).some).toBe(false);
-    expect(Invite.read(`${SITE}?room=4KA4U5X`).some).toBe(false);
+  test("a malformed room says so rather than passing for no room at all", () => {
+    expect(Invite.asked(`${SITE}?room=nope`)).toEqual({ kind: Invite.MALFORMED, raw: "nope" });
+    expect(Invite.asked(`${SITE}?room=`)).toEqual({ kind: Invite.MALFORMED, raw: "" });
+    expect(Invite.asked(`${SITE}?room=4KA4U5X`)).toEqual({
+      kind: Invite.MALFORMED,
+      raw: "4KA4U5X",
+    });
   });
 
   test("a lowercase room still joins, because people retype links", () => {
-    const read = Invite.read(`${SITE}?room=4ka4u5`);
-
-    expect(read.some).toBe(true);
-    if (read.some) expect(`${read.value}`).toBe("4KA4U5");
+    expect(roomIn(`${SITE}?room=4ka4u5`)).toBe("4KA4U5");
   });
 
   test("flags read from either the query or the hash", () => {

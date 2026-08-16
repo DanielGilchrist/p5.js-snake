@@ -11,7 +11,8 @@
     "perf": "error"
   },
   "rules": {
-    "local/namespace-imports": "error"
+    "local/namespace-imports": "error",
+    "no-nested-ternary": "error"
   },
   "env": {
     "builtin": true,

@@ -6,12 +6,20 @@ import * as Assert from "../../core/assert";
 import * as Board from "../../core/board";
 import * as Event from "../../core/event";
 import * as Game from "../../core/game";
+import type * as Geometry from "../../core/geometry";
 import * as Option from "../../core/option";
 import * as Rng from "../../core/rng";
 import * as Layout from "../layout";
 import * as Palette from "../palette";
 import * as Units from "../units";
 import * as Effects from "./index";
+
+const toward = (dc: number, dr: number): Geometry.Direction => {
+  if (dc > 0) return "right";
+  if (dc < 0) return "left";
+
+  return dr > 0 ? "down" : "up";
+};
 
 const BORN = Units.millis(0);
 
@@ -191,7 +199,7 @@ describe("effects", () => {
         state = play(state, {
           kind: "turn",
           player: Players.FIRST,
-          direction: dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up",
+          direction: toward(dc, dr),
         });
         state = play(state, Game.tick);
       }

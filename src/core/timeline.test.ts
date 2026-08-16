@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import * as NonEmpty from "./non-empty";
+import type * as Geometry from "./geometry";
 import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
@@ -17,6 +18,13 @@ type Played<B> = {
   readonly api: Board.Api<B>;
 };
 
+const toward = (dc: number, dr: number): Geometry.Direction => {
+  if (dc > 0) return "right";
+  if (dc < 0) return "left";
+
+  return dr > 0 ? "down" : "up";
+};
+
 const chase = <B>(world: World.Type<B>): Game.Command => {
   const { food } = world;
   const { snake } = NonEmpty.head(world.players);
@@ -26,7 +34,7 @@ const chase = <B>(world: World.Type<B>): Game.Command => {
   return {
     kind: "turn",
     player: Players.FIRST,
-    direction: dc !== 0 ? (dc > 0 ? "right" : "left") : dr > 0 ? "down" : "up",
+    direction: toward(dc, dr),
   };
 };
 

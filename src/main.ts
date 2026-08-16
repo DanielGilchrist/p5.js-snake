@@ -14,6 +14,7 @@ import * as Session from "./net/session";
 import * as Players from "./core/players";
 import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
+import * as Fault from "./shell/fault";
 import * as Mode from "./shell/mode";
 import * as Phase from "./shell/phase";
 import * as Verdict from "./core/verdict";
@@ -73,9 +74,9 @@ const piloted = mode.automatic;
 const roomCode = mode.room;
 
 window.addEventListener("hashchange", () => {
-  const asked = Invite.read(window.location.href);
+  const wanted = Invite.asked(window.location.href);
 
-  if (!asked.some || asked.value !== roomCode) window.location.reload();
+  if (wanted.kind !== Invite.ROOM || wanted.code !== roomCode) window.location.reload();
 });
 
 const DESK = "desk";
@@ -91,6 +92,12 @@ type Shell =
     };
 
 const touchFirst = (): boolean => window.matchMedia("(pointer: coarse)").matches;
+
+const idle = (): void => undefined;
+
+const soloAgain = (): void => {
+  window.location.href = new URL(window.location.pathname, window.location.href).toString();
+};
 
 const fillScreen = (): void => {
   if (!touchFirst() || document.fullscreenElement !== null) return;
@@ -126,20 +133,55 @@ export const sketch = new p5((p: p5) => {
     p.createCanvas(p.windowWidth, p.windowHeight).parent(document.body);
     p.frameRate(60);
 
+    let onFrame: () => void = idle;
+    let onKey: () => void = idle;
+    let onResize: () => void = idle;
+
+    p.draw = () => {
+      onFrame();
+    };
+
+    p.keyPressed = () => {
+      onKey();
+    };
+
+    p.windowResized = () => {
+      onResize();
+    };
+
     const viewport = Units.viewport(p.windowWidth, p.windowHeight);
     let settings = vault.read(Slots.SETTINGS);
     let scheme = schemeFor(settings);
     let shell = shellFor(viewport, settings.hand);
 
+    if (mode.fault.some) {
+      const told = Fault.ofLink(mode.fault.value);
+
+      onFrame = () => {
+        Render.drawTrouble(p, scheme, told, touchFirst() ? Render.TOUCH : Render.KEYS);
+      };
+
+      onKey = soloAgain;
+      window.addEventListener("pointerdown", soloAgain);
+
+      return;
+    }
+
     const mine = Layout.cellsFor(shell.stage, TARGET_BLOCK);
 
     const net: Option.Type<Session.Session> = online
       ? Option.some(
-          Session.join(roomCode, mode.joining ? Session.GUEST : Session.HOST, () => ({
-            cols: mine.cols,
-            rows: mine.rows,
-            seed: Math.floor(Math.random() * 1_000_000_000),
-          })),
+          Session.join(
+            roomCode,
+            mode.joining ? Session.GUEST : Session.HOST,
+            () => ({
+              cols: mine.cols,
+              rows: mine.rows,
+              seed: Math.floor(Math.random() * 1_000_000_000),
+            }),
+            mode.rules.players,
+            here,
+          ),
         )
       : Option.none;
 
@@ -150,24 +192,26 @@ export const sketch = new p5((p: p5) => {
 
         let round = seed;
         let pending = seed;
-        let state = Game.start(board, Rng.fromSeed(round), mode.rules);
+        const rules = net.some ? Game.forPlayers(net.value.players()) : mode.rules;
+
+        let state = Game.start(board, Rng.fromSeed(round), rules);
         let timeline = Timeline.start(state);
         let previous = state.world.players;
         let effects: readonly Effects.Effect[] = [];
         let phase: Phase.Phase<B> = net.some
           ? Phase.READY
-          : firstPhase(mode.rules.players > 1, Units.millis(p.millis()));
+          : firstPhase(rules.players > 1, Units.millis(p.millis()));
         let bite = Phase.isCounting(phase) ? phase.until : Units.millis(0);
         let lastTick = 0;
         let hitstop = 0;
         let inputLockedUntil = 0;
         let reshaping = false;
-        let standings = Standings.blank(mode.rules.players);
+        let standings = Standings.blank(rules.players);
         let finalists: readonly Players.Id[] = [];
 
-        const versus = (): boolean => mode.rules.players > 1;
+        const versus = (): boolean => rules.players > 1;
 
-        const myPlayer = (): Players.Id => (net.some ? net.value.seat : Players.FIRST);
+        const myPlayer = (): Players.Id => (net.some ? net.value.seat() : Players.FIRST);
 
         const rulesNow = (): Input.Rules => {
           if (!net.some) return Mode.localRules(mode);
@@ -293,7 +337,7 @@ export const sketch = new p5((p: p5) => {
             verdict = Option.none;
             net.value.clearRematch();
             net.value.beginRound(round);
-            state = Game.start(board, Rng.fromSeed(round), mode.rules);
+            state = Game.start(board, Rng.fromSeed(round), rules);
             timeline = Timeline.start(state);
             bite = now;
             effects = [];
@@ -396,12 +440,12 @@ export const sketch = new p5((p: p5) => {
 
           if (mark.some && mark.value !== World.fingerprint(state.world)) split = true;
 
-          for (const direction of session.seat === Players.FIRST ? turn.mine : turn.theirs) {
-            apply(Game.turn(Players.FIRST, direction));
-          }
+          for (const who of session.dropsAt(gate.beat)) apply(Game.drop(who));
 
-          for (const direction of session.seat === Players.id(1) ? turn.mine : turn.theirs) {
-            apply(Game.turn(Players.id(1), direction));
+          for (const direction of turn.mine) apply(Game.turn(myPlayer(), direction));
+
+          for (const seated of turn.theirs) {
+            for (const direction of seated.runs) apply(Game.turn(seated.seat, direction));
           }
 
           gate = turn.next;
@@ -411,7 +455,11 @@ export const sketch = new p5((p: p5) => {
         };
 
         const keepTalking = (): void => {
-          if (!net.some || gate.posted < 0) return;
+          if (!net.some) return;
+
+          net.value.noticeLeaving(gate.beat);
+
+          if (gate.posted < 0) return;
           if (p.millis() - resent <= RESEND_MS) return;
 
           net.value.flush(gate.posted);
@@ -423,7 +471,7 @@ export const sketch = new p5((p: p5) => {
           if (state.kind !== Game.PLAYING) return;
           if (gate.posted === gate.beat || gate.queued.length > 0) return;
 
-          const picked = Autopilot.choose(api, state.world, net.value.seat);
+          const picked = Autopilot.choose(api, state.world, myPlayer());
 
           if (picked.some) gate = Lockstep.pressed(gate, picked.value);
         };
@@ -540,6 +588,18 @@ export const sketch = new p5((p: p5) => {
           lastTick = now;
         };
 
+        const badgeFor = (who: Players.Id): Render.Badge => {
+          const sitting = Players.at(state.world.players, who);
+
+          if (!sitting.some) return Render.badge(Number(who), Geometry.RIGHT, Render.ALIVE);
+
+          return Render.badge(
+            Number(who),
+            sitting.value.snake.facing,
+            sitting.value.alive ? Render.ALIVE : Render.DEAD,
+          );
+        };
+
         const drawReady = (now: Units.Millis): void => {
           if (!net.some) return;
 
@@ -565,17 +625,36 @@ export const sketch = new p5((p: p5) => {
           Render.drawReady(
             p,
             scheme,
-            { here: standing.here, there: standing.there, verdict },
+            {
+              here: standing.here,
+              missing: standing.missing.map((who) => badgeFor(who)),
+              verdict,
+            },
             layout,
             shell.stage,
             shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
           );
         };
 
-        p.draw = () => {
+        onFrame = () => {
           const now = Units.millis(p.millis());
 
           keepTalking();
+
+          if (net.some) {
+            const stage = net.value.stage();
+
+            if (Session.isTrouble(stage)) {
+              Render.drawTrouble(
+                p,
+                scheme,
+                Fault.ofSession(stage),
+                shell.kind === HANDHELD ? Render.TOUCH : Render.KEYS,
+              );
+
+              return;
+            }
+          }
 
           if (phase === Phase.READY) {
             drawReady(now);
@@ -640,7 +719,7 @@ export const sketch = new p5((p: p5) => {
           return ideal.cols !== board.cols || ideal.rows !== board.rows;
         };
 
-        p.windowResized = () => {
+        onResize = () => {
           p.resizeCanvas(p.windowWidth, p.windowHeight);
           shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
           layout = Layout.fit(board, shell.stage);
@@ -791,7 +870,9 @@ export const sketch = new p5((p: p5) => {
         window.addEventListener(
           "pointerdown",
           (event: PointerEvent) => {
-            if (shell.kind !== HANDHELD && !Phase.isSettings(phase)) return;
+            if (shell.kind !== HANDHELD && !Phase.isSettings(phase) && phase !== Phase.READY) {
+              return;
+            }
 
             event.preventDefault();
 
@@ -836,14 +917,20 @@ export const sketch = new p5((p: p5) => {
           });
         }
 
-        p.keyPressed = () => {
+        onKey = () => {
           const now = Units.millis(p.millis());
           const key = Input.parseKey(p.key, Mode.controlsFor(mode));
+
+          if (net.some && Session.isTrouble(net.value.stage())) {
+            soloAgain();
+
+            return;
+          }
 
           if (phase === Phase.READY) {
             if (key.kind === Input.MENU) phase = Phase.settings(0);
             else if (key.kind === Input.HELP) phase = Phase.HELP;
-            else if (key.kind === Input.SKIP && net.some) net.value.declareReady();
+            else if (net.some) net.value.declareReady();
 
             return;
           }
@@ -920,7 +1007,7 @@ export const sketch = new p5((p: p5) => {
 
       if (!started.ok) {
         const { error } = started;
-        p.draw = () => Render.drawError(p, schemeFor(Settings.DEFAULT), error);
+        onFrame = () => Render.drawError(p, schemeFor(Settings.DEFAULT), error);
       }
     };
 
@@ -936,20 +1023,62 @@ export const sketch = new p5((p: p5) => {
 
     if (mode.hosting) panel.show(invite);
 
-    p.draw = () => {
+    onKey = () => {
+      const key = Input.parseKey(p.key, Mode.controlsFor(mode));
+
+      if (Session.isTrouble(lobby.stage())) {
+        soloAgain();
+
+        return;
+      }
+
+      if (key.kind === Input.SKIP) lobby.start();
+      if (key.kind !== Input.TURN) return;
+
+      if (key.direction === Geometry.LEFT) lobby.resize(-1);
+      if (key.direction === Geometry.RIGHT) lobby.resize(1);
+    };
+
+    window.addEventListener("pointerdown", () => {
+      if (Session.isTrouble(lobby.stage())) {
+        soloAgain();
+
+        return;
+      }
+
+      lobby.start();
+    });
+
+    onFrame = () => {
       const stage = lobby.stage();
 
-      if (Session.isReady(stage)) {
+      if (Session.isTrouble(stage)) {
+        panel.hide();
+        Render.drawTrouble(
+          p,
+          schemeFor(vault.read(Slots.SETTINGS)),
+          Fault.ofSession(stage),
+          touchFirst() ? Render.TOUCH : Render.KEYS,
+        );
+
+        return;
+      }
+
+      if (Session.isSeated(stage)) {
         panel.hide();
         boot(Board.size(stage.config.cols, stage.config.rows), stage.config.seed);
 
         return;
       }
 
+      const waiting = lobby.lobby();
+
       Render.drawLobby(p, schemeFor(vault.read(Slots.SETTINGS)), {
         code: roomCode,
         role: lobby.role,
-        waiting: Session.isWaiting(stage),
+        prompt: touchFirst() ? Render.TOUCH : Render.KEYS,
+        size: waiting.size,
+        here: waiting.here,
       });
     };
   };

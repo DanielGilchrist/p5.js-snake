@@ -3,6 +3,7 @@ import * as Players from "../players";
 
 export const TICK = "tick";
 export const TURN = "turn";
+export const DROP = "drop";
 export const TOGGLE_PAUSE = "togglePause";
 export const RESTART = "restart";
 
@@ -13,6 +14,7 @@ export type Type =
       readonly player: Players.Id;
       readonly direction: Geometry.Direction;
     }
+  | { readonly kind: typeof DROP; readonly player: Players.Id }
   | { readonly kind: typeof TOGGLE_PAUSE }
   | { readonly kind: typeof RESTART };
 
@@ -23,6 +25,8 @@ export const turn = (player: Players.Id, direction: Geometry.Direction): Type =>
 });
 
 export const steer = (direction: Geometry.Direction): Type => turn(Players.FIRST, direction);
+
+export const drop = (player: Players.Id): Type => ({ kind: DROP, player });
 
 export const tick = { kind: TICK } as const;
 

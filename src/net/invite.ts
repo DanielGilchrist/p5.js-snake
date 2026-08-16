@@ -5,11 +5,24 @@ const KEY = "room";
 
 const fragment = (hash: string): URLSearchParams => new URLSearchParams(hash.replace(/^#/, ""));
 
-export const read = (href: string): Option.Type<Code.Type> => {
-  const url = new URL(href);
-  const asked = url.searchParams.get(KEY) ?? fragment(url.hash).get(KEY);
+export const NOBODY = "nobody";
+export const ROOM = "room";
+export const MALFORMED = "malformed";
 
-  return asked === null ? Option.none : Code.parse(asked);
+export type Asked =
+  | { readonly kind: typeof NOBODY }
+  | { readonly kind: typeof ROOM; readonly code: Code.Type }
+  | { readonly kind: typeof MALFORMED; readonly raw: string };
+
+export const asked = (href: string): Asked => {
+  const url = new URL(href);
+  const raw = url.searchParams.get(KEY) ?? fragment(url.hash).get(KEY);
+
+  if (raw === null) return { kind: NOBODY };
+
+  const code = Code.parse(raw);
+
+  return code.some ? { kind: ROOM, code: code.value } : { kind: MALFORMED, raw };
 };
 
 export const flagged = (href: string, name: string): boolean => {
@@ -20,9 +33,9 @@ export const flagged = (href: string, name: string): boolean => {
 
 const valueOf = (href: string, name: string): Option.Type<string> => {
   const url = new URL(href);
-  const asked = url.searchParams.get(name) ?? fragment(url.hash).get(name);
+  const held = url.searchParams.get(name) ?? fragment(url.hash).get(name);
 
-  return asked === null ? Option.none : Option.some(asked);
+  return held === null ? Option.none : Option.some(held);
 };
 
 export const counted = (href: string, name: string): Option.Type<number> => {
@@ -30,9 +43,9 @@ export const counted = (href: string, name: string): Option.Type<number> => {
 
   if (!raw.some) return Option.none;
 
-  const asked = Number.parseInt(raw.value, 10);
+  const count = Number.parseInt(raw.value, 10);
 
-  return Option.some(Number.isFinite(asked) && asked > 0 ? asked : 1);
+  return Option.some(Number.isFinite(count) && count > 0 ? count : 1);
 };
 
 export const link = (base: string, code: Code.Type): string => {

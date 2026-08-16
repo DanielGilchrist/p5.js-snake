@@ -204,6 +204,16 @@ const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B
   ];
 };
 
+const dropped = <B>(world: World.Type<B>, who: Players.Id): readonly Event.Type<B>[] => {
+  const sitting = Players.at(world.players, who);
+
+  if (!sitting.some || !sitting.value.alive) return [];
+
+  const leaving = [Event.died(who, sitting.value.snake.head)];
+
+  return [...leaving, ...closingFor(world, [], leaving)];
+};
+
 export const decide = <B>(
   api: Board.Api<B>,
   state: State.Type<B>,
@@ -212,6 +222,9 @@ export const decide = <B>(
   switch (command.kind) {
     case Command.TICK:
       return state.kind === State.PLAYING ? tick(api, state.world) : [];
+
+    case Command.DROP:
+      return state.kind === State.PLAYING ? dropped(state.world, command.player) : [];
 
     case Command.TURN:
       return state.kind === State.PLAYING

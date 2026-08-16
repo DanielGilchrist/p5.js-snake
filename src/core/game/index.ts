@@ -2,10 +2,12 @@ export type { Type as State } from "./state";
 export { OVER, PAUSED, PLAYING } from "./state";
 export type { Type as Command } from "./command";
 export {
+  DROP,
   RESTART,
   TICK,
   TOGGLE_PAUSE,
   TURN,
+  drop,
   restart,
   steer,
   tick,
