@@ -135,6 +135,11 @@ const eyes = (
   }
 };
 
+const WIDTH_STEP = 2;
+
+const bandOf = (along: number, block: Units.Px, scale: number): number =>
+  Math.round((widthAt(along, block) * scale) / WIDTH_STEP);
+
 const tube = (
   p: p5,
   spine: readonly Spine.Joint[],
@@ -149,15 +154,32 @@ const tube = (
   p.strokeCap(p.ROUND);
   p.strokeJoin(p.ROUND);
 
+  let band = -1;
+
   for (let i = spine.length - 1; i >= 1; i--) {
     const from = spine[i];
     const to = spine[i - 1];
 
     if (from === undefined || to === undefined) continue;
 
-    p.strokeWeight(widthAt(to.along, block) * scale);
-    p.line(from.at.x, from.at.y + lift, to.at.x, to.at.y + lift);
+    const wanted = bandOf(to.along, block, scale);
+
+    if (wanted !== band) {
+      if (band >= 0) {
+        p.vertex(from.at.x, from.at.y + lift);
+        p.endShape();
+      }
+
+      band = wanted;
+      p.strokeWeight(Math.max(WIDTH_STEP, wanted * WIDTH_STEP));
+      p.beginShape();
+      p.vertex(from.at.x, from.at.y + lift);
+    }
+
+    p.vertex(to.at.x, to.at.y + lift);
   }
+
+  if (band >= 0) p.endShape();
 };
 
 export const head = (
