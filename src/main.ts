@@ -46,6 +46,13 @@ const HITSTOP_MS = 130;
 const ENDING_GRACE_MS = 600;
 const PRESS_FEEDBACK_MS = 130;
 const MAX_DENSITY = 2;
+const PIXEL_BUDGET = 5_000_000;
+
+const densityFor = (width: number, height: number, offered: number): number => {
+  const area = Math.max(1, width * height);
+
+  return Math.min(MAX_DENSITY, offered, Math.max(1, Math.sqrt(PIXEL_BUDGET / area)));
+};
 const RESEND_MS = 100;
 const COAX_MS = 250;
 const STALL_MS = 600;
@@ -129,7 +136,7 @@ const HELP_LINES: readonly (readonly [string, string])[] = [
 
 export const sketch = new p5((p: p5) => {
   p.setup = () => {
-    p.pixelDensity(Math.min(MAX_DENSITY, p.displayDensity()));
+    p.pixelDensity(densityFor(p.windowWidth, p.windowHeight, p.displayDensity()));
     p.createCanvas(p.windowWidth, p.windowHeight).parent(document.body);
     p.frameRate(60);
 
@@ -720,6 +727,7 @@ export const sketch = new p5((p: p5) => {
         };
 
         onResize = () => {
+          p.pixelDensity(densityFor(p.windowWidth, p.windowHeight, p.displayDensity()));
           p.resizeCanvas(p.windowWidth, p.windowHeight);
           shell = shellFor(Units.viewport(p.windowWidth, p.windowHeight), settings.hand);
           layout = Layout.fit(board, shell.stage);
