@@ -106,6 +106,7 @@ const lastOneStanding = (): Standings.Type => {
         food: board.start,
         rng: Rng.fromSeed(1),
         variant: World.variant(0),
+        mode: Game.forPlayers(2),
       });
 
       const stepped = Game.step(api, State.playing({ world }), Game.tick);

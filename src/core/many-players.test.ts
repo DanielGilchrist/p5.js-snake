@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import * as Assert from "./assert";
+import * as Autopilot from "./autopilot";
 import * as Board from "./board";
 import * as Game from "./game";
 import * as Geometry from "./geometry";
+import * as Option from "./option";
 import * as Player from "./player";
 import * as State from "./game/state";
 import * as World from "./world";
@@ -343,6 +345,7 @@ const walkedInto = (away: boolean): Corpse => {
         food: Board.farthest(board, ahead),
         rng: Rng.fromSeed(1),
         variant: World.variant(0),
+        mode: Game.forPlayers(2),
       });
 
       const stepped = Game.step(api, State.playing({ world }), Game.tick);
@@ -393,6 +396,7 @@ const tradedBeside = (bystanders: number): Ambush => {
         food: Board.farthest(board, ahead),
         rng: Rng.fromSeed(1),
         variant: World.variant(0),
+        mode: Game.forPlayers(2),
       });
 
       const stepped = Game.step(api, State.playing({ world }), Game.tick);
@@ -509,5 +513,107 @@ describe("a player dropping out", () => {
       },
       3,
     );
+  });
+});
+
+describe("starting long", () => {
+  const LONG = 30;
+
+  test("a snake asked to start long grows to that length as it moves", () => {
+    const result = Board.parse(
+      { cols: 28, rows: 18 },
+      <B>(board: Board.Grid<B>, api: Board.Api<B>) => {
+        let state: Game.State<B> = Game.start(board, Rng.fromSeed(1), Game.forPlayers(1, LONG));
+
+        expect(playerIn(state, Players.FIRST).snake.tail.length).toBe(0);
+
+        for (let i = 0; i < LONG && state.kind === Game.PLAYING; i++) {
+          for (const [who] of Players.everyone(state.world.players)) {
+            const picked: Option.Type<Geometry.Direction> = Autopilot.choose(api, state.world, who);
+
+            if (picked.some) state = Game.step(api, state, Game.turn(who, picked.value)).state;
+          }
+
+          state = Game.step(api, state, Game.tick).state;
+        }
+
+        return playerIn(state, Players.FIRST).snake.tail.length + 1;
+      },
+    );
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    expect(result.value).toBe(LONG + 1);
+  });
+
+  test("no growth asked for leaves the game exactly as it was", () => {
+    onBoard(ROOM, 1, (_api, state) => {
+      for (const [, player] of Players.everyone(state.world.players)) {
+        expect(player.snake.growth).toBe(0);
+        expect(player.snake.tail.length).toBe(0);
+      }
+    });
+  });
+
+  test("every player at the table starts equally long", () => {
+    const result = Board.parse({ cols: 28, rows: 18 }, <B>(board: Board.Grid<B>) => {
+      const state = Game.start(board, Rng.fromSeed(1), Game.forPlayers(4, LONG));
+
+      return Players.everyone(state.world.players).map(([, one]) => one.snake.growth);
+    });
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    expect(result.value).toEqual([LONG, LONG, LONG, LONG]);
+  });
+});
+
+const started = <B>(board: Board.Grid<B>, mode: Game.Mode): Game.State<B> =>
+  Game.start(board, Rng.fromSeed(4), mode);
+
+describe("restarting keeps the rules it started with", () => {
+  test("a long game restarts long", () => {
+    const result = Board.parse(
+      { cols: 28, rows: 18 },
+      <B>(board: Board.Grid<B>, api: Board.Api<B>) => {
+        const again = Game.step(api, started(board, Game.forPlayers(4, 50)), Game.restart).state;
+
+        return Players.everyone(again.world.players).map(([, one]) => one.snake.growth);
+      },
+    );
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    expect(result.value).toEqual([50, 50, 50, 50]);
+  });
+
+  test("the table keeps its size across a restart", () => {
+    const result = Board.parse(
+      { cols: 28, rows: 18 },
+      <B>(board: Board.Grid<B>, api: Board.Api<B>) => {
+        const again = Game.step(api, started(board, Game.forPlayers(6)), Game.restart).state;
+
+        return Players.count(again.world.players);
+      },
+    );
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    expect(result.value).toBe(6);
+  });
+
+  test("a plain game restarts plain", () => {
+    const result = Board.parse(
+      { cols: 28, rows: 18 },
+      <B>(board: Board.Grid<B>, api: Board.Api<B>) => {
+        const again = Game.step(api, started(board, Game.SOLO), Game.restart).state;
+
+        return Players.everyone(again.world.players).map(([, one]) => one.snake.growth);
+      },
+    );
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    expect(result.value).toEqual([0]);
   });
 });

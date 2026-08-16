@@ -84,6 +84,11 @@ export const moveBack = <B>(snake: State<B>, dropped: Option.Type<Board.Cell<B>>
 
 export const grow = <B>(snake: State<B>): State<B> => ({ ...snake, growth: snake.growth + 1 });
 
+export const growBy = <B>(snake: State<B>, by: number): State<B> => ({
+  ...snake,
+  growth: snake.growth + Math.max(0, by),
+});
+
 export const shrink = <B>(snake: State<B>): State<B> => ({ ...snake, growth: snake.growth - 1 });
 
 export const occupies = <B>(snake: State<B>, target: Board.Cell<B>): boolean =>

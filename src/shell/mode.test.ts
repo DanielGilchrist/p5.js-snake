@@ -132,3 +132,20 @@ describe("how many players a link asks for", () => {
     expect(Palette.bodies(Palette.STONEWARE)).toBe(Palette.bodies(Palette.EARTHENWARE));
   });
 });
+
+describe("starting long for profiling", () => {
+  test("no flag means the usual short snakes", () => {
+    expect(Mode.read(SITE).rules.growth).toBe(0);
+    expect(Mode.read(`${SITE}?cpu=7`).rules.growth).toBe(0);
+  });
+
+  test("the flag sets how long everyone starts", () => {
+    expect(Mode.read(`${SITE}?long=80`).rules.growth).toBe(80);
+    expect(Mode.read(`${SITE}?cpu=7&long=120`).rules.growth).toBe(120);
+  });
+
+  test("it is capped, and nonsense falls back to a token length", () => {
+    expect(Mode.read(`${SITE}?long=99999`).rules.growth).toBe(400);
+    expect(Mode.read(`${SITE}?long=nope`).rules.growth).toBe(1);
+  });
+});

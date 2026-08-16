@@ -202,7 +202,9 @@ export const sketch = new p5((p: p5) => {
 
         let round = seed;
         let pending = seed;
-        const rules = net.some ? Game.forPlayers(net.value.players()) : mode.rules;
+        const rules = net.some
+          ? Game.forPlayers(net.value.players(), mode.rules.growth)
+          : mode.rules;
 
         let state = Game.start(board, Rng.fromSeed(round), rules);
         let timeline = Timeline.start(state);

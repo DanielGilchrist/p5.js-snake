@@ -1,6 +1,7 @@
 import type * as Board from "./board";
 import type * as Brand from "./brand";
 import * as Geometry from "./geometry";
+import type * as Mode from "./game/mode";
 import * as Players from "./players";
 import type * as Rng from "./rng";
 
@@ -24,6 +25,7 @@ export type Type<B> = {
   readonly food: Board.Cell<B>;
   readonly rng: Rng.State;
   readonly variant: Variant;
+  readonly mode: Mode.Type;
 };
 
 export const create = <B>(fields: Type<B>): Type<B> => ({ ...fields });

@@ -33,6 +33,8 @@ const PLAYERS_TOGETHER = 2;
 
 export const MOST_PLAYERS = 8;
 
+const LONGEST_START = 400;
+
 const clamp = (n: number, low: number, high: number): number => Math.min(high, Math.max(low, n));
 
 const kindOf = (networked: boolean, computer: boolean, friend: boolean): Kind => {
@@ -73,10 +75,11 @@ export const read = (href: string): Mode => {
   const room = Invite.counted(href, "players");
   const kind = kindOf(networked, computer, friend);
   const playing = playersOf(kind, asked, room);
+  const long = Invite.counted(href, "long");
 
   return {
     kind,
-    rules: Game.forPlayers(playing),
+    rules: Game.forPlayers(playing, Math.min(LONGEST_START, Option.getOrElse(long, 0))),
     room: invited.some ? invited.value : Code.fresh(),
     hosting,
     joining: invited.some,

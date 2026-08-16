@@ -2,6 +2,7 @@ import * as Board from "../board";
 import * as Assert from "../assert";
 import * as Command from "./command";
 import * as Event from "../event";
+import * as ModeOf from "./mode";
 import * as Food from "../food";
 import * as Geometry from "../geometry";
 import * as Option from "../option";
@@ -15,22 +16,24 @@ import * as State from "./state";
 
 const VARIANTS = 20;
 
-export type Mode = { readonly players: number };
+export type Mode = ModeOf.Type;
 
-export const SOLO: Mode = { players: 1 };
-
-export const PAIR: Mode = { players: 2 };
-
-export const forPlayers = (players: number): Mode => ({ players: Math.max(1, players) });
+export const { SOLO, PAIR, forPlayers } = ModeOf;
 
 const facingFrom = <B>(board: Board.Grid<B>, at: Board.Cell<B>): Geometry.Direction =>
   at.col * 2 < board.cols ? Geometry.RIGHT : Geometry.LEFT;
 
+const placed = <B>(board: Board.Grid<B>, at: Board.Cell<B>, growth: number): Player.Type<B> => {
+  const player = Player.spawn(at, facingFrom(board, at));
+
+  return growth === 0 ? player : Player.withSnake(player, Snake.growBy(player.snake, growth));
+};
+
 const seatedFor = <B>(board: Board.Grid<B>, mode: Mode): Players.Type<B> => {
   const places = Board.spawns(board, mode.players);
-  const [first, ...rest] = places.map((at) => Player.spawn(at, facingFrom(board, at)));
+  const [first, ...rest] = places.map((at) => placed(board, at, mode.growth));
 
-  return Players.of(first ?? Player.spawn(board.start, Geometry.RIGHT), rest);
+  return Players.of(first ?? placed(board, board.start, mode.growth), rest);
 };
 
 export const start = <B>(board: Board.Grid<B>, rng: Rng.State, mode: Mode): State.Type<B> => {
@@ -45,6 +48,7 @@ export const start = <B>(board: Board.Grid<B>, rng: Rng.State, mode: Mode): Stat
       food: Option.getOrElse(food, board.start),
       rng: next,
       variant: World.variant(drawn),
+      mode,
     }),
   });
 };

@@ -21,10 +21,7 @@ export const step = <B>(
   command: Command.Type,
 ): Step<B> => {
   if (command.kind === Command.RESTART) {
-    return stepped(
-      Rules.start(state.world.board, state.world.rng, Rules.forPlayers(state.world.players.length)),
-      [],
-    );
+    return stepped(Rules.start(state.world.board, state.world.rng, state.world.mode), []);
   }
 
   const events = Rules.decide(api, state, command);
