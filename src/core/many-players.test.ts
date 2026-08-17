@@ -617,3 +617,75 @@ describe("restarting keeps the rules it started with", () => {
     expect(result.value).toEqual([0]);
   });
 });
+
+const at = <B>(board: Board.Grid<B>, col: number, row: number): Board.Cell<B> => {
+  const found = board.playable.find((cell) => cell.col === col && cell.row === row);
+
+  if (found === undefined) Assert.unreachable("fixture cell must be playable");
+
+  return found;
+};
+
+const facing = <B>(
+  board: Board.Grid<B>,
+  col: number,
+  row: number,
+  direction: Geometry.Direction,
+): Player.Type<B> => Player.spawn(at(board, col, row), direction);
+
+describe("food is never left buried", () => {
+  const tradingOntoFood = <B>(board: Board.Grid<B>): Game.State<B> =>
+    State.playing({
+      world: World.create({
+        board,
+        players: Players.of(facing(board, 2, 1, "right"), [
+          facing(board, 4, 1, "left"),
+          facing(board, 2, 11, "right"),
+          facing(board, 13, 11, "left"),
+        ]),
+        food: at(board, 3, 1),
+        rng: Rng.fromSeed(5),
+        variant: World.variant(0),
+        mode: Game.forPlayers(4),
+      }),
+    });
+
+  const onTradeBoard = <R>(run: <B>(api: Board.Api<B>, state: Game.State<B>) => R): R => {
+    const result = Board.parse(
+      { cols: 16, rows: 14 },
+      <B>(board: Board.Grid<B>, api: Board.Api<B>) => run(api, tradingOntoFood(board)),
+    );
+
+    if (!result.ok) Assert.unreachable("fixture board must parse");
+
+    return result.value;
+  };
+
+  test("a trade onto the food cell moves the food off the bodies", () => {
+    onTradeBoard((api, state) => {
+      const traded = Game.step(api, state, Game.tick).state;
+
+      expect(traded.kind).toBe("playing");
+      expect(playerIn(traded, Players.FIRST).alive).toBe(false);
+      expect(playerIn(traded, SECOND).alive).toBe(false);
+
+      for (const [, player] of Players.everyone(traded.world.players)) {
+        expect(Snake.occupies(player.snake, traded.world.food)).toBe(false);
+      }
+    });
+  });
+
+  test("the reseated food inverts back on a rewind", () => {
+    const inverted = onTradeBoard(<B>(api: Board.Api<B>, state: Game.State<B>) => {
+      const stepped = Game.step(api, state, Game.tick);
+      const back = stepped.events.reduceRight(
+        (carried: Game.State<B>, event) => Game.revert(carried, event),
+        stepped.state,
+      );
+
+      return JSON.stringify(back) === JSON.stringify(state);
+    });
+
+    expect(inverted).toBe(true);
+  });
+});

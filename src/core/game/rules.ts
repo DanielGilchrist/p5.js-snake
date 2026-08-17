@@ -147,6 +147,20 @@ const feed = <B>(
   return [Event.grew(who), Event.scored(who, at), rolled, Event.ended(World.FILLED)];
 };
 
+const buried = <B>(players: Players.Type<B>, food: Board.Cell<B>): boolean =>
+  players.some((player) => Snake.occupies(player.snake, food));
+
+const reseat = <B>(world: World.Type<B>, players: Players.Type<B>): readonly Event.Type<B>[] => {
+  if (!buried(players, world.food)) return [];
+
+  const [next, rng] = Food.place(world.board, players, world.rng);
+  const rolled = Event.rolled(world, rng);
+
+  if (next.some) return [Event.fed(world, next.value), rolled];
+
+  return [rolled, Event.ended(World.FILLED)];
+};
+
 const killedBy = <B>(each: Attempt<B>, other: Attempt<B>): boolean =>
   each.after.some && other.after.some && Snake.occupies(other.after.value, each.after.value.head);
 
@@ -192,7 +206,10 @@ const tick = <B>(api: Board.Api<B>, world: World.Type<B>): readonly Event.Type<B
   const deaths = deathsAmong(attempts, remains(world.players));
 
   if (deaths.length > 0) {
-    return [...turning, ...motion, ...deaths, ...closingFor(world, attempts, deaths)];
+    const closing = closingFor(world, attempts, deaths);
+    const moving = closing.length > 0 ? [] : reseat(world, settled(world.players, attempts));
+
+    return [...turning, ...motion, ...deaths, ...moving, ...closing];
   }
 
   const eating = attempts.find(
