@@ -1,8 +1,8 @@
 import type p5 from "p5";
 
-import * as NonEmpty from "../core/non-empty";
 import * as Assert from "../core/assert";
 import type * as Board from "../core/board";
+import * as NonEmpty from "../core/non-empty";
 import type * as World from "../core/world";
 import * as Paint from "./paint";
 import type * as Palette from "./palette";

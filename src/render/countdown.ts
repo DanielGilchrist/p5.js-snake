@@ -1,8 +1,8 @@
 import type p5 from "p5";
 
+import type * as Layout from "./layout";
 import * as Paint from "./paint";
 import type * as Palette from "./palette";
-import type * as Layout from "./layout";
 import type * as Units from "./units";
 
 export type Countdown = { readonly left: Units.Millis; readonly span: Units.Millis };

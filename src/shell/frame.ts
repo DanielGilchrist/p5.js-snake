@@ -1,6 +1,6 @@
+import * as Render from "../render";
 import * as Layout from "../render/layout";
 import * as Pad from "../render/pad";
-import * as Render from "../render";
 import type * as Units from "../render/units";
 
 export const DESK = "desk";

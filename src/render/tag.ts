@@ -1,6 +1,6 @@
 import type p5 from "p5";
 
-import * as Option from "../core/option";
+import type * as Option from "../core/option";
 import * as Paint from "./paint";
 import type * as Palette from "./palette";
 import type * as Units from "./units";

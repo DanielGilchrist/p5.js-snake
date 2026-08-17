@@ -1,5 +1,5 @@
-import { joinRoom, selfId } from "trystero";
 import type { Room } from "@trystero-p2p/core";
+import { joinRoom, selfId } from "trystero";
 
 import type * as Code from "./code";
 

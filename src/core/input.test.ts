@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
 import * as Input from "./input";
+import * as Players from "./players";
 import * as Rng from "./rng";
 
 const onBoard = <R>(run: <B>(api: Board.Api<B>, state: Game.State<B>) => R): R => {

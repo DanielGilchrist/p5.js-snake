@@ -3,8 +3,8 @@ import type p5 from "p5";
 import * as Ease from "../ease";
 import * as Paint from "../paint";
 import type * as Palette from "../palette";
-import type * as Effect from "./effect";
 import type * as Units from "../units";
+import type * as Effect from "./effect";
 
 const SIZE_RATIO = 0.8;
 const CORNER_RATIO = 0.2;

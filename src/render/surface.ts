@@ -1,9 +1,9 @@
 import type p5 from "p5";
 
 import type * as Board from "../core/board";
-import type * as Layout from "./layout";
 import * as Clay from "./clay";
-import * as Palette from "./palette";
+import type * as Layout from "./layout";
+import type * as Palette from "./palette";
 import * as Sculpt from "./sculpt";
 import * as Units from "./units";
 

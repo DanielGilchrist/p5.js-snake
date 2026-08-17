@@ -2,7 +2,7 @@ import type p5 from "p5";
 
 import * as Assert from "../core/assert";
 import * as Paint from "./paint";
-import * as Palette from "./palette";
+import type * as Palette from "./palette";
 import * as Scene from "./scene";
 
 const TRAILING = "to skip";

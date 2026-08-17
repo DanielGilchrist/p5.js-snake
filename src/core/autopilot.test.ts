@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import * as Assert from "./assert";
+import * as Autopilot from "./autopilot";
 import * as Board from "./board";
 import * as Game from "./game";
 import type * as Geometry from "./geometry";
 import type * as Option from "./option";
-import * as Autopilot from "./autopilot";
-import * as Rng from "./rng";
 import * as Players from "./players";
+import * as Rng from "./rng";
 import * as Turns from "./turns";
 
 const ROOM: Board.GridSize = { cols: 14, rows: 12 };

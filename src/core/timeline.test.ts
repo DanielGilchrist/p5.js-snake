@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import * as NonEmpty from "./non-empty";
-import type * as Geometry from "./geometry";
-import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
+import type * as Geometry from "./geometry";
+import * as NonEmpty from "./non-empty";
+import * as Players from "./players";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
-import type * as World from "./world";
-
 import * as Timeline from "./timeline";
+import type * as World from "./world";
 
 type Played<B> = {
   readonly timeline: Timeline.Timeline<B>;

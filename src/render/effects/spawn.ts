@@ -2,7 +2,7 @@ import * as Assert from "../../core/assert";
 import * as Event from "../../core/event";
 import * as Layout from "../layout";
 import * as Morsel from "../morsel";
-import * as Palette from "../palette";
+import type * as Palette from "../palette";
 import type * as Units from "../units";
 import * as Effect from "./effect";
 

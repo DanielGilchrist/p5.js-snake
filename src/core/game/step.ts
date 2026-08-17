@@ -3,7 +3,7 @@ import type * as Event from "../event";
 import * as Command from "./command";
 import * as Fold from "./fold";
 import * as Rules from "./rules";
-import * as State from "./state";
+import type * as State from "./state";
 
 type Step<B> = {
   readonly state: State.Type<B>;

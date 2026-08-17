@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-import * as NonEmpty from "../../core/non-empty";
-import * as Players from "../../core/players";
 import * as Assert from "../../core/assert";
 import * as Board from "../../core/board";
 import * as Event from "../../core/event";
 import * as Game from "../../core/game";
 import type * as Geometry from "../../core/geometry";
+import * as NonEmpty from "../../core/non-empty";
 import * as Option from "../../core/option";
+import * as Players from "../../core/players";
 import * as Rng from "../../core/rng";
 import * as Layout from "../layout";
 import * as Palette from "../palette";

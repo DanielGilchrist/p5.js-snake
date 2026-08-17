@@ -1,11 +1,11 @@
 import type p5 from "p5";
 
 import * as Assert from "../core/assert";
-import type * as Option from "../core/option";
-import * as Paint from "./paint";
-import * as Palette from "./palette";
 import * as Geometry from "../core/geometry";
+import type * as Option from "../core/option";
 import * as Pad from "./pad";
+import * as Paint from "./paint";
+import type * as Palette from "./palette";
 import * as Units from "./units";
 
 const CASE_RADIUS = 0.06;

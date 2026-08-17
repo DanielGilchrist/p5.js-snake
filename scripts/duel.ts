@@ -8,7 +8,7 @@ import * as Board from "../src/core/board";
 import * as Game from "../src/core/game";
 import * as Geometry from "../src/core/geometry";
 import * as Option from "../src/core/option";
-import * as Player from "../src/core/player";
+import type * as Player from "../src/core/player";
 import * as Players from "../src/core/players";
 import * as Rng from "../src/core/rng";
 import * as Snake from "../src/core/snake";

@@ -4,14 +4,14 @@ import * as Assert from "./assert";
 import * as Autopilot from "./autopilot";
 import * as Board from "./board";
 import * as Game from "./game";
-import * as Geometry from "./geometry";
-import * as Option from "./option";
-import * as Player from "./player";
 import * as State from "./game/state";
-import * as World from "./world";
+import * as Geometry from "./geometry";
+import type * as Option from "./option";
+import * as Player from "./player";
 import * as Players from "./players";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
+import * as World from "./world";
 
 const ROOM: Board.GridSize = { cols: 12, rows: 12 };
 const CORRIDOR: Board.GridSize = { cols: 9, rows: 3 };

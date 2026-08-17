@@ -1,5 +1,5 @@
-import type * as Board from "./board";
 import * as Assert from "./assert";
+import type * as Board from "./board";
 import type * as Geometry from "./geometry";
 import type * as Option from "./option";
 import * as Player from "./player";

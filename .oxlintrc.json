@@ -3,7 +3,8 @@
   "plugins": [
     "typescript",
     "unicorn",
-    "oxc"
+    "oxc",
+    "import"
   ],
   "categories": {
     "correctness": "error",
@@ -12,7 +13,31 @@
   },
   "rules": {
     "local/namespace-imports": "error",
-    "no-nested-ternary": "error"
+    "no-nested-ternary": "error",
+    "import/no-cycle": "error",
+    "import/first": "error",
+    "import/no-duplicates": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/array-type": "error",
+    "typescript/prefer-function-type": "error",
+    "eqeqeq": "error",
+    "default-case-last": "error",
+    "no-else-return": "error",
+    "no-lonely-if": "error",
+    "no-param-reassign": "error",
+    "no-unneeded-ternary": "error",
+    "no-implicit-coercion": "error",
+    "prefer-const": "error",
+    "func-style": [
+      "error",
+      "expression"
+    ],
+    "unicorn/explicit-length-check": "error",
+    "unicorn/filename-case": "error",
+    "unicorn/no-negated-condition": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-spread": "error"
   },
   "env": {
     "builtin": true,

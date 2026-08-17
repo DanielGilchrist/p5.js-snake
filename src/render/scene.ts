@@ -1,24 +1,24 @@
 import type p5 from "p5";
 
 import * as Assert from "../core/assert";
-import * as Option from "../core/option";
-import * as Clay from "./clay";
-import * as Palette from "./palette";
-import * as Keys from "./keys";
 import * as Game from "../core/game";
+import * as Geometry from "../core/geometry";
+import * as Option from "../core/option";
 import * as Players from "../core/players";
+import type * as Standings from "../core/standings";
 import * as Turns from "../core/turns";
 import * as World from "../core/world";
+import * as Clay from "./clay";
 import * as FoodView from "./food";
 import * as GridView from "./grid";
 import * as Hud from "./hud";
-import * as Geometry from "../core/geometry";
-import * as Layout from "./layout";
+import * as Keys from "./keys";
+import type * as Layout from "./layout";
 import * as Paint from "./paint";
-import * as Surface from "./surface";
+import * as Palette from "./palette";
 import * as SnakeView from "./snake";
 import * as StandingsView from "./standings";
-import type * as Standings from "../core/standings";
+import * as Surface from "./surface";
 import type * as Tag from "./tag";
 import * as Units from "./units";
 

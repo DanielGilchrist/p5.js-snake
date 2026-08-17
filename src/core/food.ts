@@ -1,7 +1,7 @@
 import type * as Board from "./board";
 import * as NonEmpty from "./non-empty";
 import * as Option from "./option";
-import * as Players from "./players";
+import type * as Players from "./players";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
 

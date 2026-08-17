@@ -1,6 +1,6 @@
 import * as Assert from "../core/assert";
-import * as Game from "../core/game";
 import * as Controls from "../core/controls";
+import * as Game from "../core/game";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
 import * as Players from "../core/players";

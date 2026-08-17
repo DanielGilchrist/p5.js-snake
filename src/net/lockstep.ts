@@ -1,6 +1,6 @@
 import type * as Geometry from "../core/geometry";
+import type * as Option from "../core/option";
 import type * as Players from "../core/players";
-import * as Option from "../core/option";
 
 export type Waiting = {
   readonly beat: number;

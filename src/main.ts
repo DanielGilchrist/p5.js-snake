@@ -1,51 +1,51 @@
 import p5 from "p5";
 
 import * as Assert from "./core/assert";
+import * as Autopilot from "./core/autopilot";
 import * as Board from "./core/board";
-import * as Game from "./core/game";
 import * as Controls from "./core/controls";
+import * as Game from "./core/game";
 import * as Geometry from "./core/geometry";
 import * as Input from "./core/input";
 import * as Option from "./core/option";
-import * as Autopilot from "./core/autopilot";
+import * as Players from "./core/players";
 import * as Rng from "./core/rng";
 import * as Standings from "./core/standings";
-import * as Invite from "./net/invite";
-import * as Session from "./net/session";
-import * as Players from "./core/players";
-import * as Code from "./net/code";
-import * as Lockstep from "./net/lockstep";
 import * as Timeline from "./core/timeline";
-import * as Title from "./shell/title";
-import * as Fault from "./shell/fault";
-import * as Frame from "./shell/frame";
-import * as Fullscreen from "./shell/fullscreen";
-import * as Build from "./shell/build";
-import * as Intent from "./shell/intent";
-import * as Mode from "./shell/mode";
-import * as Aside from "./shell/aside";
-import * as Opening from "./shell/opening";
-import * as Pace from "./shell/pace";
-import * as Page from "./shell/page";
-import * as Phase from "./shell/phase";
 import * as Verdict from "./core/verdict";
 import * as World from "./core/world";
+import type * as Code from "./net/code";
+import * as Invite from "./net/invite";
+import * as Lockstep from "./net/lockstep";
+import * as Session from "./net/session";
+import * as Render from "./render";
 import * as Effects from "./render/effects";
 import * as Keys from "./render/keys";
 import * as Layout from "./render/layout";
 import * as Menu from "./render/menu";
-import * as Palette from "./render/palette";
-import * as Panel from "./render/panel";
-import * as Settings from "./render/settings";
-import * as InvitePanel from "./shell/invite";
-import * as Slots from "./shell/slots";
-import * as Offline from "./shell/offline";
-import * as Storage from "./shell/storage";
 import * as Pad from "./render/pad";
-import * as Render from "./render";
+import type * as Palette from "./render/palette";
+import * as Panel from "./render/panel";
 import * as Rewind from "./render/rewind";
+import * as Settings from "./render/settings";
 import * as Surface from "./render/surface";
 import * as Units from "./render/units";
+import * as Aside from "./shell/aside";
+import * as Build from "./shell/build";
+import * as Fault from "./shell/fault";
+import * as Frame from "./shell/frame";
+import * as Fullscreen from "./shell/fullscreen";
+import * as Intent from "./shell/intent";
+import * as InvitePanel from "./shell/invite";
+import * as Mode from "./shell/mode";
+import * as Offline from "./shell/offline";
+import * as Opening from "./shell/opening";
+import * as Pace from "./shell/pace";
+import * as Page from "./shell/page";
+import * as Phase from "./shell/phase";
+import * as Slots from "./shell/slots";
+import * as Storage from "./shell/storage";
+import * as Title from "./shell/title";
 
 Offline.keep();
 
@@ -283,7 +283,7 @@ export const sketch = new p5((p: p5) => {
       showing(window.location.href);
     });
 
-    function startPlay(mode: Mode.Mode): void {
+    const startPlay = (mode: Mode.Mode): void => {
       onLeave();
       onLeave = idle;
 
@@ -1379,7 +1379,7 @@ export const sketch = new p5((p: p5) => {
         Render.Lobby.draw(p, scheme, Render.Lobby.of(p, waiting), waiting);
         aside.draw();
       };
-    }
+    };
 
     if (launch.kind === Mode.TITLE) showTitle();
     else startPlay(launch.mode);

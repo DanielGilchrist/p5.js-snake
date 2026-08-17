@@ -3,14 +3,14 @@ import { describe, expect, test } from "bun:test";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
+import * as State from "./game/state";
 import * as Geometry from "./geometry";
 import * as Player from "./player";
 import * as Players from "./players";
 import * as Rng from "./rng";
-import * as State from "./game/state";
-import * as World from "./world";
-import * as Verdict from "./verdict";
 import * as Standings from "./standings";
+import * as Verdict from "./verdict";
+import * as World from "./world";
 
 const SECOND = Players.id(1);
 const THIRD = Players.id(2);

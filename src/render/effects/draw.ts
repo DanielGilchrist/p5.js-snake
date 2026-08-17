@@ -1,8 +1,8 @@
 import type p5 from "p5";
-import type * as Palette from "../palette";
 
 import * as Assert from "../../core/assert";
 import type * as Layout from "../layout";
+import type * as Palette from "../palette";
 import type * as Units from "../units";
 import * as Debris from "./debris";
 import * as Effect from "./effect";

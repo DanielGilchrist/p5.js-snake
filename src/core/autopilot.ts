@@ -27,6 +27,36 @@ const WEIGHING: Readonly<Record<Stance, Weights>> = {
   [PUSHY]: { food: 3, room: 5, deny: 8, keepOff: 3, hold: 1.2 },
 };
 
+type Rival<B> = {
+  readonly head: Board.Cell<B>;
+  readonly reach: number;
+  readonly length: number;
+  readonly steps: readonly Board.Cell<B>[];
+};
+
+export type Look<B> = {
+  readonly heading: Geometry.Direction;
+  readonly cell: Board.Cell<B>;
+  readonly room: number;
+  readonly contested: boolean;
+  readonly escapes: number;
+  readonly holds: boolean;
+};
+
+type Reading<B> = {
+  readonly board: Board.Grid<B>;
+  readonly held: Uint8Array;
+  readonly rivals: readonly Rival<B>[];
+  readonly looks: readonly Look<B>[];
+  readonly length: number;
+  readonly budget: number;
+};
+
+const ROOM_BUDGET = 3;
+const TIGHT = 1.25;
+const NEAR = 3;
+const REACH = 2;
+
 const RESTLESS = 0.86;
 const SPREAD = 1000;
 
@@ -39,10 +69,6 @@ const restless = <B>(world: World.Type<B>, who: Players.Id, length: number): boo
 
   return ((mixed >>> 8) % SPREAD) / SPREAD > RESTLESS;
 };
-
-const ROOM_BUDGET = 3;
-const TIGHT = 1.25;
-const NEAR = 3;
 
 const spotOf = <B>(board: Board.Grid<B>, cell: Board.Cell<B>): number =>
   cell.row * board.cols + cell.col;
@@ -98,13 +124,6 @@ const roomAt = <B>(
 const gap = <B>(a: Board.Cell<B>, b: Board.Cell<B>): number =>
   Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
 
-type Rival<B> = {
-  readonly head: Board.Cell<B>;
-  readonly reach: number;
-  readonly length: number;
-  readonly steps: readonly Board.Cell<B>[];
-};
-
 const stepsFor = <B>(
   api: Board.Api<B>,
   board: Board.Grid<B>,
@@ -144,8 +163,6 @@ const rivalsOf = <B>(
 
 const shared = <B>(rivals: readonly Rival<B>[], cell: Board.Cell<B>): boolean =>
   rivals.some((rival) => rival.steps.some((step) => Board.equals(step, cell)));
-
-const REACH = 2;
 
 const escapesFrom = <B>(
   api: Board.Api<B>,
@@ -200,24 +217,6 @@ export const stanceFor = <B>(
   if (mine > closest.value.reach) return PUSHY;
 
   return length > closest.value.length ? PUSHY : PATIENT;
-};
-
-export type Look<B> = {
-  readonly heading: Geometry.Direction;
-  readonly cell: Board.Cell<B>;
-  readonly room: number;
-  readonly contested: boolean;
-  readonly escapes: number;
-  readonly holds: boolean;
-};
-
-type Reading<B> = {
-  readonly board: Board.Grid<B>;
-  readonly held: Uint8Array;
-  readonly rivals: readonly Rival<B>[];
-  readonly looks: readonly Look<B>[];
-  readonly length: number;
-  readonly budget: number;
 };
 
 const readBoard = <B>(

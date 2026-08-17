@@ -4,7 +4,7 @@ import * as Assert from "../core/assert";
 import * as Geometry from "../core/geometry";
 import * as Input from "../core/input";
 import * as Option from "../core/option";
-import * as Render from "../render";
+import type * as Render from "../render";
 import * as Keys from "../render/keys";
 import * as Pad from "../render/pad";
 import type * as Palette from "../render/palette";

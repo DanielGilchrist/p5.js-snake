@@ -1,7 +1,7 @@
 import type * as Board from "./board";
 import type * as Brand from "./brand";
-import * as Geometry from "./geometry";
 import type * as Mode from "./game/mode";
+import * as Geometry from "./geometry";
 import * as Players from "./players";
 import type * as Rng from "./rng";
 

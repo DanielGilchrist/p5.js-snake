@@ -3,7 +3,7 @@ import * as Option from "../core/option";
 import * as Players from "../core/players";
 import type * as Code from "./code";
 import * as Lan from "./lan";
-import * as Lockstep from "./lockstep";
+import type * as Lockstep from "./lockstep";
 import * as Roster from "./roster";
 
 export type Config = {

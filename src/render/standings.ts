@@ -4,7 +4,7 @@ import * as Players from "../core/players";
 import * as Standings from "../core/standings";
 import type * as World from "../core/world";
 import * as Hud from "./hud";
-import * as Layout from "./layout";
+import type * as Layout from "./layout";
 import * as Palette from "./palette";
 import * as SnakeView from "./snake";
 import * as Units from "./units";

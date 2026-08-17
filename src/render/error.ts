@@ -3,7 +3,7 @@ import type p5 from "p5";
 import * as Assert from "../core/assert";
 import * as Board from "../core/board";
 import * as Paint from "./paint";
-import * as Palette from "./palette";
+import type * as Palette from "./palette";
 
 const explain = (error: Board.Error): string => {
   switch (error.kind) {

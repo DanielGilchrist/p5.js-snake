@@ -1,5 +1,5 @@
 import * as Assert from "../assert";
-import * as World from "../world";
+import type * as World from "../world";
 
 export const PLAYING = "playing";
 export const PAUSED = "paused";

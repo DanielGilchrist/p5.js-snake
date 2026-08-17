@@ -1,8 +1,6 @@
-import * as Board from "../board";
 import * as Assert from "../assert";
-import * as Command from "./command";
+import * as Board from "../board";
 import * as Event from "../event";
-import * as ModeOf from "./mode";
 import * as Food from "../food";
 import * as Geometry from "../geometry";
 import * as Option from "../option";
@@ -12,6 +10,8 @@ import * as Rng from "../rng";
 import * as Snake from "../snake";
 import * as Turns from "../turns";
 import * as World from "../world";
+import * as Command from "./command";
+import * as ModeOf from "./mode";
 import * as State from "./state";
 
 const VARIANTS = 20;

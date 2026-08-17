@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import * as Players from "./players";
 import * as Assert from "./assert";
 import * as Board from "./board";
 import * as Game from "./game";
 import type * as Geometry from "./geometry";
 import * as NonEmpty from "./non-empty";
+import * as Players from "./players";
 import * as Rng from "./rng";
 import * as Snake from "./snake";
 

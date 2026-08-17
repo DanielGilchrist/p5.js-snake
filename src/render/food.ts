@@ -5,7 +5,7 @@ import * as Ease from "./ease";
 import * as Layout from "./layout";
 import * as Morsel from "./morsel";
 import * as Paint from "./paint";
-import * as Palette from "./palette";
+import type * as Palette from "./palette";
 import type * as Units from "./units";
 
 const SPROUT_MS = 320;

@@ -1,7 +1,7 @@
 import type p5 from "p5";
 
 import type * as World from "../core/world";
-import * as Layout from "./layout";
+import type * as Layout from "./layout";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
 import * as Surface from "./surface";

@@ -1,13 +1,13 @@
 import type p5 from "p5";
 
+import type * as Geometry from "../core/geometry";
 import type * as World from "../core/world";
 import * as Clay from "./clay";
-import * as Layout from "./layout";
+import type * as Layout from "./layout";
 import * as Morsel from "./morsel";
 import * as Paint from "./paint";
 import * as Palette from "./palette";
 import * as SnakeView from "./snake";
-import * as Geometry from "../core/geometry";
 import * as Units from "./units";
 
 export type Badge = {
